@@ -46,6 +46,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   });
   const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [manualGramPerPorsi, setManualGramPerPorsi] = useState("");
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
 
@@ -140,7 +141,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           </button>
         ) : (
           <button
-            onClick={() => { setShowAddBahan(true); setAiEstimation(null); }}
+            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setManualGramPerPorsi(""); }}
             className="btn-accent"
             style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
           >
@@ -415,11 +416,67 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       )}
                     </div>
                   )}
+
+                  {/* Divider */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 12px" }}>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+                    <span style={{ fontSize: 9, color: "#374151", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>atau input manual</span>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+                  </div>
+
+                  {/* Manual Input */}
+                  {(() => {
+                    const manualGram = parseFloat(manualGramPerPorsi);
+                    const isiSatuan = parseFloat(form.isiSatuan);
+                    const hargaBeli = parseFloat(form.hargaBeli);
+                    const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
+                    const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
+                    return (
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>
+                              Gram per Porsi (diketahui)
+                            </label>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <input
+                                type="number"
+                                min={1}
+                                value={manualGramPerPorsi}
+                                onChange={(e) => setManualGramPerPorsi(e.target.value)}
+                                placeholder={`cth: 100`}
+                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                              />
+                              <span style={{ fontSize: 11, color: "#4B5563", whiteSpace: "nowrap" }}>{form.satuanDapur || "gram"}/porsi</span>
+                            </div>
+                          </div>
+                        </div>
+                        {porsi !== null && (
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Porsi / Kemasan</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: "#60A5FA" }}>{porsi.toLocaleString("id-ID")} porsi</div>
+                              <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>
+                                {isiSatuan.toLocaleString("id-ID")} {form.satuanDapur} ÷ {manualGram} {form.satuanDapur}
+                              </div>
+                            </div>
+                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / Porsi</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: hargaPerPorsi ? "#C8F135" : "#4B5563" }}>
+                                {hargaPerPorsi ? `Rp ${hargaPerPorsi.toLocaleString("id-ID")}` : "—"}
+                              </div>
+                              {!hargaPerPorsi && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); setManualGramPerPorsi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveBahan} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Bahan"}
                 </button>
