@@ -1,0 +1,11 @@
+node_modules
+.env.local 
+.env.example 
+.env/.next/
+/out/
+/drizzle/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+.DS_Store
+Thumbs.db
