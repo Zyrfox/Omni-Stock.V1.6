@@ -4,8 +4,9 @@ import { useState } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
-import { createBahan, updateBahan } from "@/actions/bahan";
-import { saveBOM, getMappingResep } from "@/actions/menu";
+import { createBahan } from "@/actions/bahan";
+import { saveBOM, createMenu } from "@/actions/menu";
+import { estimateRawBulkYield, type RawBulkEstimationResult } from "@/actions/gemini";
 
 interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
@@ -29,9 +30,12 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
   const [showBOMEditor, setShowBOMEditor] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
   const [saving, setSaving] = useState(false);
+  const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001" });
+  const [menus, setMenus] = useState<MenuItem[]>(menuList);
 
   // Add Bahan form state
   const [form, setForm] = useState({
@@ -40,8 +44,47 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
     satuanDapur: "gram", stokMinimum: "", isiSatuan: "",
     leadTimeDays: "1", outletId: "OUT-001",
   });
+  const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
+
+  async function handleSaveMenu() {
+    if (!menuForm.namaMenu.trim()) return;
+    setSaving(true);
+    try {
+      const result = await createMenu({
+        namaMenu: menuForm.namaMenu.trim(),
+        outletId: menuForm.outletId,
+        kategori: menuForm.kategori,
+        hargaJual: menuForm.hargaJual ? parseFloat(menuForm.hargaJual) : undefined,
+      });
+      setMenus((prev) => [...prev, {
+        id: result.id, namaMenu: menuForm.namaMenu.trim(),
+        kategori: menuForm.kategori, outletId: menuForm.outletId, totalCogs: "0", mappingResep: [],
+      }]);
+      setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" });
+      setShowAddMenu(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEstimateYield() {
+    if (!form.namaBahan || !form.isiSatuan) return;
+    setEstimating(true);
+    setAiEstimation(null);
+    try {
+      const result = await estimateRawBulkYield(
+        form.namaBahan,
+        parseFloat(form.isiSatuan) || 0,
+        form.satuanDapur || "gram"
+      );
+      setAiEstimation(result);
+    } finally {
+      setEstimating(false);
+    }
+  }
 
   async function handleSaveBahan() {
     setSaving(true);
@@ -87,13 +130,23 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Products & Recipes</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Master bahan baku, resep, dan menu final</p>
         </div>
-        <button
-          onClick={() => setShowAddBahan(true)}
-          className="btn-accent"
-          style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
-        >
-          + Tambah Bahan
-        </button>
+        {activeTab === 3 ? (
+          <button
+            onClick={() => { setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" }); }}
+            className="btn-accent"
+            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+          >
+            + Tambah Menu
+          </button>
+        ) : (
+          <button
+            onClick={() => { setShowAddBahan(true); setAiEstimation(null); }}
+            className="btn-accent"
+            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+          >
+            + Tambah Bahan
+          </button>
+        )}
       </div>
 
       {/* Stat Bar */}
@@ -231,10 +284,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {menuList.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu.</td></tr>
+              {menus.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Klik "+ Tambah Menu" untuk memulai.</td></tr>
               ) : (
-                menuList.map((m) => {
+                menus.map((m) => {
                   const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
                   return (
                     <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
@@ -275,9 +328,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       {/* Modal Tambah Bahan */}
       {showAddBahan && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 480, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 520, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Bahan Baku</h2>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
@@ -312,10 +365,115 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                   </select>
                 </div>
               </div>
+              {/* AI Research Panel — raw_bulk only */}
+              {form.tipeBahan === "raw_bulk" && (
+                <div style={{ marginTop: 16, padding: 16, background: "rgba(200,241,53,0.05)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
+                      <span style={{ fontSize: 10, color: "#4B5563" }}>Estimasi Yield Bahan</span>
+                    </div>
+                    <button
+                      onClick={handleEstimateYield}
+                      disabled={estimating || !form.namaBahan || !form.isiSatuan}
+                      style={{
+                        fontSize: 11, padding: "5px 12px",
+                        border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
+                        background: estimating ? "rgba(200,241,53,0.05)" : "rgba(200,241,53,0.1)",
+                        color: "#C8F135", cursor: estimating || !form.namaBahan || !form.isiSatuan ? "not-allowed" : "pointer",
+                        opacity: !form.namaBahan || !form.isiSatuan ? 0.5 : 1,
+                      }}
+                    >
+                      {estimating ? "⏳ Menghitung..." : "🔍 Hitung Estimasi Yield"}
+                    </button>
+                  </div>
+                  {!aiEstimation && !estimating && (
+                    <div style={{ fontSize: 11, color: "#4B5563", textAlign: "center", padding: "8px 0" }}>
+                      Isi nama bahan & isi kemasan, lalu klik "Hitung Estimasi Yield"
+                    </div>
+                  )}
+                  {aiEstimation && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Harga Pasar</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#C8F135" }}>{aiEstimation.hargaPasarFormatted}</div>
+                      </div>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Estimasi Porsi / Kemasan</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#E2E8F0" }}>
+                          ±{aiEstimation.estimasiPorsiPerKemasan ?? "?"} porsi
+                        </div>
+                        {aiEstimation.namaMenuContoh && (
+                          <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>{aiEstimation.namaMenuContoh}</div>
+                        )}
+                      </div>
+                      <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", lineHeight: 1.6, fontStyle: "italic" }}>
+                        {aiEstimation.narasi}
+                      </div>
+                      {aiEstimation.error && (
+                        <div style={{ gridColumn: "1 / -1", fontSize: 10, color: "#F59E0B" }}>⚠ {aiEstimation.error}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowAddBahan(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveBahan} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Bahan"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Menu */}
+      {showAddMenu && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 440, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Menu Final</h2>
+              <div style={{ display: "grid", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Menu *</label>
+                  <input
+                    value={menuForm.namaMenu}
+                    onChange={(e) => setMenuForm((f) => ({ ...f, namaMenu: e.target.value }))}
+                    placeholder="cth: Mie Goreng Special"
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori *</label>
+                    <select
+                      value={menuForm.kategori}
+                      onChange={(e) => setMenuForm((f) => ({ ...f, kategori: e.target.value as "food" | "beverage" }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                    >
+                      <option value="food">🍽 Food</option>
+                      <option value="beverage">🥤 Beverage</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Harga Jual (Rp)</label>
+                    <input
+                      type="number"
+                      value={menuForm.hargaJual}
+                      onChange={(e) => setMenuForm((f) => ({ ...f, hargaJual: e.target.value }))}
+                      placeholder="25000"
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button onClick={() => setShowAddMenu(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleSaveMenu} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
+                  {saving ? "Menyimpan..." : "Simpan Menu"}
                 </button>
               </div>
             </div>
