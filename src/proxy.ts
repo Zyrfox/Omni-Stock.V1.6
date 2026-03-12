@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { betterFetch } from "@better-fetch/fetch";
+import type { auth } from "@/lib/auth";
+
+type Session = typeof auth.$Infer.Session;
 
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ["/login", "/api/auth"];
@@ -18,10 +21,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get session
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  // Get session via API — avoids importing Node.js-only `postgres` in Edge Runtime
+  const { data: session } = await betterFetch<Session>(
+    "/api/auth/get-session",
+    {
+      baseURL: request.nextUrl.origin,
+      headers: {
+        cookie: request.headers.get("cookie") ?? "",
+      },
+    },
+  );
 
   // No session → redirect to login
   if (!session) {
