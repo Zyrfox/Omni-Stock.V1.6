@@ -1,16 +1,17 @@
 "use server";
 
 import { db } from "@/db";
-import { masterBahan, masterMenu, salesTransactions, mappingResep } from "@/db/schema";
-import { eq, sql, and, gte } from "drizzle-orm";
-import { parseExcelBuffer } from "@/lib/excel-parser";
+import { masterBahan, uploadBatches } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
+import { parseKartuStok } from "@/lib/excel-parser";
 import { calculateStockStatus } from "@/lib/stock-status";
-import { generateId, generateBatchId } from "@/lib/id-generator";
+import { generateId } from "@/lib/id-generator";
 
 export interface UploadedStockItem {
-  bahanId: string;
+  bahanId: string | null;
   namaBahan: string;
-  tipeBahan: "packaged" | "raw_bulk";
+  kategori: string;
+  tipeBahan: "packaged" | "raw_bulk" | null;
   stokAkhir: number;
   satuanDapur: string;
   stokMinimum: number;
@@ -26,7 +27,10 @@ export interface UploadedStockItem {
 export interface UploadResult {
   success: boolean;
   batchId: string;
+  outletName: string;
+  tanggalKartuStok: string;
   itemsParsed: number;
+  matchedBahan: number;
   errors: string[];
   stockItems: UploadedStockItem[];
   message: string;
@@ -39,147 +43,142 @@ export async function processUpload(
 ): Promise<UploadResult> {
   const file = formData.get("file") as File;
   if (!file) {
-    return { success: false, batchId: "", itemsParsed: 0, errors: ["File tidak ditemukan."], stockItems: [], message: "Gagal" };
+    return {
+      success: false, batchId: "", outletName: "", tanggalKartuStok: "",
+      itemsParsed: 0, matchedBahan: 0,
+      errors: ["File tidak ditemukan."], stockItems: [], message: "Gagal: file tidak ada.",
+    };
   }
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
-  const parsed = parseExcelBuffer(buffer);
+  const parsed = parseKartuStok(buffer);
 
   if (parsed.rows.length === 0) {
     return {
-      success: false,
-      batchId: "",
-      itemsParsed: 0,
+      success: false, batchId: "", outletName: parsed.outletName,
+      tanggalKartuStok: parsed.tanggal,
+      itemsParsed: 0, matchedBahan: 0,
       errors: parsed.errors,
       stockItems: [],
-      message: "Tidak ada data yang berhasil diparsing.",
+      message: "Tidak ada data yang berhasil diparsing. " + parsed.errors.join("; "),
     };
   }
 
-  const batchId = generateBatchId();
-  const savedTrx: string[] = [];
-
-  // Map menu name → menu record
-  for (const row of parsed.rows) {
-    const menuRecord = await db.query.masterMenu.findFirst({
-      where: sql`LOWER(${masterMenu.namaMenu}) = LOWER(${row.namaMenu})`,
-    });
-
-    if (!menuRecord) {
-      parsed.errors.push(`Menu "${row.namaMenu}" tidak ditemukan di master_menu, dilewati.`);
-      continue;
-    }
-
-    const trxId = await generateId("sales_transactions");
-    await db.insert(salesTransactions).values({
-      id: trxId,
-      outletId,
-      uploadBatchId: batchId,
-      tanggalTransaksi: row.tanggalTransaksi,
-      menuId: menuRecord.id,
-      qtyTerjual: row.qtyTerjual,
-    });
-    savedTrx.push(trxId);
-  }
-
-  // Update avg_daily_consumption for affected bahan based on last 30 days
-  await updateAvgDailyConsumption(outletId);
-
-  // Build transient stock items from master_bahan
-  // stok_akhir is derived from the upload (sum of stok_akhir from the uploaded data, simplified here)
-  const stockItems = await buildStockSnapshot(outletId, parsed.rows);
-
-  return {
-    success: true,
-    batchId,
-    itemsParsed: savedTrx.length,
-    errors: parsed.errors,
-    stockItems,
-    message: `${savedTrx.length} item berhasil diproses.`,
-  };
-}
-
-async function updateAvgDailyConsumption(outletId: string) {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  // Get all bahan for outlet
-  const bahanList = await db.query.masterBahan.findMany({
-    where: eq(masterBahan.outletId, outletId),
-  });
-
-  for (const bahan of bahanList) {
-    // Calculate total qty consumed via BOM in last 30 days
-    const result = await db.execute(
-      sql`
-        SELECT SUM(st.qty_terjual * mr.qty) as total_consumed
-        FROM sales_transactions st
-        JOIN mapping_resep mr ON mr.parent_id = st.menu_id AND mr.parent_type = 'menu' AND mr.item_type = 'bahan_dasar' AND mr.item_id = ${bahan.id}
-        WHERE st.outlet_id = ${outletId}
-          AND st.tanggal_transaksi >= ${thirtyDaysAgo.toISOString().slice(0, 10)}
-      `
-    );
-
-    const rows = result as unknown as Array<{ total_consumed: string | null }>;
-    const totalConsumed = parseFloat(rows[0]?.total_consumed ?? "0") || 0;
-    const avgPerDay = totalConsumed / 30;
-
-    if (avgPerDay > 0) {
-      await db
-        .update(masterBahan)
-        .set({
-          avgDailyConsumption: avgPerDay,
-          avgConsumptionSource: "auto",
-          updatedAt: new Date(),
-        })
-        .where(eq(masterBahan.id, bahan.id));
-    }
-  }
-}
-
-async function buildStockSnapshot(
-  outletId: string,
-  parsedRows: Array<{ namaMenu: string; qtyTerjual: number; tanggalTransaksi: string }>
-): Promise<UploadedStockItem[]> {
-  const bahanList = await db.query.masterBahan.findMany({
+  // Fetch all bahan for this outlet (case-insensitive matching)
+  const allBahan = await db.query.masterBahan.findMany({
     where: eq(masterBahan.outletId, outletId),
     with: {
       vendorBahan: {
         with: { vendor: true },
-        where: (vb, { eq }) => eq(vb.isPrimary, true),
+        where: (vb, { eq: eqF }) => eqF(vb.isPrimary, true),
         limit: 1,
       },
     },
   });
 
-  // For now, stok_akhir is a placeholder (0) unless actual stock card data is in the upload
-  // In production, the Excel from Pawoon has current stock values per item
-  return bahanList.map((b) => {
-    const stokAkhir = 0; // transient — from actual upload stok_akhir column
-    const status = calculateStockStatus({
-      stokAkhir,
-      stokMinimum: b.stokMinimum,
-      leadTimeDays: b.leadTimeDays,
-      avgDailyConsumption: b.avgDailyConsumption,
-    });
+  // Build a lookup map: normalizedName → bahan record
+  const bahanMap = new Map<string, typeof allBahan[0]>();
+  for (const b of allBahan) {
+    bahanMap.set(b.namaBahan.toLowerCase().trim(), b);
+  }
 
-    const primaryVendor = (b as any).vendorBahan?.[0]?.vendor;
+  // Match each parsed row to master_bahan
+  const stockItems: UploadedStockItem[] = [];
+  let matchedCount = 0;
 
-    return {
-      bahanId: b.id,
-      namaBahan: b.namaBahan,
-      tipeBahan: b.tipeBahan,
-      stokAkhir,
-      satuanDapur: b.satuanDapur,
-      stokMinimum: b.stokMinimum,
-      leadTimeDays: b.leadTimeDays,
-      avgDailyConsumption: b.avgDailyConsumption,
-      hargaBeli: b.hargaBeli,
-      hargaPerSatuanPorsi: b.hargaPerSatuanPorsi,
-      status,
-      vendorNama: primaryVendor?.namaVendor,
-      vendorId: primaryVendor?.id,
-    };
+  // Calculate elapsed days since tanggalKartuStok for avgDailyConsumption
+  const kartuDate = new Date(parsed.tanggal);
+  const now = new Date();
+  const elapsedDays = Math.max(1, Math.round((now.getTime() - kartuDate.getTime()) / 86400000) + 1);
+
+  for (const row of parsed.rows) {
+    const normalizedProduk = row.produkName.toLowerCase().trim();
+    const matchedBahanRecord = bahanMap.get(normalizedProduk);
+
+    if (matchedBahanRecord) {
+      matchedCount++;
+
+      // Update avgDailyConsumption based on penjualan from this Kartu Stok
+      if (row.penjualan > 0) {
+        const avgPerDay = row.penjualan / elapsedDays;
+        await db
+          .update(masterBahan)
+          .set({
+            avgDailyConsumption: avgPerDay,
+            avgConsumptionSource: "auto",
+            updatedAt: new Date(),
+          })
+          .where(eq(masterBahan.id, matchedBahanRecord.id));
+        matchedBahanRecord.avgDailyConsumption = avgPerDay;
+      }
+
+      const status = calculateStockStatus({
+        stokAkhir: row.stokAkhir,
+        stokMinimum: matchedBahanRecord.stokMinimum,
+        leadTimeDays: matchedBahanRecord.leadTimeDays,
+        avgDailyConsumption: matchedBahanRecord.avgDailyConsumption,
+      });
+
+      const primaryVendor = (matchedBahanRecord as any).vendorBahan?.[0]?.vendor;
+
+      stockItems.push({
+        bahanId: matchedBahanRecord.id,
+        namaBahan: matchedBahanRecord.namaBahan,
+        kategori: row.kategori,
+        tipeBahan: matchedBahanRecord.tipeBahan,
+        stokAkhir: row.stokAkhir,
+        satuanDapur: row.satuan || matchedBahanRecord.satuanDapur,
+        stokMinimum: matchedBahanRecord.stokMinimum,
+        leadTimeDays: matchedBahanRecord.leadTimeDays,
+        avgDailyConsumption: matchedBahanRecord.avgDailyConsumption,
+        hargaBeli: matchedBahanRecord.hargaBeli,
+        hargaPerSatuanPorsi: matchedBahanRecord.hargaPerSatuanPorsi,
+        status,
+        vendorNama: primaryVendor?.namaVendor,
+        vendorId: primaryVendor?.id,
+      });
+    } else {
+      // Unmatched — still show in table but without bahan data
+      parsed.errors.push(`Produk "${row.produkName}" tidak cocok dengan master_bahan, dilewati dari stok tracking.`);
+      stockItems.push({
+        bahanId: null,
+        namaBahan: row.produkName,
+        kategori: row.kategori,
+        tipeBahan: null,
+        stokAkhir: row.stokAkhir,
+        satuanDapur: row.satuan,
+        stokMinimum: 0,
+        leadTimeDays: 0,
+        avgDailyConsumption: 0,
+        hargaBeli: "0",
+        hargaPerSatuanPorsi: null,
+        status: "CRITICAL",
+      });
+    }
+  }
+
+  // Save upload_batches record
+  const batchId = await generateId("upload_batches");
+  await db.insert(uploadBatches).values({
+    id: batchId,
+    outletId,
+    tanggalKartuStok: parsed.tanggal,
+    outletNameRaw: parsed.outletName || null,
+    totalProduk: parsed.totalRows,
+    matchedBahan: matchedCount,
+    uploadedBy: uploadedBy || null,
   });
+
+  return {
+    success: true,
+    batchId,
+    outletName: parsed.outletName,
+    tanggalKartuStok: parsed.tanggal,
+    itemsParsed: parsed.totalRows,
+    matchedBahan: matchedCount,
+    errors: parsed.errors,
+    stockItems,
+    message: `${matchedCount} dari ${parsed.totalRows} produk berhasil di-match ke master bahan.`,
+  };
 }

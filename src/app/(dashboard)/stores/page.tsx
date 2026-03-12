@@ -1,9 +1,7 @@
 import { db } from "@/db";
-import { outlets, purchaseOrders, masterMenu, salesTransactions } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { StatCard } from "@/components/shared/stat-card";
-import { Badge } from "@/components/shared/badge-status";
-import { formatRupiah } from "@/lib/formatters";
+import { StoresClient } from "./stores-client";
 
 export default async function StoresPage() {
   const outletList = await db.query.outlets.findMany();
@@ -11,6 +9,33 @@ export default async function StoresPage() {
   const [statsResult] = await db.execute(
     sql`SELECT COUNT(*) as total FROM outlets`
   ) as unknown as Array<{ total: string }>;
+
+  // Menu profitability: menu + cogs + harga_jual + terjual last 30 days
+  const menuProfitList = await db.execute(
+    sql`SELECT
+      mm.id,
+      mm.nama_menu,
+      mm.total_cogs,
+      mm.harga_jual,
+      COALESCE(SUM(st.qty_terjual), 0) as terjual_bulan
+    FROM master_menu mm
+    LEFT JOIN sales_transactions st
+      ON st.menu_id = mm.id
+      AND st.tanggal_transaksi >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY mm.id, mm.nama_menu, mm.total_cogs, mm.harga_jual
+    ORDER BY mm.nama_menu`
+  ) as unknown as Array<{
+    id: string; nama_menu: string; total_cogs: string | null;
+    harga_jual: string | null; terjual_bulan: string;
+  }>;
+
+  const formattedMenuList = menuProfitList.map((m) => ({
+    id: m.id,
+    namaMenu: m.nama_menu,
+    totalCogs: m.total_cogs,
+    hargaJual: m.harga_jual,
+    terjualBulan: m.terjual_bulan,
+  }));
 
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
@@ -26,47 +51,11 @@ export default async function StoresPage() {
         <StatCard label="Butuh Perhatian" value="0" icon="⚠" color="#EF4444" sub="Compliance rendah" />
       </div>
 
-      {/* Tab: Overview */}
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E1E2E" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Upload Compliance per Outlet</span>
-        </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#14142A" }}>
-              {["Outlet ID", "Nama Outlet", "Upload Compliance", "Inventory Net Worth", "Critical", "Warning", "Aksi"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {outletList.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada outlet terdaftar.</td></tr>
-            ) : (
-              outletList.map((o) => (
-                <tr key={o.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{o.id}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{o.namaOutlet}</td>
-                  <td style={{ padding: "10px 14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 80, height: 4, background: "#1E1E2E", borderRadius: 2 }}>
-                        <div style={{ width: "0%", height: "100%", background: "#EF4444", borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: 11, color: "#EF4444" }}>0%</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0", fontWeight: 600 }}>Rp 0</td>
-                  <td style={{ padding: "10px 14px" }}><Badge color="red" size="sm">0</Badge></td>
-                  <td style={{ padding: "10px 14px" }}><Badge color="amber" size="sm">0</Badge></td>
-                  <td style={{ padding: "10px 14px" }}>
-                    <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Detail</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <StoresClient
+        outletList={outletList}
+        menuProfitList={formattedMenuList}
+        totalOutlet={parseInt(statsResult?.total ?? "0")}
+      />
     </div>
   );
 }

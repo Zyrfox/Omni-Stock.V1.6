@@ -1,7 +1,9 @@
 node_modules
-.env.local 
-.env.example 
-.env/.next/
+.env
+.env.local
+.env.example
+.env.*
+.next/
 /out/
 /drizzle/
 next-env.d.ts
@@ -9,3 +11,9 @@ next-env.d.ts
 .vercel
 .DS_Store
 Thumbs.db
+# Google service account / credentials
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!jsconfig.json

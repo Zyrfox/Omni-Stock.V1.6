@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
+import { getCriticalBahan, globalSearch, type SearchResult, type CriticalAlert } from "@/actions/search";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -11,7 +12,57 @@ interface TopbarProps {
 
 export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
   const [showNotif, setShowNotif] = useState(false);
+  const [criticalCount, setCriticalCount] = useState(0);
+  const [criticalItems, setCriticalItems] = useState<CriticalAlert[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searching, setSearching] = useState(false);
   const router = useRouter();
+  const notifRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch critical count on mount
+  useEffect(() => {
+    getCriticalBahan().then(({ criticalCount: c, items }) => {
+      setCriticalCount(c);
+      setCriticalItems(items);
+    }).catch(() => {});
+  }, []);
+
+  // Click outside handlers
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotif(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSearch(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  // Debounced search
+  const doSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    try {
+      const results = await globalSearch(q);
+      setSearchResults(results);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    setSearchQuery(val);
+    setShowSearch(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
+  }
+
+  const typeIcon: Record<string, string> = { bahan: "📦", menu: "🍽", vendor: "🏪" };
+  const typeLabel: Record<string, string> = { bahan: "Bahan Baku", menu: "Menu", vendor: "Supplier" };
 
   async function handleSignOut() {
     await signOut();
@@ -36,118 +87,130 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       {/* Hamburger */}
       <button
         onClick={onToggleSidebar}
-        style={{
-          background: "none",
-          border: "none",
-          color: "#6B7280",
-          fontSize: 18,
-          cursor: "pointer",
-          padding: "4px 6px",
-          borderRadius: 6,
-          lineHeight: 1,
-        }}
+        style={{ background: "none", border: "none", color: "#6B7280", fontSize: 18, cursor: "pointer", padding: "4px 6px", borderRadius: 6, lineHeight: 1 }}
         title="Toggle Sidebar"
       >
         ☰
       </button>
 
-      {/* AI Search */}
-      <div
-        style={{
-          flex: 1,
-          maxWidth: 400,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "#14142A",
-          border: "1px solid #2D2D44",
-          borderRadius: 8,
-          padding: "6px 12px",
-          cursor: "pointer",
-        }}
-      >
-        <span style={{ color: "#C8F135", fontSize: 13 }}>✦</span>
-        <span style={{ fontSize: 12, color: "#4B5563", flex: 1 }}>Ask AI anything...</span>
-        <kbd
-          style={{
-            fontSize: 10,
-            color: "#4B5563",
-            background: "#1E1E2E",
-            border: "1px solid #2D2D44",
-            borderRadius: 4,
-            padding: "1px 5px",
-          }}
-        >
-          ⌘K
-        </kbd>
+      {/* Search Bar */}
+      <div ref={searchRef} style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#14142A", border: "1px solid #2D2D44", borderRadius: 8, padding: "6px 12px" }}>
+          <span style={{ color: "#C8F135", fontSize: 13 }}>✦</span>
+          <input
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={() => searchQuery.length >= 2 && setShowSearch(true)}
+            placeholder="Cari bahan, menu, supplier..."
+            style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 12, color: "#E2E8F0", minWidth: 0 }}
+          />
+          {searching && <span style={{ fontSize: 10, color: "#4B5563" }}>...</span>}
+          {!searching && !searchQuery && (
+            <kbd style={{ fontSize: 10, color: "#4B5563", background: "#1E1E2E", border: "1px solid #2D2D44", borderRadius: 4, padding: "1px 5px" }}>⌘K</kbd>
+          )}
+        </div>
+
+        {showSearch && searchQuery.length >= 2 && (
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#13131F", border: "1px solid #2D2D44", borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 50, overflow: "hidden" }}>
+            {searchResults.length === 0 ? (
+              <div style={{ padding: "16px 14px", fontSize: 11, color: "#4B5563", textAlign: "center" }}>
+                {searching ? "Mencari..." : "Tidak ada hasil"}
+              </div>
+            ) : (
+              <>
+                {(["bahan", "menu", "vendor"] as const).map((type) => {
+                  const group = searchResults.filter((r) => r.type === type);
+                  if (!group.length) return null;
+                  return (
+                    <div key={type}>
+                      <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                        {typeLabel[type]}
+                      </div>
+                      {group.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => { router.push(r.href); setShowSearch(false); setSearchQuery(""); setSearchResults([]); }}
+                          style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                          className="table-row-hover"
+                        >
+                          <span style={{ fontSize: 14 }}>{typeIcon[r.type]}</span>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{r.label}</div>
+                            <div style={{ fontSize: 10, color: "#6B7280" }}>{r.id} · {r.sub}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1 }} />
 
       {/* Notification Bell */}
-      <div style={{ position: "relative" }}>
+      <div ref={notifRef} style={{ position: "relative" }}>
         <button
           onClick={() => setShowNotif(!showNotif)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#6B7280",
-            fontSize: 16,
-            cursor: "pointer",
-            padding: "4px 6px",
-            position: "relative",
-          }}
+          style={{ background: "none", border: "none", color: "#6B7280", fontSize: 16, cursor: "pointer", padding: "4px 6px", position: "relative" }}
         >
           🔔
-          <span
-            style={{
-              position: "absolute",
-              top: 2,
-              right: 2,
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "#EF4444",
-              display: "block",
-            }}
-          />
+          {criticalCount > 0 && (
+            <span style={{
+              position: "absolute", top: 2, right: 2,
+              minWidth: 14, height: 14, borderRadius: 7,
+              background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 9, fontWeight: 700, color: "#fff", padding: "0 3px",
+            }}>
+              {criticalCount > 9 ? "9+" : criticalCount}
+            </span>
+          )}
         </button>
 
         {showNotif && (
-          <div
-            style={{
-              position: "absolute",
-              top: "calc(100% + 8px)",
-              right: 0,
-              width: 260,
-              background: "#13131F",
-              border: "1px solid #2D2D44",
-              borderRadius: 10,
-              boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
-              zIndex: 50,
-            }}
-          >
-            <div
-              style={{
-                padding: "12px 14px",
-                borderBottom: "1px solid #1E1E2E",
-                fontSize: 12,
-                fontWeight: 700,
-                color: "#E2E8F0",
-              }}
-            >
-              Notifikasi
+          <div style={{
+            position: "absolute", top: "calc(100% + 8px)", right: 0,
+            width: 280, background: "#13131F", border: "1px solid #2D2D44",
+            borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 50,
+          }}>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid #1E1E2E", fontSize: 12, fontWeight: 700, color: "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>Notifikasi</span>
+              {criticalCount > 0 && (
+                <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}>
+                  {criticalCount} item
+                </span>
+              )}
             </div>
-            <div
-              style={{
-                padding: "24px 14px",
-                textAlign: "center",
-                fontSize: 11,
-                color: "#4B5563",
-              }}
-            >
-              Tidak ada notifikasi baru
-            </div>
+            {criticalItems.length === 0 ? (
+              <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "#4B5563" }}>
+                Tidak ada notifikasi
+              </div>
+            ) : (
+              <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                  Pantau Stok (Min. Stok Aktif)
+                </div>
+                {criticalItems.map((item) => (
+                  <div key={item.bahanId} style={{ padding: "8px 14px", borderBottom: "1px solid #131320", display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0" }}>{item.namaBahan}</div>
+                      <div style={{ fontSize: 10, color: "#6B7280" }}>
+                        Min: {item.stokMinimum}{item.vendorNama ? ` · ${item.vendorNama}` : ""}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)" }}>
+                      PANTAU
+                    </span>
+                  </div>
+                ))}
+                <div style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563", textAlign: "center" }}>
+                  Upload Kartu Stok untuk data stok real-time
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -155,15 +218,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       {/* Sign Out */}
       <button
         onClick={handleSignOut}
-        style={{
-          fontSize: 11,
-          color: "#6B7280",
-          background: "none",
-          border: "1px solid #2D2D44",
-          borderRadius: 6,
-          padding: "4px 10px",
-          cursor: "pointer",
-        }}
+        style={{ fontSize: 11, color: "#6B7280", background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}
       >
         Keluar
       </button>

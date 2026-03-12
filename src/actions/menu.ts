@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { masterMenu, mappingResep, masterBahan, semiFinished } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { masterMenu, mappingResep, masterBahan } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
 
@@ -50,13 +50,12 @@ export async function saveBOM(
   lines: BOMLine[]
 ) {
   // Delete existing BOM for this parent
-  await db
-    .delete(mappingResep)
-    .where(eq(mappingResep.parentId, parentId));
+  await db.delete(mappingResep).where(eq(mappingResep.parentId, parentId));
 
   // Insert new lines
   let totalCogs = 0;
   for (const line of lines) {
+    if (!line.itemId) continue;
     const id = await generateId("mapping_resep");
     await db.insert(mappingResep).values({
       id,
@@ -92,8 +91,6 @@ export async function saveBOM(
 export async function getMappingResep(parentId: string) {
   return db.query.mappingResep.findMany({
     where: eq(mappingResep.parentId, parentId),
-    with: {
-      bahan: true,
-    },
+    with: { bahan: true },
   });
 }

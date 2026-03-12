@@ -4,10 +4,14 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 
 export const auth = betterAuth({
+  baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
       user: schema.users,
+      session: schema.sessions,
+      account: schema.accounts,
+      verification: schema.verifications,
     },
     usePlural: false,
   }),
@@ -25,17 +29,14 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      nama: { type: "string", required: true },
-      role: { type: "string", required: true, defaultValue: "manager" },
-      mustChangePassword: { type: "boolean", defaultValue: true, fieldName: "must_change_password" },
-      outletId: { type: "string", required: false, fieldName: "outlet_id" },
+      nama: { type: "string", required: false },
+      role: { type: "string", required: false, defaultValue: "manager" },
+      mustChangePassword: { type: "boolean", defaultValue: true },
+      outletId: { type: "string", required: false },
     },
-  },
-  advanced: {
-    generateId: false, // We use our own custom IDs
   },
   trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"],
 });
 
-export type Session = typeof auth.$Infer.Session;
+export type AuthSession = typeof auth.$Infer.Session;
 export type AuthUser = typeof auth.$Infer.Session.user;

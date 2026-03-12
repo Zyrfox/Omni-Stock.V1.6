@@ -6,6 +6,7 @@ import { BadgeStatus, Badge } from "@/components/shared/badge-status";
 import { calculateStockStatus, estimasiHariHabis } from "@/lib/stock-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { processUpload } from "@/actions/upload";
+import type { UploadedStockItem } from "@/actions/upload";
 import { createDraftPO } from "@/actions/purchase-order";
 import { useSession } from "@/lib/auth-client";
 import type { MasterBahan, PurchaseOrder, MasterVendor } from "@/db/schema";
@@ -25,19 +26,15 @@ interface DashboardClientProps {
   totalBahan: number;
   recentPOs: Array<PurchaseOrder & { vendor: MasterVendor; bahan: MasterBahan }>;
   allBahan: Array<MasterBahan & { vendorBahan: Array<{ vendor: MasterVendor; isPrimary: boolean }> }>;
+  topContributors: Array<{ id: string; nama: string; email: string; role: string; po_count: string }>;
+  auditData: { outstanding: number; paid: number; topVendors: Array<{ nama_vendor: string; total: string }> };
 }
 
-export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardClientProps) {
+export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributors, auditData }: DashboardClientProps) {
   const { data: session } = useSession();
-  const [stockItems, setStockItems] = useState<Array<{
-    bahanId: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
-    stokAkhir: number; satuanDapur: string; stokMinimum: number;
-    leadTimeDays: number; avgDailyConsumption: number; hargaBeli: string;
-    hargaPerSatuanPorsi: string | null; status: "SAFE" | "WARNING" | "CRITICAL";
-    vendorNama?: string; vendorId?: string;
-  }>>([]);
+  const [stockItems, setStockItems] = useState<UploadedStockItem[]>([]);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
-  const [lastItemsParsed, setLastItemsParsed] = useState(0);
+  const [lastUploadInfo, setLastUploadInfo] = useState<{ matched: number; total: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [poCart, setPoCart] = useState<POCartItem[]>([]);
@@ -45,9 +42,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Compute stats from stockItems or allBahan fallback
-  const displayItems = stockItems.length > 0 ? stockItems : allBahan.map((b) => ({
+  const displayItems: UploadedStockItem[] = stockItems.length > 0 ? stockItems : allBahan.map((b) => ({
     bahanId: b.id,
     namaBahan: b.namaBahan,
+    kategori: "",
     tipeBahan: b.tipeBahan,
     stokAkhir: 0,
     satuanDapur: b.satuanDapur,
@@ -81,7 +79,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
       if (result.success) {
         setStockItems(result.stockItems);
         setLastUpload(new Date().toLocaleString("id-ID"));
-        setLastItemsParsed(result.itemsParsed);
+        setLastUploadInfo({ matched: result.matchedBahan, total: result.itemsParsed });
       } else {
         setUploadError(result.message + " " + result.errors.slice(0, 2).join("; "));
       }
@@ -93,16 +91,17 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
     }
   }
 
-  function addToCart(item: typeof displayItems[0]) {
+  function addToCart(item: UploadedStockItem) {
+    if (!item.bahanId) return; // can't create PO for unmatched items
     if (poCart.find((c) => c.bahanId === item.bahanId)) return;
     setPoCart((prev) => [
       ...prev,
       {
-        bahanId: item.bahanId,
+        bahanId: item.bahanId!,
         namaBahan: item.namaBahan,
         vendorId: item.vendorId ?? "",
         vendorNama: item.vendorNama ?? "—",
-        tipeBahan: item.tipeBahan,
+        tipeBahan: item.tipeBahan ?? "packaged",
         qty: 1,
         hargaSatuan: parseFloat(item.hargaBeli) || 0,
         stokAkhir: item.stokAkhir,
@@ -158,7 +157,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Smart Batch Uploader</div>
-          {lastUpload && (
+          {lastUpload && lastUploadInfo && (
             <span
               style={{
                 fontSize: 10,
@@ -170,7 +169,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
                 fontWeight: 600,
               }}
             >
-              Last upload: {lastUpload} · {lastItemsParsed} item di-parse
+              {lastUpload} · {lastUploadInfo.matched}/{lastUploadInfo.total} matched
             </span>
           )}
         </div>
@@ -214,8 +213,80 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
         <StatCard label="Out of Stocks" value={critCount} icon="🚫" color="#EF4444" sub="Status CRITICAL" />
       </div>
 
-      {/* Widget Row */}
+      {/* Widget Row 2×2 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+        {/* Widget 1 — Top Contributors */}
+        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>👥 Top Contributors</div>
+          {topContributors.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "16px 0", color: "#4B5563", fontSize: 12 }}>Belum ada aktivitas.</div>
+          ) : (
+            topContributors.map((u, idx) => {
+              const initial = (u.nama || u.email).charAt(0).toUpperCase();
+              const total = parseInt(u.po_count ?? "0");
+              return (
+                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: idx < topContributors.length - 1 ? "1px solid #1E1E2E" : "none" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0A0A0F", flexShrink: 0 }}>
+                    {initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nama || u.email}</div>
+                    <div style={{ fontSize: 10, color: "#4B5563" }}>{total} POs dibuat</div>
+                  </div>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: total > 0 ? "rgba(200,241,53,0.1)" : "rgba(75,85,99,0.2)", border: `1px solid ${total > 0 ? "rgba(200,241,53,0.3)" : "rgba(75,85,99,0.3)"}`, color: total > 0 ? "#C8F135" : "#4B5563" }}>
+                    {total}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Widget 2 — Audit Pengeluaran */}
+        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>💳 Audit Pengeluaran</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div style={{ background: "#0F0F18", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>OUTSTANDING</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#F59E0B" }}>
+                {auditData.outstanding >= 1_000_000
+                  ? `Rp ${(auditData.outstanding / 1_000_000).toFixed(1)}jt`
+                  : formatRupiah(auditData.outstanding)}
+              </div>
+            </div>
+            <div style={{ background: "#0F0F18", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>LUNAS</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#22C55E" }}>
+                {auditData.paid >= 1_000_000
+                  ? `Rp ${(auditData.paid / 1_000_000).toFixed(1)}jt`
+                  : formatRupiah(auditData.paid)}
+              </div>
+            </div>
+          </div>
+          {auditData.topVendors.length === 0 ? (
+            <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada transaksi vendor.</div>
+          ) : (
+            auditData.topVendors.map((v) => {
+              const maxTotal = parseFloat(auditData.topVendors[0]?.total ?? "1");
+              const pct = (parseFloat(v.total) / maxTotal) * 100;
+              const val = parseFloat(v.total);
+              return (
+                <div key={v.nama_vendor} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                    <span style={{ fontSize: 11, color: "#E2E8F0" }}>{v.nama_vendor}</span>
+                    <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 700 }}>
+                      {val >= 1_000_000 ? `Rp ${(val / 1_000_000).toFixed(1)}jt` : formatRupiah(val)}
+                    </span>
+                  </div>
+                  <div style={{ height: 4, background: "#1E1E2E", borderRadius: 2 }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "#EF4444", borderRadius: 2, opacity: 0.7 }} />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* Widget 3 — Smart Stock Warning */}
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>⚠ Smart Stock Warning</div>
@@ -349,24 +420,26 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
                   </tr>
                 ) : (
                   displayItems.map((item, idx) => {
-                    const inCart = poCart.find((c) => c.bahanId === item.bahanId);
+                    const inCart = item.bahanId ? poCart.find((c) => c.bahanId === item.bahanId) : false;
                     return (
                       <tr
-                        key={item.bahanId}
+                        key={item.bahanId ?? item.namaBahan}
                         className="table-row-hover"
                         style={{ borderBottom: "1px solid #131320", transition: "background 0.1s" }}
                       >
                         <td style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{idx + 1}</td>
                         <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>
-                          {item.bahanId}
+                          {item.bahanId ?? <span style={{ color: "#EF4444", fontSize: 10 }}>unmatched</span>}
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>
                           {item.namaBahan}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
-                          <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
-                            {item.tipeBahan === "packaged" ? "📦 packaged" : "🌿 raw_bulk"}
-                          </Badge>
+                          {item.tipeBahan ? (
+                            <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
+                              {item.tipeBahan === "packaged" ? "📦 packaged" : "🌿 raw_bulk"}
+                            </Badge>
+                          ) : <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>}
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
                           <span style={{ fontWeight: 600 }}>{item.stokAkhir}</span>{" "}
@@ -383,7 +456,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
                           {formatRupiah(parseFloat(item.hargaBeli))}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
-                          {item.status !== "SAFE" ? (
+                          {item.status !== "SAFE" && item.bahanId ? (
                             inCart ? (
                               <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700 }}>✓ In Cart</span>
                             ) : (
@@ -405,7 +478,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan }: DashboardCl
                               </button>
                             )
                           ) : (
-                            <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>
+                            <span style={{ fontSize: 10, color: "#4B5563" }}>
+                              {item.status === "SAFE" ? "—" : "No master"}
+                            </span>
                           )}
                         </td>
                       </tr>

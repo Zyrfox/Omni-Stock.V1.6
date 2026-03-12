@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromCookie } from "better-auth/cookies";
 import { auth } from "@/lib/auth";
 
 // Routes that don't require authentication
@@ -7,7 +6,7 @@ const PUBLIC_ROUTES = ["/login", "/api/auth"];
 // Routes that require admin role
 const ADMIN_ONLY_ROUTES = ["/users", "/settings"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes and static assets

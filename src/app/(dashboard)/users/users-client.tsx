@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatDate } from "@/lib/formatters";
 import { createUser, deleteUser } from "@/actions/users";
-import { generatePassword } from "@/lib/id-generator";
+import { generatePassword } from "@/lib/password-utils";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
@@ -28,8 +28,8 @@ export function UsersClient({ userList }: { userList: UserItem[] }) {
   async function handleCreateUser() {
     setSaving(true);
     try {
-      const result = await createUser({ ...form, outletId: form.outletId || undefined });
-      setCredentials({ nama: form.nama, email: form.email, password: generatedPwd, role: form.role });
+      const result = await createUser({ ...form, password: generatedPwd, outletId: form.outletId || undefined });
+      setCredentials({ nama: form.nama, email: form.email, password: result.password, role: form.role });
       setShowAddUser(false);
       router.refresh();
     } catch (err: any) {

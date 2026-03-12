@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { users, outlets } from "@/db/schema";
-import { eq, ne } from "drizzle-orm";
+import { users, accounts } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { generateId, generatePassword } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { hashPassword } from "better-auth/crypto";
+import { randomUUID } from "crypto";
 
 export async function getUsers() {
   return db.query.users.findMany({
@@ -19,6 +20,7 @@ export async function createUser(data: {
   email: string;
   role: "admin" | "manager";
   outletId?: string;
+  password: string;
 }): Promise<{ id: string; password: string }> {
   // Check for duplicate email
   const existing = await db.query.users.findFirst({
@@ -26,42 +28,46 @@ export async function createUser(data: {
   });
   if (existing) throw new Error("Email sudah terdaftar.");
 
-  const password = generatePassword();
   const id = await generateId("users");
+  const passwordHash = await hashPassword(data.password);
 
-  // Create via Better Auth
-  await auth.api.signUpEmail({
-    body: {
-      email: data.email,
-      password,
-      name: data.nama,
-    },
+  // Insert directly into users table with our custom USR-xxx ID
+  await db.insert(users).values({
+    id,
+    email: data.email,
+    name: data.nama,          // Better Auth standard field
+    nama: data.nama,          // App display name
+    role: data.role,
+    passwordHash,             // Reference copy
+    mustChangePassword: true,
+    outletId: data.outletId ?? null,
+    emailVerified: false,
   });
 
-  // Update additional fields
-  await db
-    .update(users)
-    .set({
-      id, // override with our custom ID
-      nama: data.nama,
-      role: data.role,
-      outletId: data.outletId ?? null,
-      mustChangePassword: true,
-    })
-    .where(eq(users.email, data.email));
+  // Create Better Auth account record so credential login works
+  await db.insert(accounts).values({
+    id: randomUUID(),
+    accountId: data.email,
+    providerId: "credential",
+    userId: id,
+    password: passwordHash,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
   revalidatePath("/users");
-  return { id, password };
+  return { id, password: data.password };
 }
 
 export async function deleteUser(id: string) {
+  // accounts and sessions cascade-delete automatically via FK
   await db.delete(users).where(eq(users.id, id));
   revalidatePath("/users");
 }
 
 export async function updateUser(
   id: string,
-  data: Partial<{ nama: string; role: "admin" | "manager"; outletId: string | null }>
+  data: Partial<{ nama: string; name: string; role: "admin" | "manager"; outletId: string | null }>
 ) {
   await db.update(users).set(data).where(eq(users.id, id));
   revalidatePath("/users");

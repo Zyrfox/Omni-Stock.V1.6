@@ -10,6 +10,7 @@ import {
   date,
   unique,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // ─── Enums ───────────────────────────────────────────────
 export const roleEnum = pgEnum("role", ["admin", "manager"]);
@@ -38,12 +39,59 @@ export const outlets = pgTable("outlets", {
 export const users = pgTable("users", {
   id: text("id").primaryKey(), // USR-001
   email: text("email").notNull().unique(),
-  nama: text("nama").notNull(),
-  role: roleEnum("role").notNull(),
-  passwordHash: text("password_hash"),
+  name: text("name").notNull().default(""),           // Better Auth required field
+  emailVerified: boolean("email_verified").notNull().default(false), // Better Auth required
+  image: text("image"),                               // Better Auth optional
+  nama: text("nama").notNull().default(""),           // App display name (Indonesian)
+  role: roleEnum("role").notNull().default("manager"),
+  passwordHash: text("password_hash"),               // Reference copy (auth via accounts table)
   mustChangePassword: boolean("must_change_password").default(true),
   outletId: text("outlet_id").references(() => outlets.id, { onDelete: "set null" }),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── Better Auth: sessions ────────────────────────────────
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+
+// ─── Better Auth: accounts ────────────────────────────────
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+// ─── Better Auth: verifications ───────────────────────────
+export const verifications = pgTable("verifications", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at"),
+  updatedAt: timestamp("updated_at"),
 });
 
 // ─── 4. master_bahan ─────────────────────────────────────
@@ -105,7 +153,9 @@ export const masterVendor = pgTable("master_vendor", {
   namaVendor: text("nama_vendor").notNull(),
   noRekening: text("no_rekening"),
   kontakWa: text("kontak_wa"),
-  estimasiPengiriman: integer("estimasi_pengiriman").notNull().default(3), // lead time hari
+  estimasiPengiriman: integer("estimasi_pengiriman").notNull().default(3),
+  vendorPlatform: text("vendor_platform").default("offline"), // "offline" | "shopee" | "tokopedia" | "whatsapp" | "lainnya"
+  linkToko: text("link_toko"), // URL to online store (Shopee, Tokopedia, etc.)
   outletId: text("outlet_id").references(() => outlets.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -135,7 +185,7 @@ export const salesTransactions = pgTable("sales_transactions", {
   outletId: text("outlet_id")
     .references(() => outlets.id, { onDelete: "cascade" })
     .notNull(),
-  uploadBatchId: text("upload_batch_id").notNull(), // grouping per sesi upload
+  uploadBatchId: text("upload_batch_id").notNull(),
   tanggalTransaksi: date("tanggal_transaksi").notNull(),
   menuId: text("menu_id")
     .references(() => masterMenu.id, { onDelete: "cascade" })
@@ -144,7 +194,19 @@ export const salesTransactions = pgTable("sales_transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// ─── 11. purchase_orders ─────────────────────────────────
+// ─── 11. upload_batches ──────────────────────────────────
+export const uploadBatches = pgTable("upload_batches", {
+  id: text("id").primaryKey(), // UPL-001
+  outletId: text("outlet_id").references(() => outlets.id, { onDelete: "set null" }),
+  tanggalKartuStok: date("tanggal_kartu_stok").notNull(), // date from header row of Kartu Stok file
+  outletNameRaw: text("outlet_name_raw"), // outlet name as read from Excel (before matching)
+  totalProduk: integer("total_produk").notNull().default(0), // total rows in Excel
+  matchedBahan: integer("matched_bahan").notNull().default(0), // rows matched to master_bahan
+  uploadedBy: text("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ─── 12. purchase_orders ─────────────────────────────────
 export const purchaseOrders = pgTable("purchase_orders", {
   id: text("id").primaryKey(), // PO-001
   outletId: text("outlet_id")
@@ -163,18 +225,105 @@ export const purchaseOrders = pgTable("purchase_orders", {
   aiNotes: text("ai_notes"),
   tanggalKirim: timestamp("tanggal_kirim"),
   tanggalTerima: timestamp("tanggal_terima"),
-  createdBy: text("created_by")
-    .references(() => users.id, { onDelete: "restrict" })
-    .notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }), // nullable — survives user deletion
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ─── Relations ────────────────────────────────────────────
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  outlet: one(outlets, { fields: [users.outletId], references: [outlets.id] }),
+  purchaseOrders: many(purchaseOrders),
+  sessions: many(sessions),
+  accounts: many(accounts),
+}));
+
+export const outletsRelations = relations(outlets, ({ many }) => ({
+  users: many(users),
+  masterBahan: many(masterBahan),
+  masterMenu: many(masterMenu),
+  masterVendor: many(masterVendor),
+  salesTransactions: many(salesTransactions),
+  purchaseOrders: many(purchaseOrders),
+  uploadBatches: many(uploadBatches),
+}));
+
+export const uploadBatchesRelations = relations(uploadBatches, ({ one }) => ({
+  outlet: one(outlets, { fields: [uploadBatches.outletId], references: [outlets.id] }),
+  uploadedByUser: one(users, { fields: [uploadBatches.uploadedBy], references: [users.id] }),
+}));
+
+export const masterBahanRelations = relations(masterBahan, ({ one, many }) => ({
+  outlet: one(outlets, { fields: [masterBahan.outletId], references: [outlets.id] }),
+  vendorBahan: many(vendorBahan),
+  purchaseOrders: many(purchaseOrders),
+  mappingResep: many(mappingResep, { relationName: "bahanInRecipe" }),
+}));
+
+export const masterVendorRelations = relations(masterVendor, ({ one, many }) => ({
+  outlet: one(outlets, { fields: [masterVendor.outletId], references: [outlets.id] }),
+  vendorBahan: many(vendorBahan),
+  purchaseOrders: many(purchaseOrders),
+}));
+
+export const vendorBahanRelations = relations(vendorBahan, ({ one }) => ({
+  vendor: one(masterVendor, { fields: [vendorBahan.vendorId], references: [masterVendor.id] }),
+  bahan: one(masterBahan, { fields: [vendorBahan.bahanId], references: [masterBahan.id] }),
+}));
+
+export const masterMenuRelations = relations(masterMenu, ({ one, many }) => ({
+  outlet: one(outlets, { fields: [masterMenu.outletId], references: [outlets.id] }),
+  salesTransactions: many(salesTransactions),
+  mappingResep: many(mappingResep, { relationName: "menuRecipes" }),
+}));
+
+export const mappingResepRelations = relations(mappingResep, ({ one }) => ({
+  // Link itemId → master_bahan (works for bahan_dasar items; null for semi_finished)
+  bahan: one(masterBahan, {
+    fields: [mappingResep.itemId],
+    references: [masterBahan.id],
+    relationName: "bahanInRecipe",
+  }),
+  // Link parentId → master_menu (works for menu parents; null for semi_finished parents)
+  parentMenu: one(masterMenu, {
+    fields: [mappingResep.parentId],
+    references: [masterMenu.id],
+    relationName: "menuRecipes",
+  }),
+}));
+
+export const salesTransactionsRelations = relations(salesTransactions, ({ one }) => ({
+  outlet: one(outlets, { fields: [salesTransactions.outletId], references: [outlets.id] }),
+  menu: one(masterMenu, { fields: [salesTransactions.menuId], references: [masterMenu.id] }),
+}));
+
+export const purchaseOrdersRelations = relations(purchaseOrders, ({ one }) => ({
+  outlet: one(outlets, { fields: [purchaseOrders.outletId], references: [outlets.id] }),
+  vendor: one(masterVendor, { fields: [purchaseOrders.vendorId], references: [masterVendor.id] }),
+  bahan: one(masterBahan, { fields: [purchaseOrders.bahanId], references: [masterBahan.id] }),
+  createdByUser: one(users, { fields: [purchaseOrders.createdBy], references: [users.id] }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
+
+export const semiFinishedRelations = relations(semiFinished, ({ one }) => ({
+  outlet: one(outlets, { fields: [semiFinished.outletId], references: [outlets.id] }),
+}));
 
 // ─── Type Exports ─────────────────────────────────────────
 export type SystemConfig = typeof systemConfigs.$inferSelect;
 export type Outlet = typeof outlets.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type DbSession = typeof sessions.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
 export type MasterBahan = typeof masterBahan.$inferSelect;
 export type NewMasterBahan = typeof masterBahan.$inferInsert;
 export type SemiFinished = typeof semiFinished.$inferSelect;
@@ -184,5 +333,6 @@ export type MasterVendor = typeof masterVendor.$inferSelect;
 export type NewMasterVendor = typeof masterVendor.$inferInsert;
 export type VendorBahan = typeof vendorBahan.$inferSelect;
 export type SalesTransaction = typeof salesTransactions.$inferSelect;
+export type UploadBatch = typeof uploadBatches.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type NewPurchaseOrder = typeof purchaseOrders.$inferInsert;

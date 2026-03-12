@@ -1,112 +1,223 @@
 /**
- * OMNI-STOCK — Excel Parser (Pawoon POS format)
+ * OMNI-STOCK — Excel Parser (Kartu Stok format)
  * Uses SheetJS / xlsx library
+ *
+ * Kartu Stok file structure:
+ *   Row 1:   "Kartu Stok"
+ *   Row 3:   "Outlet" = "Back To Mie Kitchen"   (or same cell: "Outlet : Back To Mie Kitchen")
+ *   Row 4:   "Tanggal" = "07-03-2026"
+ *   Row 8:   Headers: Produk | Kategori | Stok Awal | Stok Masuk | Stok Keluar | Penjualan | Transfer | Penyesuaian | Stok Akhir | Satuan
+ *   Row 9+:  Data rows (one product per row)
  */
 
 import * as XLSX from "xlsx";
 
-export interface ParsedStockRow {
-  namaMenu: string;
-  qtyTerjual: number;
-  tanggalTransaksi: string; // YYYY-MM-DD
+export interface ParsedKartuStokRow {
+  produkName: string;
+  kategori: string;
+  stokAwal: number;
+  stokMasuk: number;
+  stokKeluar: number;
+  penjualan: number;
+  transfer: number;
+  penyesuaian: number;
+  stokAkhir: number;
+  satuan: string;
 }
 
-export interface ParsedStockResult {
-  rows: ParsedStockRow[];
+export interface ParsedKartuStok {
+  outletName: string;    // extracted from header rows
+  tanggal: string;       // YYYY-MM-DD extracted from header rows
+  rows: ParsedKartuStokRow[];
   errors: string[];
   totalRows: number;
-  successRows: number;
 }
 
 /**
- * Parse Pawoon POS Excel file (.xls or .xlsx)
- * Expected columns (flexible matching):
- *   - Menu name: "nama_menu", "menu", "item", "produk"
- *   - Qty sold: "qty", "jumlah", "terjual", "sold"
- *   - Date: "tanggal", "date", "tgl"
+ * Parse Kartu Stok Excel file (.xls or .xlsx)
  */
-export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ParsedStockResult {
+export function parseKartuStok(buffer: Buffer | ArrayBuffer): ParsedKartuStok {
   const errors: string[] = [];
-  const rows: ParsedStockRow[] = [];
+  let outletName = "";
+  let tanggal = new Date().toISOString().slice(0, 10);
+  const rows: ParsedKartuStokRow[] = [];
 
   let workbook: XLSX.WorkBook;
   try {
-    workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+    workbook = XLSX.read(buffer, { type: "buffer", cellDates: false, raw: true });
   } catch {
-    return { rows: [], errors: ["File tidak dapat dibaca. Pastikan format .xls atau .xlsx."], totalRows: 0, successRows: 0 };
+    return {
+      outletName, tanggal, rows: [],
+      errors: ["File tidak dapat dibaca. Pastikan format .xls atau .xlsx."],
+      totalRows: 0,
+    };
   }
 
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
-  const rawData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: "",
-    raw: false,
-  });
-
-  if (rawData.length === 0) {
-    return { rows: [], errors: ["Sheet kosong atau tidak ada data."], totalRows: 0, successRows: 0 };
+  if (!sheet || !sheet["!ref"]) {
+    return { outletName, tanggal, rows: [], errors: ["Sheet kosong."], totalRows: 0 };
   }
 
-  // Detect column names from first row
-  const firstRow = rawData[0];
-  const allKeys = Object.keys(firstRow).map((k) => k.toLowerCase().trim());
+  const range = XLSX.utils.decode_range(sheet["!ref"]);
 
-  const menuCol = allKeys.find((k) => ["nama_menu", "menu", "item", "produk", "nama produk", "name"].includes(k));
-  const qtyCol = allKeys.find((k) => ["qty", "jumlah", "terjual", "sold", "qty_terjual", "quantity"].includes(k));
-  const dateCol = allKeys.find((k) => ["tanggal", "date", "tgl", "tanggal_transaksi"].includes(k));
-
-  if (!menuCol) errors.push("Kolom nama menu tidak ditemukan. Harap gunakan header: nama_menu / menu / item");
-  if (!qtyCol) errors.push("Kolom qty tidak ditemukan. Harap gunakan header: qty / jumlah / terjual");
-  if (!dateCol) errors.push("Kolom tanggal tidak ditemukan. Harap gunakan header: tanggal / date / tgl");
-
-  if (!menuCol || !qtyCol || !dateCol) {
-    return { rows: [], errors, totalRows: rawData.length, successRows: 0 };
+  function cellStr(r: number, c: number): string {
+    const addr = XLSX.utils.encode_cell({ r, c });
+    const cell = sheet[addr];
+    if (!cell) return "";
+    return String(cell.v ?? "").trim();
   }
 
-  // Find the original key names (case-sensitive)
-  const originalKeys = Object.keys(firstRow);
-  const origMenuCol = originalKeys.find((k) => k.toLowerCase().trim() === menuCol)!;
-  const origQtyCol = originalKeys.find((k) => k.toLowerCase().trim() === qtyCol)!;
-  const origDateCol = originalKeys.find((k) => k.toLowerCase().trim() === dateCol)!;
+  function cellNum(r: number, c: number): number {
+    const addr = XLSX.utils.encode_cell({ r, c });
+    const cell = sheet[addr];
+    if (!cell) return 0;
+    const v = parseFloat(String(cell.v ?? "0").replace(/,/g, ""));
+    return isNaN(v) ? 0 : v;
+  }
 
-  rawData.forEach((row, idx) => {
-    const rowNum = idx + 2; // +2 because row 1 is header
-    const namaMenu = String(row[origMenuCol] ?? "").trim();
-    const qtyRaw = row[origQtyCol];
-    const dateRaw = row[origDateCol];
+  // ── Phase 1: Extract metadata from first 15 rows ──────────────────────────
+  for (let r = 0; r <= Math.min(14, range.e.r); r++) {
+    for (let c = 0; c <= Math.min(6, range.e.c); c++) {
+      const raw = cellStr(r, c);
+      const lo = raw.toLowerCase();
 
-    if (!namaMenu) {
-      errors.push(`Baris ${rowNum}: Nama menu kosong, dilewati.`);
-      return;
-    }
+      // "Outlet : Back To Mie Kitchen" or "Outlet" with next cell = name
+      if (lo.startsWith("outlet") || lo.startsWith("cabang")) {
+        // Check for inline format: "Outlet : Value" or "Outlet = Value"
+        const colonIdx = raw.search(/[:=]/);
+        if (colonIdx !== -1) {
+          const candidate = raw.slice(colonIdx + 1).trim();
+          if (candidate) { outletName = candidate; continue; }
+        }
+        // Check adjacent cells
+        for (let nc = c + 1; nc <= Math.min(c + 4, range.e.c); nc++) {
+          const nv = cellStr(r, nc);
+          if (nv && !nv.toLowerCase().startsWith("outlet")) {
+            outletName = nv;
+            break;
+          }
+        }
+      }
 
-    const qtyTerjual = parseFloat(String(qtyRaw));
-    if (isNaN(qtyTerjual) || qtyTerjual < 0) {
-      errors.push(`Baris ${rowNum}: Qty tidak valid (${qtyRaw}), dilewati.`);
-      return;
-    }
-
-    let tanggal = String(dateRaw ?? "").trim();
-    // Try parsing date
-    if (!tanggal) {
-      tanggal = new Date().toISOString().slice(0, 10);
-    } else {
-      const parsed = new Date(tanggal);
-      if (!isNaN(parsed.getTime())) {
-        tanggal = parsed.toISOString().slice(0, 10);
-      } else {
-        errors.push(`Baris ${rowNum}: Format tanggal tidak valid (${dateRaw}), menggunakan hari ini.`);
-        tanggal = new Date().toISOString().slice(0, 10);
+      if (lo.startsWith("tanggal") || lo.startsWith("date") || lo.startsWith("tgl")) {
+        const colonIdx = raw.search(/[:=]/);
+        if (colonIdx !== -1) {
+          const candidate = raw.slice(colonIdx + 1).trim();
+          if (candidate) { tanggal = parseTanggalStr(candidate); continue; }
+        }
+        for (let nc = c + 1; nc <= Math.min(c + 4, range.e.c); nc++) {
+          const nv = cellStr(r, nc);
+          if (nv && !nv.toLowerCase().startsWith("tanggal")) {
+            tanggal = parseTanggalStr(nv);
+            break;
+          }
+        }
       }
     }
+  }
 
-    rows.push({ namaMenu, qtyTerjual, tanggalTransaksi: tanggal });
-  });
+  // ── Phase 2: Find header row ───────────────────────────────────────────────
+  let headerRow = -1;
+  const colMap: Record<string, number> = {};
 
-  return {
-    rows,
-    errors,
-    totalRows: rawData.length,
-    successRows: rows.length,
-  };
+  for (let r = 0; r <= Math.min(20, range.e.r); r++) {
+    const rowVals: string[] = [];
+    for (let c = 0; c <= range.e.c; c++) {
+      rowVals.push(cellStr(r, c).toLowerCase().replace(/\s+/g, " ").trim());
+    }
+
+    const hasProduk = rowVals.some((v) =>
+      v === "produk" || v === "nama produk" || v === "item" || v === "bahan"
+    );
+    const hasStokAkhir = rowVals.some((v) =>
+      v.includes("stok akhir") || v.includes("stock akhir") ||
+      v.includes("saldo akhir") || v.includes("ending stock") || v.includes("akhir")
+    );
+
+    if (hasProduk && hasStokAkhir) {
+      headerRow = r;
+      rowVals.forEach((v, c) => {
+        if (v === "produk" || v === "nama produk" || v === "item" || v === "bahan")
+          colMap["produk"] = c;
+        else if (v === "kategori" || v === "category" || v === "kat")
+          colMap["kategori"] = c;
+        else if (v.includes("stok awal") || v.includes("opening") || v.includes("saldo awal"))
+          colMap["stokAwal"] = c;
+        else if (v.includes("stok masuk") || (v.includes("masuk") && !v.includes("keluar")))
+          colMap["stokMasuk"] = c;
+        else if (v.includes("stok keluar") || (v.includes("keluar") && !v.includes("masuk")))
+          colMap["stokKeluar"] = c;
+        else if (v === "penjualan" || v === "sales" || v === "terjual" || v === "jual")
+          colMap["penjualan"] = c;
+        else if (v === "transfer")
+          colMap["transfer"] = c;
+        else if (v.includes("penyesuaian") || v.includes("adjustment") || v.includes("adj"))
+          colMap["penyesuaian"] = c;
+        else if (v.includes("stok akhir") || v.includes("ending") || v.includes("saldo akhir") ||
+                 v.includes("stock akhir") || v === "akhir")
+          colMap["stokAkhir"] = c;
+        else if (v === "satuan" || v === "unit" || v === "uom" || v === "uom/satuan")
+          colMap["satuan"] = c;
+      });
+      break;
+    }
+  }
+
+  if (headerRow === -1) {
+    errors.push(
+      "Baris header tidak ditemukan. Pastikan file mengandung kolom 'Produk' dan 'Stok Akhir'."
+    );
+    return { outletName, tanggal, rows: [], errors, totalRows: 0 };
+  }
+
+  if (colMap["produk"] === undefined) {
+    errors.push("Kolom 'Produk' tidak ditemukan.");
+    return { outletName, tanggal, rows: [], errors, totalRows: 0 };
+  }
+  if (colMap["stokAkhir"] === undefined) {
+    errors.push("Kolom 'Stok Akhir' tidak ditemukan.");
+    return { outletName, tanggal, rows: [], errors, totalRows: 0 };
+  }
+
+  // ── Phase 3: Parse data rows ───────────────────────────────────────────────
+  let totalRows = 0;
+  for (let r = headerRow + 1; r <= range.e.r; r++) {
+    const produkName = cellStr(r, colMap["produk"]);
+    if (!produkName) continue;
+
+    const plo = produkName.toLowerCase();
+    if (plo === "total" || plo.startsWith("jumlah") || plo.startsWith("total")) continue;
+
+    totalRows++;
+    rows.push({
+      produkName,
+      kategori: colMap["kategori"] !== undefined ? cellStr(r, colMap["kategori"]) : "",
+      stokAwal: colMap["stokAwal"] !== undefined ? cellNum(r, colMap["stokAwal"]) : 0,
+      stokMasuk: colMap["stokMasuk"] !== undefined ? cellNum(r, colMap["stokMasuk"]) : 0,
+      stokKeluar: colMap["stokKeluar"] !== undefined ? cellNum(r, colMap["stokKeluar"]) : 0,
+      penjualan: colMap["penjualan"] !== undefined ? cellNum(r, colMap["penjualan"]) : 0,
+      transfer: colMap["transfer"] !== undefined ? cellNum(r, colMap["transfer"]) : 0,
+      penyesuaian: colMap["penyesuaian"] !== undefined ? cellNum(r, colMap["penyesuaian"]) : 0,
+      stokAkhir: cellNum(r, colMap["stokAkhir"]),
+      satuan: colMap["satuan"] !== undefined ? cellStr(r, colMap["satuan"]) : "",
+    });
+  }
+
+  return { outletName, tanggal, rows, errors, totalRows };
+}
+
+function parseTanggalStr(raw: string): string {
+  // DD-MM-YYYY or DD/MM/YYYY
+  const m1 = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (m1) {
+    const [, d, mo, y] = m1;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // Try generic parse
+  const parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return new Date().toISOString().slice(0, 10);
 }

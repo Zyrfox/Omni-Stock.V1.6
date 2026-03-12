@@ -18,16 +18,13 @@ export default async function SuppliersPage() {
     FROM master_vendor`
   ) as unknown as Array<{ total_vendor: string; vendor_wa: string }>;
 
-  const totalBahan = bahanList.length;
-
   return (
     <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
       <SuppliersClient
         vendors={vendors as any}
-        bahanList={bahanList as any}
         stats={{
           totalVendor: parseInt(statsResult?.total_vendor ?? "0"),
-          totalBahan,
+          totalBahan: bahanList.length,
           vendorDenganWa: parseInt(statsResult?.vendor_wa ?? "0"),
         }}
       />

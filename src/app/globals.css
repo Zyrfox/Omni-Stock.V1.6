@@ -146,7 +146,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans dark;
+    @apply font-sans;
   }
   body {
     background-color: #0A0A0F;

@@ -3,28 +3,28 @@
 import { useState } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
-import { formatRupiah, formatDate } from "@/lib/formatters";
+import { formatRupiah } from "@/lib/formatters";
 import { createVendor } from "@/actions/vendor";
-import { getPurchaseOrders } from "@/actions/purchase-order";
 
 interface VendorItem {
   id: string; namaVendor: string; kontakWa: string | null;
   noRekening: string | null; estimasiPengiriman: number;
   totalPengeluaran: number; totalBahan: number;
+  vendorPlatform?: string | null; linkToko?: string | null;
 }
 
 interface SuppliersClientProps {
   vendors: VendorItem[];
-  bahanList: Array<{ id: string; namaBahan: string }>;
   stats: { totalVendor: number; totalBahan: number; vendorDenganWa: number };
 }
 
-export function SuppliersClient({ vendors, bahanList, stats }: SuppliersClientProps) {
+export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
   const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
   const [showAddVendor, setShowAddVendor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     namaVendor: "", kontakWa: "", noRekening: "", estimasiPengiriman: "3",
+    vendorPlatform: "offline", linkToko: "",
   });
 
   async function handleSaveVendor() {
@@ -35,9 +35,11 @@ export function SuppliersClient({ vendors, bahanList, stats }: SuppliersClientPr
         kontakWa: form.kontakWa || undefined,
         noRekening: form.noRekening || undefined,
         estimasiPengiriman: parseInt(form.estimasiPengiriman),
+        vendorPlatform: form.vendorPlatform,
+        linkToko: form.linkToko || undefined,
       });
       setShowAddVendor(false);
-      setForm({ namaVendor: "", kontakWa: "", noRekening: "", estimasiPengiriman: "3" });
+      setForm({ namaVendor: "", kontakWa: "", noRekening: "", estimasiPengiriman: "3", vendorPlatform: "offline", linkToko: "" });
     } finally {
       setSaving(false);
     }
@@ -102,18 +104,37 @@ export function SuppliersClient({ vendors, bahanList, stats }: SuppliersClientPr
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#14142A" }}>
-              {["Nama Vendor", "WhatsApp", "Info Pembayaran", "Lead Time", "Item", "Pengeluaran", "Aksi"].map((h) => (
+              {["Nama Vendor", "Platform", "WhatsApp", "Info Pembayaran", "Lead Time", "Item", "Pengeluaran", "Aksi"].map((h) => (
                 <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {vendors.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada vendor.</td></tr>
+              <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada vendor.</td></tr>
             ) : (
-              vendors.map((v) => (
+              vendors.map((v) => {
+                const platformIcon: Record<string, string> = {
+                  offline: "🏪", shopee: "🛒", tokopedia: "🟢", whatsapp: "📱", lainnya: "🔗",
+                };
+                const platform = v.vendorPlatform ?? "offline";
+                return (
                 <tr key={v.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => setSelectedVendor(v)}>
                   <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{v.namaVendor}</td>
+                  <td style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Badge color={platform === "shopee" ? "amber" : platform === "tokopedia" ? "green" : "gray"} size="sm">
+                        {platformIcon[platform] ?? "🔗"} {platform}
+                      </Badge>
+                      {v.linkToko && (
+                        <a href={v.linkToko} target="_blank" rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: 10, color: "#60A5FA", textDecoration: "underline" }}>
+                          Buka →
+                        </a>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: v.kontakWa ? "#22C55E" : "#4B5563" }}>
                     {v.kontakWa ? `📱 ${v.kontakWa}` : "—"}
                   </td>
@@ -127,7 +148,8 @@ export function SuppliersClient({ vendors, bahanList, stats }: SuppliersClientPr
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -157,6 +179,32 @@ export function SuppliersClient({ vendors, bahanList, stats }: SuppliersClientPr
                   />
                 </div>
               ))}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Platform</label>
+                <select
+                  value={form.vendorPlatform}
+                  onChange={(e) => setForm((f) => ({ ...f, vendorPlatform: e.target.value, linkToko: "" }))}
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                >
+                  <option value="offline">🏪 Toko Fisik / Offline</option>
+                  <option value="whatsapp">📱 WhatsApp</option>
+                  <option value="shopee">🛒 Shopee</option>
+                  <option value="tokopedia">🟢 Tokopedia</option>
+                  <option value="lainnya">🔗 Lainnya</option>
+                </select>
+              </div>
+              {(form.vendorPlatform === "shopee" || form.vendorPlatform === "tokopedia" || form.vendorPlatform === "lainnya") && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Link Toko</label>
+                  <input
+                    type="text"
+                    value={form.linkToko}
+                    onChange={(e) => setForm((f) => ({ ...f, linkToko: e.target.value }))}
+                    placeholder="https://shopee.co.id/namaToko"
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+              )}
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowAddVendor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveVendor} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>

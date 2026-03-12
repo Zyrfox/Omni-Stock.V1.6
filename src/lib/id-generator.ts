@@ -16,6 +16,7 @@ type TableName =
   | "master_vendor"
   | "vendor_bahan"
   | "sales_transactions"
+  | "upload_batches"
   | "purchase_orders";
 
 const PREFIX_MAP: Record<TableName, string> = {
@@ -28,6 +29,7 @@ const PREFIX_MAP: Record<TableName, string> = {
   master_vendor: "VND",
   vendor_bahan: "VBH",
   sales_transactions: "TRX",
+  upload_batches: "UPL",
   purchase_orders: "PO",
 };
 
@@ -66,25 +68,5 @@ export function generateBatchId(): string {
   return `BATCH-${ts}`;
 }
 
-/** Generate a random 12-char password */
-export function generatePassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%^&*";
-  const all = upper + lower + digits + symbols;
-
-  let pwd = "";
-  pwd += upper[Math.floor(Math.random() * upper.length)];
-  pwd += lower[Math.floor(Math.random() * lower.length)];
-  pwd += digits[Math.floor(Math.random() * digits.length)];
-  pwd += symbols[Math.floor(Math.random() * symbols.length)];
-  for (let i = 4; i < 12; i++) {
-    pwd += all[Math.floor(Math.random() * all.length)];
-  }
-  // Shuffle
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
-}
+// Re-export from client-safe module so server-side imports still work
+export { generatePassword } from "./password-utils";

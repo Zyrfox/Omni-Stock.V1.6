@@ -41,6 +41,8 @@ export async function createVendor(data: {
   noRekening?: string;
   estimasiPengiriman: number;
   outletId?: string;
+  vendorPlatform?: string;
+  linkToko?: string;
 }) {
   const id = await generateId("master_vendor");
   await db.insert(masterVendor).values({ id, ...data });
