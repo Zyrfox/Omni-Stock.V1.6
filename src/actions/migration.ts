@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { systemConfigs, outlets, masterBahan } from "@/db/schema";
+import { systemConfigs, outlets, masterBahan, masterMenu } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/id-generator";
 import { google } from "googleapis";
@@ -29,7 +29,6 @@ export async function runMigration(): Promise<{ success: boolean; message: strin
     if (envKey && envKey.trim().length > 0) {
       credentials = JSON.parse(envKey);
     } else {
-      // Fallback: read from service account JSON file in project root
       const keyFilePath = path.join(process.cwd(), "media-project-backend-c2f5832fb342.json");
       if (!fs.existsSync(keyFilePath)) {
         throw new Error(
@@ -45,74 +44,91 @@ export async function runMigration(): Promise<{ success: boolean; message: strin
     });
     const sheets = google.sheets({ version: "v4", auth: authClient });
 
-    // Get list of sheets in the spreadsheet
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
     const sheetNames = spreadsheet.data.sheets?.map((s) => s.properties?.title ?? "") ?? [];
 
-    let importedCount = 0;
+    let outletCount = 0;
+    let menuCount = 0;
+    let bahanCount = 0;
 
-    // Try to import outlets
-    if (sheetNames.some((s) => s.toLowerCase() === "outlets")) {
-      const sheetName = sheetNames.find((s) => s.toLowerCase() === "outlets") ?? "Outlets";
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A:B`,
-      });
-      const rows = response.data.values ?? [];
+    // ── 1. sys_outlets → outlets ─────────────────────────────
+    // Expected columns: A=ID Outlet, B=Nama Cabang
+    const outletSheet = sheetNames.find((s) => s.toLowerCase() === "sys_outlets");
+    if (outletSheet) {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${outletSheet}!A:B` });
+      const rows = res.data.values ?? [];
       for (let i = 1; i < rows.length; i++) {
         const [id, namaOutlet] = rows[i];
-        if (!namaOutlet) continue;
-        const outletId = id || await generateId("outlets");
-        await db.insert(outlets).values({ id: outletId, namaOutlet }).onConflictDoNothing();
-        importedCount++;
+        if (!namaOutlet?.trim()) continue;
+        const outletId = id?.trim() || await generateId("outlets");
+        await db.insert(outlets).values({ id: outletId, namaOutlet: namaOutlet.trim() }).onConflictDoNothing();
+        outletCount++;
       }
     }
 
-    // Try to import master_bahan
-    if (sheetNames.some((s) => s.toLowerCase().includes("bahan"))) {
-      const sheetName = sheetNames.find((s) => s.toLowerCase().includes("bahan")) ?? "Bahan";
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A:L`,
-      });
-      const rows = response.data.values ?? [];
-      const header = rows[0]?.map((h: string) => h.toLowerCase().trim()) ?? [];
-
+    // ── 2. pawoon_products → master_menu ─────────────────────
+    // Expected columns: A=id_menu (may be empty), B=nama_product
+    const menuSheet = sheetNames.find((s) => s.toLowerCase() === "pawoon_products");
+    if (menuSheet) {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${menuSheet}!A:B` });
+      const rows = res.data.values ?? [];
       for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const rowObj: Record<string, string> = {};
-        header.forEach((h: string, idx: number) => { rowObj[h] = row[idx] ?? ""; });
+        const [, namaProduct] = rows[i];
+        if (!namaProduct?.trim()) continue;
+        const id = await generateId("master_menu");
+        // Derive kategori: "beverage" if name contains known drink keywords, else "food"
+        const lower = namaProduct.toLowerCase();
+        const kategori = lower.includes("minuman") || lower.includes("drink") || lower.includes("juice")
+          || lower.includes("ice cream") || lower.includes("es ")
+          ? "beverage" : "food";
+        await db.insert(masterMenu).values({
+          id,
+          namaMenu: namaProduct.trim(),
+          kategori,
+        }).onConflictDoNothing();
+        menuCount++;
+      }
+    }
 
-        const namaBahan = rowObj.nama_bahan || rowObj.nama || rowObj.name;
-        if (!namaBahan) continue;
-
-        const id = rowObj.id || await generateId("master_bahan");
+    // ── 3. mapping_pawoon → master_bahan ─────────────────────
+    // Expected columns: A=id_bahan (may be empty), B=nama_pawoon (bahan name)
+    const bahanSheet = sheetNames.find((s) => s.toLowerCase() === "mapping_pawoon");
+    if (bahanSheet) {
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${bahanSheet}!A:B` });
+      const rows = res.data.values ?? [];
+      for (let i = 1; i < rows.length; i++) {
+        const [, namaPawoon] = rows[i];
+        if (!namaPawoon?.trim()) continue;
+        const id = await generateId("master_bahan");
         await db.insert(masterBahan).values({
           id,
-          outletId: rowObj.outlet_id || null,
-          namaBahan,
-          tipeBahan: (rowObj.tipe_bahan as "packaged" | "raw_bulk") ?? "packaged",
-          kategoriBahan: rowObj.kategori || null,
-          hargaBeli: rowObj.harga_beli || "0",
-          satuanBeli: rowObj.satuan_beli || "1_pcs",
-          isiSatuan: rowObj.isi_satuan || "1",
-          satuanDapur: rowObj.satuan_dapur || "pcs",
-          stokMinimum: parseInt(rowObj.stok_minimum ?? "0") || 0,
-          leadTimeDays: parseInt(rowObj.lead_time_days ?? "1") || 1,
-          avgDailyConsumption: parseFloat(rowObj.avg_daily_consumption ?? "0") || 0,
+          namaBahan: namaPawoon.trim(),
+          tipeBahan: "packaged",
+          hargaBeli: "0",
+          satuanBeli: "1_pcs",
+          isiSatuan: "1",
+          satuanDapur: "pcs",
+          stokMinimum: 0,
+          leadTimeDays: 1,
+          avgDailyConsumption: 0,
         }).onConflictDoNothing();
-        importedCount++;
+        bahanCount++;
       }
     }
 
-    // Lock migration — cannot be done again
+    // Lock migration permanently
     await db.insert(systemConfigs)
       .values({ key: "is_initial_migration_done", value: "true" })
       .onConflictDoUpdate({ target: systemConfigs.key, set: { value: "true" } });
 
+    const parts = [];
+    if (outletCount) parts.push(`${outletCount} outlet`);
+    if (menuCount) parts.push(`${menuCount} menu`);
+    if (bahanCount) parts.push(`${bahanCount} bahan`);
+
     return {
       success: true,
-      message: `✅ Migrasi berhasil. ${importedCount} record diimport. Tombol dikunci permanen.`,
+      message: `✅ Migrasi berhasil: ${parts.join(", ")} diimport. Tombol dikunci permanen.`,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
