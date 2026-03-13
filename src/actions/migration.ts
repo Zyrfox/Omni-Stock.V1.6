@@ -4,7 +4,6 @@ import { db } from "@/db";
 import { systemConfigs, outlets, masterBahan, masterMenu } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/id-generator";
-import { google } from "googleapis";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -38,6 +37,7 @@ export async function runMigration(): Promise<{ success: boolean; message: strin
       credentials = JSON.parse(fs.readFileSync(keyFilePath, "utf8"));
     }
 
+    const { google } = await import("googleapis");
     const authClient = new google.auth.GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
