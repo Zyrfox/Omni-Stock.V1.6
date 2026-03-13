@@ -39,6 +39,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Force password change for first-time users
+  const mustChange = (session.user as { mustChangePassword?: boolean }).mustChangePassword;
+  if (mustChange && pathname !== "/change-password") {
+    return NextResponse.redirect(new URL("/change-password", request.url));
+  }
+
   // Admin-only routes
   if (ADMIN_ONLY_ROUTES.some((r) => pathname.startsWith(r))) {
     const userRole = (session.user as { role?: string }).role;
