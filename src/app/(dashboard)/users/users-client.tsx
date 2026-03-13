@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatDate } from "@/lib/formatters";
-import { createUser, deleteUser } from "@/actions/users";
+import { createUser, deleteUser, updateUser } from "@/actions/users";
 import { generatePassword } from "@/lib/password-utils";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
@@ -14,12 +14,16 @@ interface UserItem {
   outlet: { namaOutlet: string } | null;
 }
 
-export function UsersClient({ userList }: { userList: UserItem[] }) {
+interface OutletOption { id: string; namaOutlet: string; }
+
+export function UsersClient({ userList, outletList }: { userList: UserItem[]; outletList: OutletOption[] }) {
   const { data: session } = useSession();
   const router = useRouter();
   const [showAddUser, setShowAddUser] = useState(false);
   const [credentials, setCredentials] = useState<{ nama: string; email: string; password: string; role: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
+  const [editTarget, setEditTarget] = useState<UserItem | null>(null);
+  const [editForm, setEditForm] = useState({ nama: "", role: "manager" as "admin" | "manager", outletId: "" });
   const [saving, setSaving] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState(generatePassword());
   const [copied, setCopied] = useState<string | null>(null);
@@ -34,6 +38,23 @@ export function UsersClient({ userList }: { userList: UserItem[] }) {
       router.refresh();
     } catch (err: any) {
       alert(err.message ?? "Gagal membuat user.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEditUser() {
+    if (!editTarget) return;
+    setSaving(true);
+    try {
+      await updateUser(editTarget.id, {
+        nama: editForm.nama,
+        name: editForm.nama,
+        role: editForm.role,
+        outletId: editForm.outletId || null,
+      });
+      setEditTarget(null);
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -122,12 +143,19 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{u.outlet?.namaOutlet ?? "Semua"}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{formatDate(u.createdAt)}</td>
                     <td style={{ padding: "10px 14px" }}>
-                      <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● Aktif</span>
+                      {u.mustChangePassword ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 4, padding: "2px 7px" }}>🔑 Ganti PW</span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● Aktif</span>
+                      )}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
                       {!isSelf && (
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                          <button
+                            onClick={() => { setEditTarget(u); setEditForm({ nama: u.nama, role: u.role, outletId: u.outletId ?? "" }); }}
+                            style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}
+                          >Edit</button>
                           <button onClick={() => setDeleteTarget(u)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>🗑</button>
                         </div>
                       )}
@@ -216,6 +244,55 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
               <button onClick={() => setCredentials(null)} className="btn-accent" style={{ width: "100%", padding: "11px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                 ✓ Selesai, Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 420, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Pengguna</h2>
+              <div style={{ fontSize: 11, color: "#4B5563", marginBottom: 20 }}>{editTarget.email}</div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Lengkap *</label>
+                <input
+                  value={editForm.nama}
+                  onChange={(e) => setEditForm((f) => ({ ...f, nama: e.target.value }))}
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Role</label>
+                <select value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as "admin" | "manager" }))}
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                <select value={editForm.outletId} onChange={(e) => setEditForm((f) => ({ ...f, outletId: e.target.value }))}
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  <option value="">— Semua Outlet —</option>
+                  {outletList.map((o) => (
+                    <option key={o.id} value={o.id}>{o.namaOutlet} ({o.id})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={() => setEditTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleEditUser} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: 12, borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
+                  {saving ? "Menyimpan..." : "✓ Simpan Perubahan"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

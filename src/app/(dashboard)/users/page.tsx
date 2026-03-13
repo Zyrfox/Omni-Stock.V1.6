@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, outlets } from "@/db/schema";
 import { getUserStats } from "@/actions/users";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
@@ -9,12 +9,13 @@ import { formatDate } from "@/lib/formatters";
 import { UsersClient } from "./users-client";
 
 export default async function UsersPage() {
-  const [userList, stats] = await Promise.all([
+  const [userList, stats, outletList] = await Promise.all([
     db.query.users.findMany({
       with: { outlet: true },
       orderBy: (u, { asc }) => [asc(u.createdAt)],
     }),
     getUserStats(),
+    db.query.outlets.findMany({ orderBy: (o, { asc }) => [asc(o.namaOutlet)] }),
   ]);
 
   return (
@@ -36,7 +37,7 @@ export default async function UsersPage() {
         <StatCard label="Manager" value={stats.manager} icon="👤" color="#22C55E" />
       </div>
 
-      <UsersClient userList={userList as any} />
+      <UsersClient userList={userList as any} outletList={outletList} />
     </div>
   );
 }
