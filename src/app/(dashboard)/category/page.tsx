@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { db } from "@/db";
 import { masterBahan } from "@/db/schema";
 import { Badge } from "@/components/shared/badge-status";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { SuppliersClient } from "./suppliers-client";
 import { getMasterVendorWithStats } from "@/actions/vendor";

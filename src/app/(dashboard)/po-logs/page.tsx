@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { POLogsClient } from "./po-logs-client";
 import { getPurchaseOrders, getPOStats } from "@/actions/purchase-order";
