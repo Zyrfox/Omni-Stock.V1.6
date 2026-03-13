@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
@@ -35,7 +36,11 @@ export const auth = betterAuth({
       outletId: { type: "string", required: false },
     },
   },
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"],
+  trustedOrigins: [
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    // Vercel automatically sets VERCEL_URL for each deployment
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+  ],
 });
 
 export type AuthSession = typeof auth.$Infer.Session;
