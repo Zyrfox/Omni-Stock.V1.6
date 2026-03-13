@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
-import { createBahan } from "@/actions/bahan";
+import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
 import { saveBOM, createMenu } from "@/actions/menu";
 import { estimateRawBulkYield, type RawBulkEstimationResult } from "@/actions/gemini";
 
@@ -48,6 +48,11 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [estimating, setEstimating] = useState(false);
   const [manualGramPerPorsi, setManualGramPerPorsi] = useState("");
 
+  // Edit Bahan state
+  const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
+  const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1" });
+  const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
+
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
 
   async function handleSaveMenu() {
@@ -90,7 +95,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   async function handleSaveBahan() {
     setSaving(true);
     try {
-      await createBahan({
+      const result = await createBahan({
         outletId: form.outletId,
         namaBahan: form.namaBahan,
         tipeBahan: form.tipeBahan,
@@ -102,10 +107,57 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         stokMinimum: parseInt(form.stokMinimum),
         leadTimeDays: parseInt(form.leadTimeDays),
       });
+      const hargaPerSatuanPorsi = parseFloat(form.isiSatuan) > 0
+        ? (parseFloat(form.hargaBeli) / parseFloat(form.isiSatuan)).toFixed(6)
+        : "0";
+      setBahans((prev) => [...prev, {
+        id: result.id, namaBahan: form.namaBahan, tipeBahan: form.tipeBahan,
+        satuanBeli: form.satuanBeli, satuanDapur: form.satuanDapur,
+        stokMinimum: parseInt(form.stokMinimum), hargaBeli: form.hargaBeli,
+        isiSatuan: form.isiSatuan, hargaPerSatuanPorsi, outletId: form.outletId,
+      }]);
       setShowAddBahan(false);
+      setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: "OUT-001" });
     } finally {
       setSaving(false);
     }
+  }
+
+  function openEdit(b: BahanItem) {
+    setEditTarget(b);
+    setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1" });
+  }
+
+  async function handleUpdateBahan() {
+    if (!editTarget) return;
+    setSaving(true);
+    try {
+      await updateBahan(editTarget.id, {
+        namaBahan: editForm.namaBahan,
+        tipeBahan: editForm.tipeBahan,
+        hargaBeli: parseFloat(editForm.hargaBeli),
+        satuanBeli: editForm.satuanBeli,
+        satuanDapur: editForm.satuanDapur,
+        stokMinimum: parseInt(editForm.stokMinimum),
+        isiSatuan: parseFloat(editForm.isiSatuan),
+        leadTimeDays: parseInt(editForm.leadTimeDays),
+      });
+      const hargaPerSatuanPorsi = parseFloat(editForm.isiSatuan) > 0
+        ? (parseFloat(editForm.hargaBeli) / parseFloat(editForm.isiSatuan)).toFixed(6)
+        : "0";
+      setBahans((prev) => prev.map((b) => b.id === editTarget.id
+        ? { ...b, ...editForm, stokMinimum: parseInt(editForm.stokMinimum), hargaPerSatuanPorsi }
+        : b));
+      setEditTarget(null);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteBahan(id: string) {
+    if (!confirm("Hapus bahan ini?")) return;
+    await deleteBahan(id);
+    setBahans((prev) => prev.filter((b) => b.id !== id));
   }
 
   async function handleSaveBOM() {
@@ -152,7 +204,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
 
       {/* Stat Bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Master Bahan Baku" value={bahanList.length} icon="📦" color="#60A5FA" />
+        <StatCard label="Master Bahan Baku" value={bahans.length} icon="📦" color="#60A5FA" />
         <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon="📋" color="#F59E0B" />
         <StatCard label="Master Menu Final" value={menuList.length} icon="🍽" color="#C8F135" />
       </div>
@@ -203,10 +255,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {bahanList.length === 0 ? (
+              {bahans.length === 0 ? (
                 <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada bahan. Klik "Tambah Bahan" untuk memulai.</td></tr>
               ) : (
-                bahanList.map((b) => (
+                bahans.map((b) => (
                   <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                     <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
@@ -219,8 +271,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>
                       {b.hargaPerSatuanPorsi ? formatRupiah(parseFloat(b.hargaPerSatuanPorsi)) : "—"}
                     </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <button style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>✏</button>
+                    <td style={{ padding: "10px 14px", display: "flex", gap: 4 }}>
+                      <button onClick={() => openEdit(b)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>✏</button>
+                      <button onClick={() => handleDeleteBahan(b.id)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>🗑</button>
                     </td>
                   </tr>
                 ))
@@ -531,6 +584,58 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                 <button onClick={() => setShowAddMenu(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveMenu} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Menu"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Bahan */}
+      {editTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 520, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #60A5FA, #818CF8, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Bahan — <span style={{ color: "#60A5FA" }}>{editTarget.id}</span></h2>
+              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 20px" }}>{editTarget.namaBahan}</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[
+                  { label: "Nama Bahan *", key: "namaBahan", placeholder: "" },
+                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "" },
+                  { label: "Kemasan Beli", key: "satuanBeli", placeholder: "" },
+                  { label: "Min. Stok *", key: "stokMinimum", placeholder: "", type: "number" },
+                  { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "", type: "number" },
+                  { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "", type: "number" },
+                  { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
+                ].map(({ label, key, placeholder, type }) => (
+                  <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                    <input
+                      type={type ?? "text"}
+                      value={(editForm as any)[key]}
+                      onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Tipe Bahan *</label>
+                  <select
+                    value={editForm.tipeBahan}
+                    onChange={(e) => setEditForm((f) => ({ ...f, tipeBahan: e.target.value as "packaged" | "raw_bulk" }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  >
+                    <option value="packaged">packaged</option>
+                    <option value="raw_bulk">raw_bulk</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button onClick={() => setEditTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleUpdateBahan} disabled={saving} style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                  {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </div>
