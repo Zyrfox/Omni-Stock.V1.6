@@ -88,6 +88,23 @@ export async function saveBOM(
   revalidatePath("/products");
 }
 
+export async function updateMenu(
+  id: string,
+  data: {
+    namaMenu?: string;
+    kategori?: "food" | "beverage";
+    hargaJual?: number | null;
+  }
+) {
+  await db.update(masterMenu).set({
+    ...(data.namaMenu !== undefined && { namaMenu: data.namaMenu }),
+    ...(data.kategori !== undefined && { kategori: data.kategori }),
+    ...(data.hargaJual !== undefined && { hargaJual: data.hargaJual !== null ? String(data.hargaJual) : null }),
+    updatedAt: new Date(),
+  }).where(eq(masterMenu.id, id));
+  revalidatePath("/products");
+}
+
 export async function getMappingResep(parentId: string) {
   return db.query.mappingResep.findMany({
     where: eq(mappingResep.parentId, parentId),

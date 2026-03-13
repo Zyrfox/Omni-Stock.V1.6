@@ -5,7 +5,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
-import { saveBOM, createMenu } from "@/actions/menu";
+import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
 import { estimateRawBulkYield, type RawBulkEstimationResult } from "@/actions/gemini";
 
 interface BahanItem {
@@ -16,7 +16,7 @@ interface BahanItem {
 }
 interface MenuItem {
   id: string; namaMenu: string; kategori: "food" | "beverage" | null;
-  outletId: string | null; totalCogs: string | null;
+  outletId: string | null; totalCogs: string | null; hargaJual: string | null;
   mappingResep?: Array<{ id: string; itemId: string; qty: string; bahan?: { namaBahan: string; satuanDapur: string } }>;
 }
 
@@ -33,6 +33,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
+  const [bomHargaJual, setBomHargaJual] = useState("");
   const [saving, setSaving] = useState(false);
   const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001" });
   const [menus, setMenus] = useState<MenuItem[]>(menuList);
@@ -67,7 +68,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       });
       setMenus((prev) => [...prev, {
         id: result.id, namaMenu: menuForm.namaMenu.trim(),
-        kategori: menuForm.kategori, outletId: menuForm.outletId, totalCogs: "0", mappingResep: [],
+        kategori: menuForm.kategori, outletId: menuForm.outletId, totalCogs: "0",
+        hargaJual: menuForm.hargaJual || null, mappingResep: [],
       }]);
       setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" });
       setShowAddMenu(false);
@@ -164,7 +166,16 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
     if (!selectedMenu) return;
     setSaving(true);
     try {
-      await saveBOM(selectedMenu.id, "menu", bomLines);
+      await Promise.all([
+        saveBOM(selectedMenu.id, "menu", bomLines),
+        updateMenu(selectedMenu.id, {
+          hargaJual: bomHargaJual ? parseFloat(bomHargaJual) : null,
+        }),
+      ]);
+      // Update local menus state
+      setMenus((prev) => prev.map((m) => m.id === selectedMenu.id
+        ? { ...m, hargaJual: bomHargaJual || null, totalCogs: String(totalCOGS.toFixed(2)) }
+        : m));
       setShowBOMEditor(false);
     } finally {
       setSaving(false);
@@ -362,7 +373,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                         <button
                           onClick={() => {
                             setSelectedMenu(m);
-                            setBomLines(m.mappingResep?.map((r) => ({ itemType: r.id ? "bahan_dasar" as const : "bahan_dasar" as const, itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                            setBomLines(m.mappingResep?.map((r) => ({ itemType: "bahan_dasar" as const, itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                            setBomHargaJual(m.hargaJual ?? "");
                             setShowBOMEditor(true);
                           }}
                           style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
@@ -649,43 +661,106 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <div className="modal-fadein" style={{ width: 620, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Resep — {selectedMenu.namaMenu}</h2>
-              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 20px" }}>Bill of Materials (BOM) multi-level</p>
-              <div style={{ maxHeight: 300, overflowY: "auto" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, gap: 16 }}>
+                <div>
+                  <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 2px" }}>Edit Resep — {selectedMenu.namaMenu}</h2>
+                  <p style={{ fontSize: 11, color: "#4B5563", margin: 0 }}>Bill of Materials (BOM) multi-level</p>
+                </div>
+                <div style={{ minWidth: 160 }}>
+                  <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", marginBottom: 4 }}>Harga Jual (Rp)</label>
+                  <input
+                    type="number"
+                    value={bomHargaJual}
+                    onChange={(e) => setBomHargaJual(e.target.value)}
+                    placeholder="cth: 25000"
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+              {/* BOM header row */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid #1E1E2E" }}>
+                <div style={{ width: 110, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
+                <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
+                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
+                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
+                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
+                <div style={{ width: 28 }} />
+              </div>
+              <div style={{ maxHeight: 260, overflowY: "auto" }}>
                 {bomLines.map((line, idx) => {
                   const bahan = bahanList.find((b) => b.id === line.itemId);
+                  const sfg = sfgList.find((s) => s.id === line.itemId);
+                  const satuan = line.itemType === "bahan_dasar" ? bahan?.satuanDapur : sfg?.satuan;
                   const subCogs = bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                      <select value={line.itemType} onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as any } : x))}
-                        style={{ width: 120, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                      <select
+                        value={line.itemType}
+                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                        style={{ width: 110, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
+                      >
                         <option value="bahan_dasar">Bahan</option>
                         <option value="semi_finished">Sub-Resep</option>
                       </select>
-                      <select value={line.itemId} onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemId: e.target.value } : x))}
-                        style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                      <select
+                        value={line.itemId}
+                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemId: e.target.value } : x))}
+                        style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
+                      >
                         <option value="">— Pilih Item —</option>
-                        {bahanList.map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)}
+                        {line.itemType === "bahan_dasar"
+                          ? bahanList.map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)
+                          : sfgList.map((s) => <option key={s.id} value={s.id}>{s.namaSemiFinished}</option>)
+                        }
                       </select>
-                      <input type="number" value={line.qty} min={0.001} step={0.001}
+                      <input
+                        type="number" value={line.qty} min={0.001} step={0.001}
                         onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
-                        style={{ width: 70, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
-                      <span style={{ width: 80, fontSize: 10, color: "#4B5563" }}>{bahan?.satuanDapur ?? ""}</span>
-                      <span style={{ width: 90, fontSize: 10, color: "#C8F135" }}>{subCogs > 0 ? `Rp ${subCogs.toFixed(0)}` : "—"}</span>
+                        style={{ width: 70, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
+                      />
+                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
+                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                      </span>
                       <button onClick={() => setBomLines((l) => l.filter((_, i) => i !== idx))}
-                        style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14 }}>🗑</button>
+                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
                     </div>
                   );
                 })}
+                {bomLines.length === 0 && (
+                  <div style={{ padding: "16px 0", textAlign: "center", color: "#374151", fontSize: 11 }}>Belum ada baris. Klik "+ Tambah Baris".</div>
+                )}
               </div>
               <button onClick={() => setBomLines((l) => [...l, { itemType: "bahan_dasar", itemId: "", qty: 1 }])}
                 style={{ marginTop: 8, fontSize: 11, padding: "6px 12px", border: "1px dashed #2D2D44", borderRadius: 6, background: "transparent", color: "#6B7280", cursor: "pointer" }}>
                 + Tambah Baris
               </button>
-              <div style={{ marginTop: 16, padding: "12px", background: "#0F0F18", borderRadius: 8, display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "#4B5563" }}>Total COGS Saat Ini</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#C8F135" }}>Rp {totalCOGS.toLocaleString("id-ID")}</span>
-              </div>
+              {/* COGS vs Harga Jual panel */}
+              {(() => {
+                const hj = parseFloat(bomHargaJual) || 0;
+                const margin = hj > 0 ? ((hj - totalCOGS) / hj * 100) : null;
+                const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
+                return (
+                  <div style={{ marginTop: 14, padding: "12px 14px", background: "#0F0F18", borderRadius: 8, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Total COGS</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#C8F135" }}>Rp {Math.round(totalCOGS).toLocaleString("id-ID")}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga Jual</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: hj > 0 ? "#E2E8F0" : "#4B5563" }}>
+                        {hj > 0 ? `Rp ${hj.toLocaleString("id-ID")}` : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Margin</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: marginColor }}>
+                        {margin !== null ? `${margin.toFixed(1)}%` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowBOMEditor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveBOM} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
