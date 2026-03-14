@@ -1,0 +1,114 @@
+2026-03-13T18:50:43.564773Z  INFO tailwindcss_oxide::scanner: Provided sources:
+2026-03-13T18:50:43.564886Z  INFO tailwindcss_oxide::scanner: Source: PublicSourceEntry { base: "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6", pattern: "**/*", negated: false }
+2026-03-13T18:50:43.565051Z  INFO tailwindcss_oxide::scanner: Optimized sources:
+2026-03-13T18:50:43.565065Z  INFO tailwindcss_oxide::scanner: Source: Auto { base: "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6" }
+2026-03-13T18:50:43.566278Z  INFO discover_sources: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.566310Z  INFO discover_sources:walk_synchronous: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.571917Z  INFO discover_sources:walk_synchronous: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.572464Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\drizzle.config.ts"
+2026-03-13T18:50:43.572514Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\vendor.ts"
+2026-03-13T18:50:43.572515Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\suppliers\\page.tsx"
+2026-03-13T18:50:43.572567Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(auth)\\change-password\\page.tsx"
+2026-03-13T18:50:43.572572Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\eslint.config.mjs"
+2026-03-13T18:50:43.572583Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\suppliers\\suppliers-client.tsx"
+2026-03-13T18:50:43.572606Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(auth)\\login\\page.tsx"
+2026-03-13T18:50:43.572623Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\next.config.ts"
+2026-03-13T18:50:43.572626Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\upload-history\\page.tsx"
+2026-03-13T18:50:43.572644Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\billing\\billing-actions.tsx"
+2026-03-13T18:50:43.572663Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\package.json"
+2026-03-13T18:50:43.572665Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\users\\page.tsx"
+2026-03-13T18:50:43.572681Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\billing\\page.tsx"
+2026-03-13T18:50:43.572717Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\category\\category-client.tsx"
+2026-03-13T18:50:43.572741Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\postcss.config.mjs"
+2026-03-13T18:50:43.572745Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\users\\users-client.tsx"
+2026-03-13T18:50:43.572747Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\category\\page.tsx"
+2026-03-13T18:50:43.572787Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\api\\auth\\[...all]\\route.ts"
+2026-03-13T18:50:43.572807Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\dashboard\\dashboard-client.tsx"
+2026-03-13T18:50:43.572815Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\PRD_OmniStock_V1.5_FINAL.md"
+2026-03-13T18:50:43.572840Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\dashboard\\page.tsx"
+2026-03-13T18:50:43.572853Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\layout.tsx"
+2026-03-13T18:50:43.572888Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\public\\file.svg"
+2026-03-13T18:50:43.572910Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\delivery\\delivery-actions.tsx"
+2026-03-13T18:50:43.572926Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\public\\globe.svg"
+2026-03-13T18:50:43.572946Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\delivery\\page.tsx"
+2026-03-13T18:50:43.572976Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\page.tsx"
+2026-03-13T18:50:43.572980Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\layout.tsx"
+2026-03-13T18:50:43.573015Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\po-logs\\page.tsx"
+2026-03-13T18:50:43.573022Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\public\\next.svg"
+2026-03-13T18:50:43.573028Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\layout\\sidebar.tsx"
+2026-03-13T18:50:43.573057Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\po-logs\\po-logs-client.tsx"
+2026-03-13T18:50:43.573073Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\layout\\topbar.tsx"
+2026-03-13T18:50:43.573067Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\products\\products-client.tsx"
+2026-03-13T18:50:43.573076Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\public\\vercel.svg"
+2026-03-13T18:50:43.573089Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\products\\page.tsx"
+2026-03-13T18:50:43.573111Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\shared\\badge-status.tsx"
+2026-03-13T18:50:43.573119Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\public\\window.svg"
+2026-03-13T18:50:43.573119Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\report\\page.tsx"
+2026-03-13T18:50:43.573131Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\migration.ts"
+2026-03-13T18:50:43.573155Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\shared\\stat-card.tsx"
+2026-03-13T18:50:43.573163Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\settings\\page.tsx"
+2026-03-13T18:50:43.573164Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\bahan.ts"
+2026-03-13T18:50:43.573168Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\outlet.ts"
+2026-03-13T18:50:43.573200Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\avatar.tsx"
+2026-03-13T18:50:43.573203Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\settings\\settings-client.tsx"
+2026-03-13T18:50:43.573208Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\purchase-order.ts"
+2026-03-13T18:50:43.573238Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\badge.tsx"
+2026-03-13T18:50:43.573240Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\stores\\page.tsx"
+2026-03-13T18:50:43.573214Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\change-password.ts"
+2026-03-13T18:50:43.573271Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\search.ts"
+2026-03-13T18:50:43.573284Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\button.tsx"
+2026-03-13T18:50:43.573286Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\(dashboard)\\stores\\stores-client.tsx"
+2026-03-13T18:50:43.573297Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\gemini.ts"
+2026-03-13T18:50:43.573310Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\upload.ts"
+2026-03-13T18:50:43.573324Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\card.tsx"
+2026-03-13T18:50:43.573337Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\users.ts"
+2026-03-13T18:50:43.573340Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\actions\\menu.ts"
+2026-03-13T18:50:43.573356Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\select.tsx"
+2026-03-13T18:50:43.573364Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\dialog.tsx"
+2026-03-13T18:50:43.573378Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\auth.ts"
+2026-03-13T18:50:43.573381Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\input.tsx"
+2026-03-13T18:50:43.573391Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\separator.tsx"
+2026-03-13T18:50:43.573415Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\constants.ts"
+2026-03-13T18:50:43.573416Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\dropdown-menu.tsx"
+2026-03-13T18:50:43.573421Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\label.tsx"
+2026-03-13T18:50:43.573428Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\sheet.tsx"
+2026-03-13T18:50:43.573456Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\excel-parser.ts"
+2026-03-13T18:50:43.573461Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\progress.tsx"
+2026-03-13T18:50:43.573466Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\table.tsx"
+2026-03-13T18:50:43.573465Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\tooltip.tsx"
+2026-03-13T18:50:43.573492Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\formatters.ts"
+2026-03-13T18:50:43.573506Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\components\\ui\\tabs.tsx"
+2026-03-13T18:50:43.573512Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\db\\index.ts"
+2026-03-13T18:50:43.573516Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\db\\schema.ts"
+2026-03-13T18:50:43.573534Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\gemini.ts"
+2026-03-13T18:50:43.573542Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\id-generator.ts"
+2026-03-13T18:50:43.573550Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\utils.ts"
+2026-03-13T18:50:43.573560Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\db\\seed.ts"
+2026-03-13T18:50:43.573572Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\auth-client.ts"
+2026-03-13T18:50:43.573578Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\password-utils.ts"
+2026-03-13T18:50:43.573593Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\proxy.ts"
+2026-03-13T18:50:43.573600Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\tsconfig.json"
+2026-03-13T18:50:43.573610Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\lib\\stock-status.ts"
+2026-03-13T18:50:43.573749Z  INFO discover_sources: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.573761Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.573765Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.573770Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.576294Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.576379Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.576386Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.576389Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2026-03-13T18:50:43.576521Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "C:\\Easy Going Group\\inventory\\OMINI_STOCK.V1.6\\src\\app\\globals.css"
+2026-03-13T18:50:43.576530Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.576537Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.576541Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.576706Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.576731Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.577185Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.577877Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.577886Z  INFO get_files:discover_sources: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.577891Z  INFO get_files:discover_sources: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.578020Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.578472Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.578479Z  INFO get_globs:discover_sources: tailwindcss_oxide::scanner: enter
+2026-03-13T18:50:43.578483Z  INFO get_globs:discover_sources: tailwindcss_oxide::scanner: exit
+2026-03-13T18:50:43.583445Z  INFO get_globs: tailwindcss_oxide::scanner: exit

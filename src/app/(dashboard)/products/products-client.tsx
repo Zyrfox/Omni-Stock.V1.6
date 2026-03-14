@@ -52,6 +52,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   // Edit Bahan state
   const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
   const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1" });
+  const [editAiEstimation, setEditAiEstimation] = useState<RawBulkEstimationResult | null>(null);
+  const [editEstimating, setEditEstimating] = useState(false);
+  const [editManualGramPerPorsi, setEditManualGramPerPorsi] = useState("");
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
@@ -128,6 +131,24 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   function openEdit(b: BahanItem) {
     setEditTarget(b);
     setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1" });
+    setEditAiEstimation(null);
+    setEditManualGramPerPorsi("");
+  }
+
+  async function handleEstimateEditYield() {
+    if (!editForm.namaBahan || !editForm.isiSatuan) return;
+    setEditEstimating(true);
+    setEditAiEstimation(null);
+    try {
+      const result = await estimateRawBulkYield(
+        editForm.namaBahan,
+        parseFloat(editForm.isiSatuan) || 0,
+        editForm.satuanDapur || "gram"
+      );
+      setEditAiEstimation(result);
+    } finally {
+      setEditEstimating(false);
+    }
   }
 
   async function handleUpdateBahan() {
@@ -144,13 +165,21 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
       });
-      const hargaPerSatuanPorsi = parseFloat(editForm.isiSatuan) > 0
-        ? (parseFloat(editForm.hargaBeli) / parseFloat(editForm.isiSatuan)).toFixed(6)
-        : "0";
+      const manualGram = parseFloat(editManualGramPerPorsi);
+      const isiSatuan = parseFloat(editForm.isiSatuan);
+      const hargaBeli = parseFloat(editForm.hargaBeli);
+      const hargaPerSatuanPorsi =
+        manualGram > 0 && isiSatuan > 0 && hargaBeli > 0
+          ? (hargaBeli / Math.floor(isiSatuan / manualGram)).toFixed(6)
+          : isiSatuan > 0
+          ? (hargaBeli / isiSatuan).toFixed(6)
+          : "0";
       setBahans((prev) => prev.map((b) => b.id === editTarget.id
         ? { ...b, ...editForm, stokMinimum: parseInt(editForm.stokMinimum), hargaPerSatuanPorsi }
         : b));
       setEditTarget(null);
+      setEditAiEstimation(null);
+      setEditManualGramPerPorsi("");
     } finally {
       setSaving(false);
     }
@@ -608,7 +637,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
           <div className="modal-fadein" style={{ width: 520, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #60A5FA, #818CF8, transparent)" }} />
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Bahan — <span style={{ color: "#60A5FA" }}>{editTarget.id}</span></h2>
               <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 20px" }}>{editTarget.namaBahan}</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -644,8 +673,109 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                   </select>
                 </div>
               </div>
+
+              {/* AI Research Panel — raw_bulk only */}
+              {editForm.tipeBahan === "raw_bulk" && (
+                <div style={{ marginTop: 16, padding: 16, background: "rgba(200,241,53,0.05)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
+                      <span style={{ fontSize: 10, color: "#4B5563" }}>Estimasi Yield Bahan</span>
+                    </div>
+                    <button
+                      onClick={handleEstimateEditYield}
+                      disabled={editEstimating || !editForm.namaBahan || !editForm.isiSatuan}
+                      style={{
+                        fontSize: 11, padding: "5px 12px",
+                        border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
+                        background: editEstimating ? "rgba(200,241,53,0.05)" : "rgba(200,241,53,0.1)",
+                        color: "#C8F135", cursor: editEstimating || !editForm.namaBahan || !editForm.isiSatuan ? "not-allowed" : "pointer",
+                        opacity: !editForm.namaBahan || !editForm.isiSatuan ? 0.5 : 1,
+                      }}
+                    >
+                      {editEstimating ? "⏳ Menghitung..." : "🔍 Hitung Estimasi Yield"}
+                    </button>
+                  </div>
+                  {!editAiEstimation && !editEstimating && (
+                    <div style={{ fontSize: 11, color: "#4B5563", textAlign: "center", padding: "8px 0" }}>
+                      Klik "Hitung Estimasi Yield" untuk estimasi AI
+                    </div>
+                  )}
+                  {editAiEstimation && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Harga Pasar</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#C8F135" }}>{editAiEstimation.hargaPasarFormatted}</div>
+                      </div>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Estimasi Porsi / Kemasan</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#E2E8F0" }}>±{editAiEstimation.estimasiPorsiPerKemasan ?? "?"} porsi</div>
+                        {editAiEstimation.namaMenuContoh && (
+                          <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>{editAiEstimation.namaMenuContoh}</div>
+                        )}
+                      </div>
+                      <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", lineHeight: 1.6, fontStyle: "italic" }}>
+                        {editAiEstimation.narasi}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 12px" }}>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+                    <span style={{ fontSize: 9, color: "#374151", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>atau input manual</span>
+                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+                  </div>
+                  {(() => {
+                    const manualGram = parseFloat(editManualGramPerPorsi);
+                    const isiSatuan = parseFloat(editForm.isiSatuan);
+                    const hargaBeli = parseFloat(editForm.hargaBeli);
+                    const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
+                    const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
+                    return (
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>
+                              Gram per Porsi (diketahui)
+                            </label>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <input
+                                type="number"
+                                min={1}
+                                value={editManualGramPerPorsi}
+                                onChange={(e) => setEditManualGramPerPorsi(e.target.value)}
+                                placeholder="cth: 100"
+                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                              />
+                              <span style={{ fontSize: 11, color: "#4B5563", whiteSpace: "nowrap" }}>{editForm.satuanDapur || "gram"}/porsi</span>
+                            </div>
+                          </div>
+                        </div>
+                        {porsi !== null && (
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Porsi / Kemasan</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: "#60A5FA" }}>{porsi.toLocaleString("id-ID")} porsi</div>
+                              <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>
+                                {isiSatuan.toLocaleString("id-ID")} {editForm.satuanDapur} ÷ {manualGram} {editForm.satuanDapur}
+                              </div>
+                            </div>
+                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / Porsi</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: hargaPerPorsi ? "#C8F135" : "#4B5563" }}>
+                                {hargaPerPorsi ? `Rp ${hargaPerPorsi.toLocaleString("id-ID")}` : "—"}
+                              </div>
+                              {!hargaPerPorsi && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditManualGramPerPorsi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleUpdateBahan} disabled={saving} style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
