@@ -453,13 +453,13 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   { label: "Nama Bahan *", key: "namaBahan", placeholder: "Cth: Stok Makanan - Beras" },
-                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram" },
+                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram", datalistId: "satuan-opts-add" },
                   { label: "Kemasan Beli", key: "satuanBeli", placeholder: "1_karung" },
                   { label: "Min. Stok *", key: "stokMinimum", placeholder: "5000", type: "number" },
                   { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "610000", type: "number" },
                   { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "50000", type: "number" },
                   { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
-                ].map(({ label, key, placeholder, type }) => (
+                ].map(({ label, key, placeholder, type, datalistId }: { label: string; key: string; placeholder: string; type?: string; datalistId?: string }) => (
                   <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
                     <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                     <input
@@ -467,8 +467,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       value={(form as any)[key]}
                       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
+                      list={datalistId}
                       style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
+                    {datalistId && <datalist id={datalistId}>{["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => <option key={u} value={u} />)}</datalist>}
                   </div>
                 ))}
                 <div>
@@ -564,6 +566,12 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       const hb = parseNum(form.hargaBeli);
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 5 }}>
+                            <span style={{ fontSize: 9, color: "#F59E0B", flexShrink: 0 }}>Satuan Output:</span>
+                            <input value={form.satuanDapur} onChange={(e) => setForm(f => ({ ...f, satuanDapur: e.target.value }))}
+                              placeholder="gelas" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 10, color: "#E2E8F0", fontWeight: 700 }} />
+                            <span style={{ fontSize: 9, color: "#6B7280", flexShrink: 0 }}>= satuan hasil produksi (mis: gelas)</span>
+                          </div>
                           <div style={{ display: "flex", alignItems: "flex-end", gap: 5 }}>
                             <div style={{ flex: 1 }}>
                               <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Sub-unit / kemasan</label>
@@ -683,13 +691,13 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   { label: "Nama Bahan *", key: "namaBahan", placeholder: "" },
-                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "" },
+                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "", datalistId: "satuan-opts-edit" },
                   { label: "Kemasan Beli", key: "satuanBeli", placeholder: "" },
                   { label: "Min. Stok *", key: "stokMinimum", placeholder: "", type: "number" },
                   { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "", type: "number" },
                   { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "", type: "number" },
                   { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
-                ].map(({ label, key, placeholder, type }) => (
+                ].map(({ label, key, placeholder, type, datalistId }: { label: string; key: string; placeholder: string; type?: string; datalistId?: string }) => (
                   <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
                     <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                     <input
@@ -697,8 +705,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       value={(editForm as any)[key]}
                       onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
+                      list={datalistId}
                       style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
+                    {datalistId && <datalist id={datalistId}>{["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => <option key={u} value={u} />)}</datalist>}
                   </div>
                 ))}
                 <div>
@@ -789,6 +799,12 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       const hb = parseNum(editForm.hargaBeli);
                       return (
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 5 }}>
+                            <span style={{ fontSize: 9, color: "#F59E0B", flexShrink: 0 }}>Satuan Output:</span>
+                            <input value={editForm.satuanDapur} onChange={(e) => setEditForm(f => ({ ...f, satuanDapur: e.target.value }))}
+                              placeholder="gelas" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 10, color: "#E2E8F0", fontWeight: 700 }} />
+                            <span style={{ fontSize: 9, color: "#6B7280", flexShrink: 0 }}>= satuan hasil produksi (mis: gelas)</span>
+                          </div>
                           <div style={{ display: "flex", alignItems: "flex-end", gap: 5 }}>
                             <div style={{ flex: 1 }}>
                               <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Sub-unit / kemasan</label>
