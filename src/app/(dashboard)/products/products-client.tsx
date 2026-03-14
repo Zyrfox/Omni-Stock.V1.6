@@ -17,7 +17,7 @@ interface BahanItem {
 interface MenuItem {
   id: string; namaMenu: string; kategori: "food" | "beverage" | null;
   outletId: string | null; totalCogs: string | null; hargaJual: string | null;
-  mappingResep?: Array<{ id: string; itemId: string; qty: string; bahan?: { namaBahan: string; satuanDapur: string } }>;
+  mappingResep?: Array<{ id: string; itemId: string; qty: string; itemType?: "bahan_dasar" | "semi_finished"; bahan?: { namaBahan: string; satuanDapur: string } }>;
 }
 
 interface ProductsClientProps {
@@ -373,7 +373,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       <button
                         onClick={() => {
                           setSelectedMenu(m);
-                          setBomLines(m.mappingResep?.map((r) => ({ itemType: "bahan_dasar" as const, itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                          setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.itemType ?? "bahan_dasar") as "bahan_dasar" | "semi_finished", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
                           setBomHargaJual(m.hargaJual ?? "");
                           setShowBOMEditor(true);
                         }}
