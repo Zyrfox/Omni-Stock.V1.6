@@ -53,14 +53,16 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   });
   const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [estimating, setEstimating] = useState(false);
-  const [manualGramPerPorsi, setManualGramPerPorsi] = useState("");
+  const [yieldMode, setYieldMode] = useState<"direct" | "batch">("direct");
+  const [batchFields, setBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
 
   // Edit Bahan state
   const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
   const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1" });
   const [editAiEstimation, setEditAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [editEstimating, setEditEstimating] = useState(false);
-  const [editManualGramPerPorsi, setEditManualGramPerPorsi] = useState("");
+  const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch">("direct");
+  const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
@@ -129,6 +131,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       }]);
       setShowAddBahan(false);
       setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: "OUT-001" });
+      setYieldMode("direct");
+      setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
     } finally {
       setSaving(false);
     }
@@ -138,7 +142,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
     setEditTarget(b);
     setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1" });
     setEditAiEstimation(null);
-    setEditManualGramPerPorsi("");
+    setEditYieldMode("direct");
+    setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   }
 
   async function handleEstimateEditYield() {
@@ -171,21 +176,16 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
       });
-      const manualGram = parseNum(editManualGramPerPorsi);
       const isiSatuan = parseNum(editForm.isiSatuan);
       const hargaBeli = parseNum(editForm.hargaBeli);
-      const hargaPerSatuanPorsi =
-        manualGram > 0 && isiSatuan > 0 && hargaBeli > 0
-          ? (hargaBeli / Math.floor(isiSatuan / manualGram)).toFixed(6)
-          : isiSatuan > 0
-          ? (hargaBeli / isiSatuan).toFixed(6)
-          : "0";
+      const hargaPerSatuanPorsi = isiSatuan > 0 ? (hargaBeli / isiSatuan).toFixed(6) : "0";
       setBahans((prev) => prev.map((b) => b.id === editTarget.id
         ? { ...b, ...editForm, stokMinimum: parseInt(editForm.stokMinimum), hargaPerSatuanPorsi }
         : b));
       setEditTarget(null);
       setEditAiEstimation(null);
-      setEditManualGramPerPorsi("");
+      setEditYieldMode("direct");
+      setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
     } finally {
       setSaving(false);
     }
@@ -231,7 +231,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         </div>
         {activeTab === 1 ? (
           <button
-            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setManualGramPerPorsi(""); }}
+            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
             className="btn-accent"
             style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
           >
@@ -534,66 +534,83 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                     </div>
                   )}
 
-                  {/* Divider */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 12px" }}>
-                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-                    <span style={{ fontSize: 9, color: "#374151", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>atau input manual</span>
-                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-                  </div>
-
-                  {/* Manual Input */}
-                  {(() => {
-                    const manualGram = parseNum(manualGramPerPorsi);
-                    const isiSatuan = parseNum(form.isiSatuan);
-                    const hargaBeli = parseNum(form.hargaBeli);
-                    const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
-                    const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
-                    return (
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>
-                              Gram per Porsi (diketahui)
-                            </label>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <input
-                                type="number"
-                                min={1}
-                                value={manualGramPerPorsi}
-                                onChange={(e) => setManualGramPerPorsi(e.target.value)}
-                                placeholder={`cth: 100`}
-                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
-                              />
-                              <span style={{ fontSize: 11, color: "#4B5563", whiteSpace: "nowrap" }}>{form.satuanDapur || "gram"}/porsi</span>
-                            </div>
-                          </div>
+                  {/* Yield Mode Calculator */}
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ display: "flex", gap: 3, marginBottom: 10, background: "#0F0F18", borderRadius: 6, padding: 3 }}>
+                      <button type="button" onClick={() => setYieldMode("direct")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "direct" ? 700 : 400, background: yieldMode === "direct" ? "#1E1E2E" : "transparent", color: yieldMode === "direct" ? "#E2E8F0" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Input Langsung
+                      </button>
+                      <button type="button" onClick={() => setYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "batch" ? 700 : 400, background: yieldMode === "batch" ? "#1E1E2E" : "transparent", color: yieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Batch Produksi
+                      </button>
+                    </div>
+                    {yieldMode === "direct" && (() => {
+                      const is = parseNum(form.isiSatuan);
+                      const hb = parseNum(form.hargaBeli);
+                      return is > 0 && hb > 0 ? (
+                        <div style={{ padding: "8px 12px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.1)" }}>
+                          <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per {form.satuanDapur || "unit"}: </span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: "#C8F135" }}>Rp {(hb / is).toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                         </div>
-                        {porsi !== null && (
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
-                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Porsi / Kemasan</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: "#60A5FA" }}>{porsi.toLocaleString("id-ID")} porsi</div>
-                              <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>
-                                {isiSatuan.toLocaleString("id-ID")} {form.satuanDapur} ÷ {manualGram} {form.satuanDapur}
-                              </div>
+                      ) : (
+                        <div style={{ fontSize: 10, color: "#374151", textAlign: "center", padding: "4px 0" }}>Isi Harga Beli & Isi Kemasan di atas untuk preview harga per {form.satuanDapur || "unit"}</div>
+                      );
+                    })()}
+                    {yieldMode === "batch" && (() => {
+                      const sub = parseNum(batchFields.jumlahSubUnit);
+                      const ppb = parseNum(batchFields.porsiPerBatch);
+                      const bpsu = parseNum(batchFields.jumlahBatchPerSubUnit || "1");
+                      const total = sub > 0 && ppb > 0 && bpsu > 0 ? sub * ppb * bpsu : 0;
+                      const hb = parseNum(form.hargaBeli);
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "flex-end", gap: 5 }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Sub-unit / kemasan</label>
+                              <input type="number" min={1} value={batchFields.jumlahSubUnit}
+                                onChange={(e) => { const v = e.target.value; setBatchFields(f => ({ ...f, jumlahSubUnit: v })); const t = parseNum(v) * parseNum(batchFields.porsiPerBatch) * parseNum(batchFields.jumlahBatchPerSubUnit || "1"); if (t > 0) setForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="10" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
                             </div>
-                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
-                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / Porsi</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: hargaPerPorsi ? "#C8F135" : "#4B5563" }}>
-                                {hargaPerPorsi ? `Rp ${hargaPerPorsi.toLocaleString("id-ID")}` : "—"}
-                              </div>
-                              {!hargaPerPorsi && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                            <span style={{ fontSize: 16, color: "#374151", marginBottom: 7, flexShrink: 0 }}>×</span>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Porsi / produksi</label>
+                              <input type="number" min={1} value={batchFields.porsiPerBatch}
+                                onChange={(e) => { const v = e.target.value; setBatchFields(f => ({ ...f, porsiPerBatch: v })); const t = parseNum(batchFields.jumlahSubUnit) * parseNum(v) * parseNum(batchFields.jumlahBatchPerSubUnit || "1"); if (t > 0) setForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="65" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                            </div>
+                            <span style={{ fontSize: 16, color: "#374151", marginBottom: 7, flexShrink: 0 }}>×</span>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Produksi / sub-unit</label>
+                              <input type="number" min={1} value={batchFields.jumlahBatchPerSubUnit}
+                                onChange={(e) => { const v = e.target.value; setBatchFields(f => ({ ...f, jumlahBatchPerSubUnit: v })); const t = parseNum(batchFields.jumlahSubUnit) * parseNum(batchFields.porsiPerBatch) * parseNum(v || "1"); if (t > 0) setForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="2" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                          {total > 0 ? (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                              <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
+                                <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Total Yield</div>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: "#60A5FA" }}>{total.toLocaleString("id-ID")} {form.satuanDapur || "unit"}</div>
+                                <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>{sub} × {ppb} × {bpsu}</div>
+                              </div>
+                              <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
+                                <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / {form.satuanDapur || "unit"}</div>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: hb > 0 ? "#C8F135" : "#4B5563" }}>{hb > 0 ? `Rp ${Math.round(hb / total).toLocaleString("id-ID")}` : "—"}</div>
+                                {!hb && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 10, color: "#374151", textAlign: "center", padding: "4px 0" }}>Isi ketiga nilai di atas untuk menghitung total yield</div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); setManualGramPerPorsi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveBahan} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Bahan"}
                 </button>
@@ -742,63 +759,83 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       </div>
                     </div>
                   )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 12px" }}>
-                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-                    <span style={{ fontSize: 9, color: "#374151", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>atau input manual</span>
-                    <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-                  </div>
-                  {(() => {
-                    const manualGram = parseNum(editManualGramPerPorsi);
-                    const isiSatuan = parseNum(editForm.isiSatuan);
-                    const hargaBeli = parseNum(editForm.hargaBeli);
-                    const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
-                    const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
-                    return (
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>
-                              Gram per Porsi (diketahui)
-                            </label>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <input
-                                type="number"
-                                min={1}
-                                value={editManualGramPerPorsi}
-                                onChange={(e) => setEditManualGramPerPorsi(e.target.value)}
-                                placeholder="cth: 100"
-                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
-                              />
-                              <span style={{ fontSize: 11, color: "#4B5563", whiteSpace: "nowrap" }}>{editForm.satuanDapur || "gram"}/porsi</span>
-                            </div>
-                          </div>
+                  {/* Yield Mode Calculator */}
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ display: "flex", gap: 3, marginBottom: 10, background: "#0F0F18", borderRadius: 6, padding: 3 }}>
+                      <button type="button" onClick={() => setEditYieldMode("direct")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "direct" ? 700 : 400, background: editYieldMode === "direct" ? "#1E1E2E" : "transparent", color: editYieldMode === "direct" ? "#E2E8F0" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Input Langsung
+                      </button>
+                      <button type="button" onClick={() => setEditYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "batch" ? 700 : 400, background: editYieldMode === "batch" ? "#1E1E2E" : "transparent", color: editYieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Batch Produksi
+                      </button>
+                    </div>
+                    {editYieldMode === "direct" && (() => {
+                      const is = parseNum(editForm.isiSatuan);
+                      const hb = parseNum(editForm.hargaBeli);
+                      return is > 0 && hb > 0 ? (
+                        <div style={{ padding: "8px 12px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.1)" }}>
+                          <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per {editForm.satuanDapur || "unit"}: </span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: "#C8F135" }}>Rp {(hb / is).toLocaleString("id-ID", { maximumFractionDigits: 2 })}</span>
                         </div>
-                        {porsi !== null && (
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
-                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Porsi / Kemasan</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: "#60A5FA" }}>{porsi.toLocaleString("id-ID")} porsi</div>
-                              <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>
-                                {isiSatuan.toLocaleString("id-ID")} {editForm.satuanDapur} ÷ {manualGram} {editForm.satuanDapur}
-                              </div>
+                      ) : (
+                        <div style={{ fontSize: 10, color: "#374151", textAlign: "center", padding: "4px 0" }}>Isi Harga Beli & Isi Kemasan di atas untuk preview harga per {editForm.satuanDapur || "unit"}</div>
+                      );
+                    })()}
+                    {editYieldMode === "batch" && (() => {
+                      const sub = parseNum(editBatchFields.jumlahSubUnit);
+                      const ppb = parseNum(editBatchFields.porsiPerBatch);
+                      const bpsu = parseNum(editBatchFields.jumlahBatchPerSubUnit || "1");
+                      const total = sub > 0 && ppb > 0 && bpsu > 0 ? sub * ppb * bpsu : 0;
+                      const hb = parseNum(editForm.hargaBeli);
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "flex-end", gap: 5 }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Sub-unit / kemasan</label>
+                              <input type="number" min={1} value={editBatchFields.jumlahSubUnit}
+                                onChange={(e) => { const v = e.target.value; setEditBatchFields(f => ({ ...f, jumlahSubUnit: v })); const t = parseNum(v) * parseNum(editBatchFields.porsiPerBatch) * parseNum(editBatchFields.jumlahBatchPerSubUnit || "1"); if (t > 0) setEditForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="10" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
                             </div>
-                            <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
-                              <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / Porsi</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: hargaPerPorsi ? "#C8F135" : "#4B5563" }}>
-                                {hargaPerPorsi ? `Rp ${hargaPerPorsi.toLocaleString("id-ID")}` : "—"}
-                              </div>
-                              {!hargaPerPorsi && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                            <span style={{ fontSize: 16, color: "#374151", marginBottom: 7, flexShrink: 0 }}>×</span>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Porsi / produksi</label>
+                              <input type="number" min={1} value={editBatchFields.porsiPerBatch}
+                                onChange={(e) => { const v = e.target.value; setEditBatchFields(f => ({ ...f, porsiPerBatch: v })); const t = parseNum(editBatchFields.jumlahSubUnit) * parseNum(v) * parseNum(editBatchFields.jumlahBatchPerSubUnit || "1"); if (t > 0) setEditForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="65" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                            </div>
+                            <span style={{ fontSize: 16, color: "#374151", marginBottom: 7, flexShrink: 0 }}>×</span>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Produksi / sub-unit</label>
+                              <input type="number" min={1} value={editBatchFields.jumlahBatchPerSubUnit}
+                                onChange={(e) => { const v = e.target.value; setEditBatchFields(f => ({ ...f, jumlahBatchPerSubUnit: v })); const t = parseNum(editBatchFields.jumlahSubUnit) * parseNum(editBatchFields.porsiPerBatch) * parseNum(v || "1"); if (t > 0) setEditForm(f => ({ ...f, isiSatuan: String(t) })); }}
+                                placeholder="2" style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                          {total > 0 ? (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                              <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(96,165,250,0.15)" }}>
+                                <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Total Yield</div>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: "#60A5FA" }}>{total.toLocaleString("id-ID")} {editForm.satuanDapur || "unit"}</div>
+                                <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>{sub} × {ppb} × {bpsu}</div>
+                              </div>
+                              <div style={{ padding: "8px 10px", background: "#0F0F18", borderRadius: 6, border: "1px solid rgba(200,241,53,0.15)" }}>
+                                <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Harga / {editForm.satuanDapur || "unit"}</div>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: hb > 0 ? "#C8F135" : "#4B5563" }}>{hb > 0 ? `Rp ${Math.round(hb / total).toLocaleString("id-ID")}` : "—"}</div>
+                                {!hb && <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>isi Harga Beli dahulu</div>}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 10, color: "#374151", textAlign: "center", padding: "4px 0" }}>Isi ketiga nilai di atas untuk menghitung total yield</div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditManualGramPerPorsi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditYieldMode("direct"); setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleUpdateBahan} disabled={saving} style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
