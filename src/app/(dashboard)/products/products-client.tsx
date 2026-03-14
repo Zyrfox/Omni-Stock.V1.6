@@ -229,21 +229,21 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Products & Recipes</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Master bahan baku, resep, dan menu final</p>
         </div>
-        {activeTab === 3 ? (
-          <button
-            onClick={() => { setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" }); }}
-            className="btn-accent"
-            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
-          >
-            + Tambah Menu
-          </button>
-        ) : (
+        {activeTab === 1 ? (
           <button
             onClick={() => { setShowAddBahan(true); setAiEstimation(null); setManualGramPerPorsi(""); }}
             className="btn-accent"
             style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
           >
             + Tambah Bahan
+          </button>
+        ) : (
+          <button
+            onClick={() => { setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" }); }}
+            className="btn-accent"
+            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+          >
+            + Tambah Menu
           </button>
         )}
       </div>
@@ -337,7 +337,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
-                {["ID Menu", "Nama Menu", "Outlet", "Komposisi", "Total COGS"].map((h) => (
+                {["ID Menu", "Nama Menu", "Outlet", "Komposisi", "Total COGS", "Aksi"].map((h) => (
                   <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
                   </th>
@@ -345,27 +345,45 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).map((m) => (
-                <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
-                  <td style={{ padding: "10px 14px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {m.mappingResep?.map((r) => (
-                        <span key={r.id} style={{ fontSize: 10, padding: "2px 6px", background: "#14142A", borderRadius: 4, color: "#E2E8F0" }}>
-                          {r.bahan?.namaBahan} {r.qty}{r.bahan?.satuanDapur}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>
-                    {formatRupiah(parseFloat(m.totalCogs ?? "0"))}
-                  </td>
-                </tr>
-              ))}
-              {menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length === 0 && (
-                <tr><td colSpan={5} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada resep. Tambahkan dari tab Master Menu.</td></tr>
+              {menus.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Tambahkan dari tab Master Menu.</td></tr>
+              ) : (
+                menus.map((m) => (
+                  <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
+                    <td style={{ padding: "10px 14px" }}>
+                      {m.mappingResep && m.mappingResep.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {m.mappingResep.map((r) => (
+                            <span key={r.id} style={{ fontSize: 10, padding: "2px 6px", background: "#14142A", borderRadius: 4, color: "#E2E8F0" }}>
+                              {r.bahan?.namaBahan} {r.qty}{r.bahan?.satuanDapur}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 10, color: "#374151" }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(m.totalCogs ?? "0") > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                      {formatRupiah(parseFloat(m.totalCogs ?? "0"))}
+                    </td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <button
+                        onClick={() => {
+                          setSelectedMenu(m);
+                          setBomLines(m.mappingResep?.map((r) => ({ itemType: "bahan_dasar" as const, itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                          setBomHargaJual(m.hargaJual ?? "");
+                          setShowBOMEditor(true);
+                        }}
+                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                      >
+                        {m.mappingResep && m.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -378,7 +396,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
-                {["ID Menu", "Nama Menu", "Kategori", "Outlet", "Recipe", "Total COGS", "Aksi"].map((h) => (
+                {["ID Menu", "Nama Menu", "Kategori", "Outlet", "Recipe", "Total COGS", "Harga Jual", "Margin"].map((h) => (
                   <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
                   </th>
@@ -387,10 +405,14 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
             </thead>
             <tbody>
               {menus.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Klik "+ Tambah Menu" untuk memulai.</td></tr>
+                <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Klik "+ Tambah Menu" untuk memulai.</td></tr>
               ) : (
                 menus.map((m) => {
                   const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
+                  const cogs = parseFloat(m.totalCogs ?? "0");
+                  const hj = parseFloat(m.hargaJual ?? "0");
+                  const margin = hj > 0 && cogs > 0 ? ((hj - cogs) / hj * 100) : null;
+                  const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
                   return (
                     <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                       <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
@@ -403,21 +425,14 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                           : <Badge color="gray" size="sm">No Recipe</Badge>
                         }
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(m.totalCogs ?? "0") > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {formatRupiah(parseFloat(m.totalCogs ?? "0"))}
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: cogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {formatRupiah(cogs)}
                       </td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <button
-                          onClick={() => {
-                            setSelectedMenu(m);
-                            setBomLines(m.mappingResep?.map((r) => ({ itemType: "bahan_dasar" as const, itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
-                            setBomHargaJual(m.hargaJual ?? "");
-                            setShowBOMEditor(true);
-                          }}
-                          style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
-                        >
-                          + Edit Resep
-                        </button>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: hj > 0 ? "#E2E8F0" : "#4B5563", fontWeight: 600 }}>
+                        {hj > 0 ? formatRupiah(hj) : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: marginColor, fontWeight: 700 }}>
+                        {margin !== null ? `${margin.toFixed(1)}%` : "—"}
                       </td>
                     </tr>
                   );
@@ -827,8 +842,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               <div style={{ maxHeight: 260, overflowY: "auto" }}>
                 {bomLines.map((line, idx) => {
                   const bahan = bahanList.find((b) => b.id === line.itemId);
-                  const sfg = sfgList.find((s) => s.id === line.itemId);
-                  const satuan = line.itemType === "bahan_dasar" ? bahan?.satuanDapur : sfg?.satuan;
+                  const satuan = bahan?.satuanDapur;
                   const subCogs = bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
                     <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
@@ -848,7 +862,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                         <option value="">— Pilih Item —</option>
                         {line.itemType === "bahan_dasar"
                           ? bahanList.map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)
-                          : sfgList.map((s) => <option key={s.id} value={s.id}>{s.namaSemiFinished}</option>)
+                          : bahanList.filter((b) => b.tipeBahan === "raw_bulk").map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)
                         }
                       </select>
                       <input
