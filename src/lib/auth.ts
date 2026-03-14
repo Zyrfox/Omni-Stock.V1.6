@@ -37,12 +37,12 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: [
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-    // Vercel deployment URL (per-deployment hash, e.g. project-abc123-team.vercel.app)
+    "http://localhost:3000",
+    "https://omni-stock-v16.vercel.app",
+    "https://omni-stock-v16-git-master-zyrfoxs-projects.vercel.app",
+    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-    // Vercel branch alias URL (e.g. project-git-master-team.vercel.app)
     ...(process.env.VERCEL_BRANCH_URL ? [`https://${process.env.VERCEL_BRANCH_URL}`] : []),
-    // Vercel production URL (stable custom domain)
     ...(process.env.VERCEL_PROJECT_PRODUCTION_URL ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`] : []),
   ],
 });
