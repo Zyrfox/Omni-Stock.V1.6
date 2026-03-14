@@ -26,6 +26,12 @@ interface ProductsClientProps {
   sfgList: Array<{ id: string; namaSemiFinished: string; satuan: string }>;
 }
 
+// Strip Indonesian thousands-separator dots before parsing (e.g. "50.000" → 50000)
+function parseNum(v: string | number | undefined): number {
+  if (!v && v !== 0) return 0;
+  return parseFloat(String(v).replace(/\.(?=\d{3})/g, "").replace(",", ".")) || 0;
+}
+
 export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientProps) {
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
@@ -165,9 +171,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
       });
-      const manualGram = parseFloat(editManualGramPerPorsi);
-      const isiSatuan = parseFloat(editForm.isiSatuan);
-      const hargaBeli = parseFloat(editForm.hargaBeli);
+      const manualGram = parseNum(editManualGramPerPorsi);
+      const isiSatuan = parseNum(editForm.isiSatuan);
+      const hargaBeli = parseNum(editForm.hargaBeli);
       const hargaPerSatuanPorsi =
         manualGram > 0 && isiSatuan > 0 && hargaBeli > 0
           ? (hargaBeli / Math.floor(isiSatuan / manualGram)).toFixed(6)
@@ -520,9 +526,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
 
                   {/* Manual Input */}
                   {(() => {
-                    const manualGram = parseFloat(manualGramPerPorsi);
-                    const isiSatuan = parseFloat(form.isiSatuan);
-                    const hargaBeli = parseFloat(form.hargaBeli);
+                    const manualGram = parseNum(manualGramPerPorsi);
+                    const isiSatuan = parseNum(form.isiSatuan);
+                    const hargaBeli = parseNum(form.hargaBeli);
                     const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
                     const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
                     return (
@@ -725,9 +731,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                     <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
                   </div>
                   {(() => {
-                    const manualGram = parseFloat(editManualGramPerPorsi);
-                    const isiSatuan = parseFloat(editForm.isiSatuan);
-                    const hargaBeli = parseFloat(editForm.hargaBeli);
+                    const manualGram = parseNum(editManualGramPerPorsi);
+                    const isiSatuan = parseNum(editForm.isiSatuan);
+                    const hargaBeli = parseNum(editForm.hargaBeli);
                     const porsi = manualGram > 0 && isiSatuan > 0 ? Math.floor(isiSatuan / manualGram) : null;
                     const hargaPerPorsi = porsi && porsi > 0 && hargaBeli > 0 ? Math.round(hargaBeli / porsi) : null;
                     return (
