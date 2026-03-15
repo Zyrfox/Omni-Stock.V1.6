@@ -16,10 +16,19 @@ interface POCartItem {
   namaBahan: string;
   vendorId: string;
   vendorNama: string;
+  kontakWa: string | null;
+  allVendors: Array<{ id: string; nama: string; kontakWa: string | null }>;
   tipeBahan: "packaged" | "raw_bulk";
   qty: number;
   hargaSatuan: number;
   stokAkhir: number;
+}
+
+function formatWANumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  if (digits.startsWith("62")) return digits;
+  return digits;
 }
 
 interface DashboardClientProps {
@@ -94,13 +103,25 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   function addToCart(item: UploadedStockItem) {
     if (!item.bahanId) return; // can't create PO for unmatched items
     if (poCart.find((c) => c.bahanId === item.bahanId)) return;
+    const bahanFull = allBahan.find((b) => b.id === item.bahanId);
+    const vendorList = bahanFull?.vendorBahan?.map((vb: any) => ({
+      id: vb.vendor?.id ?? "",
+      nama: vb.vendor?.namaVendor ?? "—",
+      kontakWa: vb.vendor?.kontakWa ?? null,
+    })) ?? [];
+    const primaryVb = bahanFull?.vendorBahan?.find((vb: any) => vb.isPrimary) ?? bahanFull?.vendorBahan?.[0];
+    const primaryVendorId = primaryVb?.vendor?.id ?? item.vendorId ?? "";
+    const primaryVendorNama = primaryVb?.vendor?.namaVendor ?? item.vendorNama ?? "—";
+    const primaryKontakWa = primaryVb?.vendor?.kontakWa ?? null;
     setPoCart((prev) => [
       ...prev,
       {
         bahanId: item.bahanId!,
         namaBahan: item.namaBahan,
-        vendorId: item.vendorId ?? "",
-        vendorNama: item.vendorNama ?? "—",
+        vendorId: primaryVendorId,
+        vendorNama: primaryVendorNama,
+        kontakWa: primaryKontakWa,
+        allVendors: vendorList,
         tipeBahan: item.tipeBahan ?? "packaged",
         qty: 1,
         hargaSatuan: parseFloat(item.hargaBeli) || 0,
@@ -547,12 +568,41 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0" }}>{item.namaBahan}</div>
-                        <div style={{ fontSize: 10, color: "#4B5563" }}>{item.vendorNama}</div>
-                        <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
-                          {item.tipeBahan}
-                        </Badge>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", marginBottom: 3 }}>{item.namaBahan}</div>
+                        {item.allVendors.length > 1 ? (
+                          <select
+                            value={item.vendorId}
+                            onChange={(e) => {
+                              const sel = item.allVendors.find((v) => v.id === e.target.value);
+                              setPoCart((prev) => prev.map((c) => c.bahanId === item.bahanId
+                                ? { ...c, vendorId: sel?.id ?? "", vendorNama: sel?.nama ?? "—", kontakWa: sel?.kontakWa ?? null }
+                                : c));
+                            }}
+                            style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 5, padding: "3px 6px", fontSize: 10, color: "#E2E8F0", outline: "none", marginBottom: 3 }}
+                          >
+                            {item.allVendors.map((v) => (
+                              <option key={v.id} value={v.id}>{v.nama}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 3 }}>{item.vendorNama}</div>
+                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
+                            {item.tipeBahan}
+                          </Badge>
+                          {item.kontakWa && (
+                            <a
+                              href={`https://wa.me/${formatWANumber(item.kontakWa)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}
+                            >
+                              📱 WA
+                            </a>
+                          )}
+                        </div>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.bahanId)}

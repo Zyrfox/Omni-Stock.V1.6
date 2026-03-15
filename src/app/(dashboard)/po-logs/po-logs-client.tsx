@@ -3,16 +3,23 @@
 import { useState } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
-import { formatRupiah, formatDateTime, calculateETA } from "@/lib/formatters";
+import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { sendPO, receivePO } from "@/actions/purchase-order";
 import { useRouter } from "next/navigation";
+
+function formatWANumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  if (digits.startsWith("62")) return digits;
+  return digits;
+}
 
 interface POItem {
   id: string; outletId: string; vendorId: string; bahanId: string;
   status: "draft" | "sent" | "received"; qtyOrder: string; hargaSatuan: string;
   totalHarga: string; aiNotes: string | null; tanggalKirim: Date | null;
   tanggalTerima: Date | null; createdBy: string; createdAt: Date | null;
-  vendor: { namaVendor: string; estimasiPengiriman: number };
+  vendor: { namaVendor: string; estimasiPengiriman: number; kontakWa: string | null };
   bahan: { namaBahan: string; satuanDapur: string; tipeBahan: string };
   createdByUser: { nama: string } | null;
   outlet: { namaOutlet: string } | null;
@@ -101,7 +108,16 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
                           ✓ Terima
                         </button>
                       )}
-                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", cursor: "pointer" }}>PDF</button>
+                      {po.vendor?.kontakWa && (
+                        <a
+                          href={`https://wa.me/${formatWANumber(po.vendor.kontakWa)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}
+                        >
+                          📱 WA
+                        </a>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -185,7 +201,17 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
               )}
 
               {/* Actions */}
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                {selectedPO.vendor?.kontakWa && (
+                  <a
+                    href={`https://wa.me/${formatWANumber(selectedPO.vendor.kontakWa)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ padding: "8px 16px", borderRadius: 7, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", cursor: "pointer", fontSize: 12, textDecoration: "none" }}
+                  >
+                    📱 Hubungi Vendor
+                  </a>
+                )}
                 {selectedPO.status === "draft" && (
                   <button onClick={() => handleSend(selectedPO.id)} disabled={actionLoading === selectedPO.id}
                     style={{ padding: "8px 16px", borderRadius: 7, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#F59E0B", cursor: "pointer", fontSize: 12 }}>
