@@ -39,6 +39,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
+  const [bomSearches, setBomSearches] = useState<string[]>([]);
+  const [bomOpenIdx, setBomOpenIdx] = useState<number | null>(null);
   const [bomHargaJual, setBomHargaJual] = useState("");
   const [saving, setSaving] = useState(false);
   const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001" });
@@ -401,6 +403,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                           setSelectedMenu(m);
                           setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.itemType ?? "bahan_dasar") as "bahan_dasar" | "semi_finished", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
                           setBomHargaJual(m.hargaJual ?? "");
+                          setBomSearches([]);
+                          setBomOpenIdx(null);
                           setShowBOMEditor(true);
                         }}
                         style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
@@ -961,17 +965,43 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                         <option value="bahan_dasar">Bahan</option>
                         <option value="semi_finished">Sub-Resep</option>
                       </select>
-                      <select
-                        value={line.itemId}
-                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemId: e.target.value } : x))}
-                        style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
-                      >
-                        <option value="">— Pilih Item —</option>
-                        {line.itemType === "bahan_dasar"
-                          ? bahanList.map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)
-                          : bahanList.filter((b) => b.tipeBahan === "raw_bulk").map((b) => <option key={b.id} value={b.id}>{b.namaBahan}</option>)
-                        }
-                      </select>
+                      <div style={{ position: "relative", flex: 1 }}>
+                        <input
+                          value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? "")}
+                          onChange={(e) => {
+                            setBomSearches((s) => { const a = [...s]; a[idx] = e.target.value; return a; });
+                            setBomOpenIdx(idx);
+                          }}
+                          onFocus={() => {
+                            setBomSearches((s) => { const a = [...s]; a[idx] = ""; return a; });
+                            setBomOpenIdx(idx);
+                          }}
+                          onBlur={() => setTimeout(() => setBomOpenIdx((o) => o === idx ? null : o), 150)}
+                          placeholder="— Cari item —"
+                          style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                        />
+                        {bomOpenIdx === idx && (
+                          <div style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, background: "#13131F", border: "1px solid #2D2D44", borderRadius: 7, zIndex: 200, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                            {(line.itemType === "bahan_dasar" ? bahanList : bahanList.filter((b) => b.tipeBahan === "raw_bulk"))
+                              .filter((b) => { const q = (bomSearches[idx] ?? "").toLowerCase(); return !q || b.namaBahan.toLowerCase().includes(q); })
+                              .map((b) => (
+                                <div
+                                  key={b.id}
+                                  onMouseDown={() => {
+                                    setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemId: b.id } : x));
+                                    setBomSearches((s) => { const a = [...s]; a[idx] = b.namaBahan; return a; });
+                                    setBomOpenIdx(null);
+                                  }}
+                                  style={{ padding: "7px 10px", fontSize: 11, cursor: "pointer", color: b.id === line.itemId ? "#C8F135" : "#E2E8F0", background: b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent" }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent")}
+                                >
+                                  {b.namaBahan}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
                       <input
                         type="number" value={line.qty} min={0.001} step={0.001}
                         onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
