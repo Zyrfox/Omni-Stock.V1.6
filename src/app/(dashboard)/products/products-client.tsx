@@ -453,13 +453,13 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   { label: "Nama Bahan *", key: "namaBahan", placeholder: "Cth: Stok Makanan - Beras" },
-                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram", datalistId: "satuan-opts-add" },
+                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram" },
                   { label: "Kemasan Beli", key: "satuanBeli", placeholder: "1_karung" },
                   { label: "Min. Stok *", key: "stokMinimum", placeholder: "5000", type: "number" },
                   { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "610000", type: "number" },
                   { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "50000", type: "number" },
                   { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
-                ].map(({ label, key, placeholder, type, datalistId }: { label: string; key: string; placeholder: string; type?: string; datalistId?: string }) => (
+                ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
                   <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
                     <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                     <input
@@ -467,10 +467,20 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       value={(form as any)[key]}
                       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
-                      list={datalistId}
                       style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
-                    {datalistId && <datalist id={datalistId}>{["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => <option key={u} value={u} />)}</datalist>}
+                    {key === "satuanDapur" && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                        {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map((u) => (
+                          <button key={u} type="button" onClick={() => setForm((f) => ({ ...f, satuanDapur: u }))}
+                            style={{ padding: "2px 8px", borderRadius: 10, border: `1px solid ${form.satuanDapur === u ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
+                              background: form.satuanDapur === u ? "rgba(200,241,53,0.12)" : "transparent",
+                              color: form.satuanDapur === u ? "#C8F135" : "#6B7280", fontSize: 10, cursor: "pointer" }}>
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div>
@@ -691,13 +701,13 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
                   { label: "Nama Bahan *", key: "namaBahan", placeholder: "" },
-                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "", datalistId: "satuan-opts-edit" },
+                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "" },
                   { label: "Kemasan Beli", key: "satuanBeli", placeholder: "" },
                   { label: "Min. Stok *", key: "stokMinimum", placeholder: "", type: "number" },
                   { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "", type: "number" },
                   { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "", type: "number" },
                   { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
-                ].map(({ label, key, placeholder, type, datalistId }: { label: string; key: string; placeholder: string; type?: string; datalistId?: string }) => (
+                ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
                   <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
                     <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                     <input
@@ -705,10 +715,20 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       value={(editForm as any)[key]}
                       onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
-                      list={datalistId}
                       style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
-                    {datalistId && <datalist id={datalistId}>{["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => <option key={u} value={u} />)}</datalist>}
+                    {key === "satuanDapur" && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                        {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map((u) => (
+                          <button key={u} type="button" onClick={() => setEditForm((f) => ({ ...f, satuanDapur: u }))}
+                            style={{ padding: "2px 8px", borderRadius: 10, border: `1px solid ${editForm.satuanDapur === u ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
+                              background: editForm.satuanDapur === u ? "rgba(200,241,53,0.12)" : "transparent",
+                              color: editForm.satuanDapur === u ? "#C8F135" : "#6B7280", fontSize: 10, cursor: "pointer" }}>
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div>
