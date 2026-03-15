@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
@@ -41,6 +42,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
   const [bomSearches, setBomSearches] = useState<string[]>([]);
   const [bomOpenIdx, setBomOpenIdx] = useState<number | null>(null);
+  const [bomDropdownRect, setBomDropdownRect] = useState<DOMRect | null>(null);
+  const bomInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [bomHargaJual, setBomHargaJual] = useState("");
   const [saving, setSaving] = useState(false);
   const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001" });
@@ -965,42 +968,26 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                         <option value="bahan_dasar">Bahan</option>
                         <option value="semi_finished">Sub-Resep</option>
                       </select>
-                      <div style={{ position: "relative", flex: 1 }}>
+                      <div style={{ flex: 1 }}>
                         <input
+                          ref={(el) => { bomInputRefs.current[idx] = el; }}
                           value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? "")}
                           onChange={(e) => {
                             setBomSearches((s) => { const a = [...s]; a[idx] = e.target.value; return a; });
                             setBomOpenIdx(idx);
+                            const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
+                            if (rect) setBomDropdownRect(rect);
                           }}
                           onFocus={() => {
                             setBomSearches((s) => { const a = [...s]; a[idx] = ""; return a; });
                             setBomOpenIdx(idx);
+                            const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
+                            if (rect) setBomDropdownRect(rect);
                           }}
                           onBlur={() => setTimeout(() => setBomOpenIdx((o) => o === idx ? null : o), 150)}
                           placeholder="— Cari item —"
                           style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
                         />
-                        {bomOpenIdx === idx && (
-                          <div style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, right: 0, background: "#13131F", border: "1px solid #2D2D44", borderRadius: 7, zIndex: 200, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
-                            {(line.itemType === "bahan_dasar" ? bahanList : bahanList.filter((b) => b.tipeBahan === "raw_bulk"))
-                              .filter((b) => { const q = (bomSearches[idx] ?? "").toLowerCase(); return !q || b.namaBahan.toLowerCase().includes(q); })
-                              .map((b) => (
-                                <div
-                                  key={b.id}
-                                  onMouseDown={() => {
-                                    setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemId: b.id } : x));
-                                    setBomSearches((s) => { const a = [...s]; a[idx] = b.namaBahan; return a; });
-                                    setBomOpenIdx(null);
-                                  }}
-                                  style={{ padding: "7px 10px", fontSize: 11, cursor: "pointer", color: b.id === line.itemId ? "#C8F135" : "#E2E8F0", background: b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent" }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent")}
-                                >
-                                  {b.namaBahan}
-                                </div>
-                              ))}
-                          </div>
-                        )}
                       </div>
                       <input
                         type="number" value={line.qty} min={0.001} step={0.001}
@@ -1059,6 +1046,52 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
             </div>
           </div>
         </div>
+      )}
+
+      {/* BOM combobox dropdown — rendered via portal to escape overflow:hidden */}
+      {bomOpenIdx !== null && bomDropdownRect && typeof window !== "undefined" && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: bomDropdownRect.bottom + 2,
+            left: bomDropdownRect.left,
+            width: bomDropdownRect.width,
+            background: "#13131F",
+            border: "1px solid #2D2D44",
+            borderRadius: 7,
+            zIndex: 9999,
+            maxHeight: 220,
+            overflowY: "auto",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.7)",
+          }}
+        >
+          {(() => {
+            const line = bomLines[bomOpenIdx];
+            if (!line) return null;
+            const q = (bomSearches[bomOpenIdx] ?? "").toLowerCase();
+            const options = (line.itemType === "bahan_dasar" ? bahanList : bahanList.filter((b) => b.tipeBahan === "raw_bulk"))
+              .filter((b) => !q || b.namaBahan.toLowerCase().includes(q));
+            if (options.length === 0) return (
+              <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>
+            );
+            return options.map((b) => (
+              <div
+                key={b.id}
+                onMouseDown={() => {
+                  setBomLines((l) => l.map((x, i) => i === bomOpenIdx ? { ...x, itemId: b.id } : x));
+                  setBomSearches((s) => { const a = [...s]; a[bomOpenIdx!] = b.namaBahan; return a; });
+                  setBomOpenIdx(null);
+                }}
+                style={{ padding: "7px 12px", fontSize: 11, cursor: "pointer", color: b.id === line.itemId ? "#C8F135" : "#E2E8F0", background: b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent")}
+              >
+                {b.namaBahan}
+              </div>
+            ));
+          })()}
+        </div>,
+        document.body
       )}
     </div>
   );
