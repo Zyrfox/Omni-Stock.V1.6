@@ -123,11 +123,11 @@ export function SuppliersClient({ vendors, allBahan, stats }: SuppliersClientPro
 
             {/* Info fields */}
             {([
-              { label: "Nama Vendor *", key: "namaVendor", placeholder: "CV Maju Bersama" },
-              { label: "Nomor WhatsApp", key: "kontakWa", placeholder: "08123456789" },
+              { label: "Nama Vendor *", key: "namaVendor", placeholder: "CV Maju Bersama", type: "text" },
+              { label: "Nomor WhatsApp", key: "kontakWa", placeholder: "08123456789", type: "text" },
               { label: "Lead Time (hari) *", key: "estimasiPengiriman", placeholder: "3", type: "number" },
-              { label: "Info Rekening / Pembayaran", key: "noRekening", placeholder: "BCA 1234567890 a/n ..." },
-            ] as const).map(({ label, key, placeholder, type }) => (
+              { label: "Info Rekening / Pembayaran", key: "noRekening", placeholder: "BCA 1234567890 a/n ...", type: "text" },
+            ] as Array<{ label: string; key: string; placeholder: string; type: string }>).map(({ label, key, placeholder, type }) => (
               <div key={key} style={{ marginBottom: 12 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                 <input
