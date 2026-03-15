@@ -13,26 +13,26 @@ export async function getMasterVendor() {
 }
 
 export async function getMasterVendorWithStats() {
-  const vendors = await db.query.masterVendor.findMany({
-    with: {
-      vendorBahan: { with: { bahan: true } },
-    },
-    orderBy: (v, { asc }) => [asc(v.namaVendor)],
-  });
+  const [vendors, spentRows] = await Promise.all([
+    db.query.masterVendor.findMany({
+      with: { vendorBahan: { with: { bahan: true } } },
+      orderBy: (v, { asc }) => [asc(v.namaVendor)],
+    }),
+    db.execute(
+      sql`SELECT vendor_id, COALESCE(SUM(total_harga), 0) as total FROM purchase_orders WHERE status = 'received' GROUP BY vendor_id`
+    ),
+  ]);
 
-  const result = [];
-  for (const v of vendors) {
-    const spent = await db.execute(
-      sql`SELECT COALESCE(SUM(total_harga), 0) as total FROM purchase_orders WHERE vendor_id = ${v.id} AND status = 'received'`
-    );
-    const rows = spent as unknown as Array<{ total: string }>;
-    result.push({
-      ...v,
-      totalPengeluaran: parseFloat(rows[0]?.total ?? "0"),
-      totalBahan: v.vendorBahan.length,
-    });
+  const spentMap = new Map<string, number>();
+  for (const row of spentRows as unknown as Array<{ vendor_id: string; total: string }>) {
+    spentMap.set(row.vendor_id, parseFloat(row.total ?? "0"));
   }
-  return result;
+
+  return vendors.map((v) => ({
+    ...v,
+    totalPengeluaran: spentMap.get(v.id) ?? 0,
+    totalBahan: v.vendorBahan.length,
+  }));
 }
 
 export async function createVendor(data: {

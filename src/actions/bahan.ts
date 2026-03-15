@@ -49,6 +49,7 @@ export async function createBahan(data: {
   });
 
   revalidatePath("/products");
+  revalidatePath("/dashboard");
   return { id };
 }
 
@@ -76,9 +77,11 @@ export async function updateBahan(
 
   await db.update(masterBahan).set(updates).where(eq(masterBahan.id, id));
   revalidatePath("/products");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteBahan(id: string) {
   await db.delete(masterBahan).where(eq(masterBahan.id, id));
   revalidatePath("/products");
+  revalidatePath("/dashboard");
 }

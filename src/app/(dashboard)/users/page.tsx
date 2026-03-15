@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 import { db } from "@/db";
 import { users, outlets } from "@/db/schema";
