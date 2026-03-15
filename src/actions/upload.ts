@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { masterBahan, uploadBatches } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, or, isNull } from "drizzle-orm";
 import { parseKartuStok } from "@/lib/excel-parser";
 import { calculateStockStatus } from "@/lib/stock-status";
 import { generateId } from "@/lib/id-generator";
@@ -65,9 +65,9 @@ export async function processUpload(
     };
   }
 
-  // Fetch all bahan for this outlet (case-insensitive matching)
+  // Fetch all bahan — include outlet-specific AND null-outlet items
   const allBahan = await db.query.masterBahan.findMany({
-    where: eq(masterBahan.outletId, outletId),
+    where: or(eq(masterBahan.outletId, outletId), isNull(masterBahan.outletId)),
     with: {
       vendorBahan: {
         with: { vendor: true },
@@ -77,10 +77,31 @@ export async function processUpload(
     },
   });
 
-  // Build a lookup map: normalizedName → bahan record
-  const bahanMap = new Map<string, typeof allBahan[0]>();
+  function normalizeName(s: string): string {
+    return s.toLowerCase().trim().replace(/\s+/g, " ").replace(/[-–—]/g, "-");
+  }
+
+  // Build lookup maps: exact + normalized
+  const bahanExact = new Map<string, typeof allBahan[0]>();
+  const bahanNorm = new Map<string, typeof allBahan[0]>();
   for (const b of allBahan) {
-    bahanMap.set(b.namaBahan.toLowerCase().trim(), b);
+    bahanExact.set(b.namaBahan.toLowerCase().trim(), b);
+    bahanNorm.set(normalizeName(b.namaBahan), b);
+  }
+
+  function findBahan(produkName: string): typeof allBahan[0] | undefined {
+    const exact = bahanExact.get(produkName.toLowerCase().trim());
+    if (exact) return exact;
+    const norm = bahanNorm.get(normalizeName(produkName));
+    if (norm) return norm;
+    // Partial match: bahan name contains produk name or vice versa (min 5 chars)
+    const np = normalizeName(produkName);
+    if (np.length >= 5) {
+      for (const [key, bahan] of bahanNorm) {
+        if (key.length >= 5 && (key.includes(np) || np.includes(key))) return bahan;
+      }
+    }
+    return undefined;
   }
 
   // Match each parsed row to master_bahan
@@ -93,8 +114,7 @@ export async function processUpload(
   const elapsedDays = Math.max(1, Math.round((now.getTime() - kartuDate.getTime()) / 86400000) + 1);
 
   for (const row of parsed.rows) {
-    const normalizedProduk = row.produkName.toLowerCase().trim();
-    const matchedBahanRecord = bahanMap.get(normalizedProduk);
+    const matchedBahanRecord = findBahan(row.produkName);
 
     if (matchedBahanRecord) {
       matchedCount++;
