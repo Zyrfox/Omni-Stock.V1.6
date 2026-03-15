@@ -18,6 +18,7 @@ export interface UploadedStockItem {
   leadTimeDays: number;
   avgDailyConsumption: number;
   hargaBeli: string;
+  satuanBeli?: string;
   hargaPerSatuanPorsi: string | null;
   status: "SAFE" | "WARNING" | "CRITICAL";
   vendorNama?: string;
@@ -153,6 +154,7 @@ export async function processUpload(
         leadTimeDays: matchedBahanRecord.leadTimeDays,
         avgDailyConsumption: matchedBahanRecord.avgDailyConsumption,
         hargaBeli: matchedBahanRecord.hargaBeli,
+        satuanBeli: matchedBahanRecord.satuanBeli,
         hargaPerSatuanPorsi: matchedBahanRecord.hargaPerSatuanPorsi,
         status,
         vendorNama: primaryVendor?.namaVendor,

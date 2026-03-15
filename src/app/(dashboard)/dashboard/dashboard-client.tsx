@@ -62,11 +62,25 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
     leadTimeDays: b.leadTimeDays,
     avgDailyConsumption: b.avgDailyConsumption,
     hargaBeli: b.hargaBeli,
+    satuanBeli: b.satuanBeli,
     hargaPerSatuanPorsi: b.hargaPerSatuanPorsi,
     status: "CRITICAL" as const,
     vendorNama: (b.vendorBahan as any)?.[0]?.vendor?.namaVendor,
     vendorId: (b.vendorBahan as any)?.[0]?.vendor?.id,
   }));
+
+  const [invSearch, setInvSearch] = useState("");
+  const [invStatusFilter, setInvStatusFilter] = useState<"" | "SAFE" | "WARNING" | "CRITICAL">("");
+  const [invVendorFilter, setInvVendorFilter] = useState("");
+
+  const vendorOptions = Array.from(new Set(displayItems.map((i) => i.vendorNama).filter(Boolean))) as string[];
+
+  const filteredItems = displayItems.filter((i) => {
+    if (invSearch && !i.namaBahan.toLowerCase().includes(invSearch.toLowerCase())) return false;
+    if (invStatusFilter && i.status !== invStatusFilter) return false;
+    if (invVendorFilter && i.vendorNama !== invVendorFilter) return false;
+    return true;
+  });
 
   const safeCount = displayItems.filter((i) => i.status === "SAFE").length;
   const warnCount = displayItems.filter((i) => i.status === "WARNING").length;
@@ -403,8 +417,39 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             minWidth: 0,
           }}
         >
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E1E2E" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Tabel Inventory</span>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginRight: 4 }}>Tabel Inventory</span>
+            <input
+              value={invSearch}
+              onChange={(e) => setInvSearch(e.target.value)}
+              placeholder="Cari nama bahan..."
+              style={{ flex: "1 1 160px", minWidth: 120, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+            />
+            <select
+              value={invStatusFilter}
+              onChange={(e) => setInvStatusFilter(e.target.value as any)}
+              style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invStatusFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+            >
+              <option value="">Semua Status</option>
+              <option value="SAFE">SAFE</option>
+              <option value="WARNING">WARNING</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+            <select
+              value={invVendorFilter}
+              onChange={(e) => setInvVendorFilter(e.target.value)}
+              style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+            >
+              <option value="">Semua Vendor</option>
+              {vendorOptions.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+            {(invSearch || invStatusFilter || invVendorFilter) && (
+              <button onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); }}
+                style={{ background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "#6B7280", cursor: "pointer" }}>
+                ✕ Reset
+              </button>
+            )}
+            <span style={{ fontSize: 10, color: "#4B5563", marginLeft: "auto" }}>{filteredItems.length} item</span>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -433,14 +478,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 </tr>
               </thead>
               <tbody>
-                {displayItems.length === 0 ? (
+                {filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
-                      Belum ada data. Upload kartu stok untuk melihat inventory.
+                      {displayItems.length === 0 ? "Belum ada data. Upload kartu stok untuk melihat inventory." : "Tidak ada item yang cocok dengan filter."}
                     </td>
                   </tr>
                 ) : (
-                  displayItems.map((item, idx) => {
+                  filteredItems.map((item, idx) => {
                     const inCart = item.bahanId ? poCart.find((c) => c.bahanId === item.bahanId) : false;
                     return (
                       <tr
@@ -473,8 +518,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
                           {item.vendorNama ?? "—"}
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0", whiteSpace: "nowrap" }}>
                           {formatRupiah(parseFloat(item.hargaBeli))}
+                          {item.satuanBeli && <span style={{ fontSize: 9, color: "#4B5563", marginLeft: 4 }}>/{item.satuanBeli}</span>}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
                           {item.status !== "SAFE" && item.bahanId ? (
