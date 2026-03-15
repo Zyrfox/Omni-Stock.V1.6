@@ -206,7 +206,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Products" value={totalBahan} icon="📦" color="#60A5FA" />
         <StatCard label="Available Stocks" value={safeCount} icon="✅" color="#22C55E" sub="Status SAFE" />
         <StatCard label="Warning + Critical" value={warnCount + critCount} icon="⚠" color="#F59E0B" sub="Butuh perhatian" />

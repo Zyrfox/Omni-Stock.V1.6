@@ -219,3 +219,70 @@
 .table-row-hover:hover {
   background-color: #14142A;
 }
+
+/* ─── Bottom bar: desktop hidden, mobile visible ─── */
+.bottom-bar-mobile {
+  display: none;
+}
+
+/* ─── Mobile Responsive (≤768px) ─── */
+@media (max-width: 768px) {
+  /* Sidebar: hidden on mobile — replaced by bottom bar */
+  .sidebar-root {
+    display: none !important;
+  }
+
+  /* Bottom navigation bar: visible on mobile */
+  .bottom-bar-mobile {
+    display: flex !important;
+  }
+
+  /* Main content full width */
+  .dashboard-content {
+    width: 100% !important;
+  }
+
+  /* Stat cards: 2-column grid on mobile */
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Tables: enable horizontal scroll */
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modals: full width with padding */
+  .modal-fadein {
+    width: calc(100vw - 32px) !important;
+    max-width: none !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Hide search bar on mobile */
+  .topbar-search {
+    display: none !important;
+  }
+
+  /* Hide logout button on mobile (accessible from bottom bar More sheet) */
+  .topbar-keluar {
+    display: none !important;
+  }
+
+  /* Hide hamburger on mobile (no sidebar to toggle) */
+  .topbar-hamburger {
+    display: none !important;
+  }
+
+  /* Reduce main padding + add bottom padding for bottom bar */
+  .dashboard-main {
+    padding: 16px 16px 72px !important;
+  }
+
+  /* Touch-friendly tap targets */
+  button {
+    min-height: 36px;
+  }
+}

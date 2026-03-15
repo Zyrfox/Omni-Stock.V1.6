@@ -87,6 +87,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       {/* Hamburger */}
       <button
         onClick={onToggleSidebar}
+        className="topbar-hamburger"
         style={{ background: "none", border: "none", color: "#6B7280", fontSize: 18, cursor: "pointer", padding: "4px 6px", borderRadius: 6, lineHeight: 1 }}
         title="Toggle Sidebar"
       >
@@ -94,7 +95,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       </button>
 
       {/* Search Bar */}
-      <div ref={searchRef} style={{ position: "relative", flex: 1, maxWidth: 400 }}>
+      <div ref={searchRef} className="topbar-search" style={{ position: "relative", flex: 1, maxWidth: 400 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#14142A", border: "1px solid #2D2D44", borderRadius: 8, padding: "6px 12px" }}>
           <span style={{ color: "#C8F135", fontSize: 13 }}>✦</span>
           <input
@@ -218,6 +219,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       {/* Sign Out */}
       <button
         onClick={handleSignOut}
+        className="topbar-keluar"
         style={{ fontSize: 11, color: "#6B7280", background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}
       >
         Keluar

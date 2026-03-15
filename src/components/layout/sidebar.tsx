@@ -66,6 +66,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
 
   return (
     <aside
+      className="sidebar-root"
       style={{
         width: collapsed ? 58 : 220,
         minWidth: collapsed ? 58 : 220,

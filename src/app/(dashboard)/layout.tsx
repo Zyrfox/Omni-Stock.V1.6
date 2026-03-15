@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { BottomBar } from "@/components/layout/bottom-bar";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -50,13 +51,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         userEmail={user.email}
         userRole={user.role ?? "manager"}
       />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="dashboard-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Topbar
           onToggleSidebar={() => setCollapsed((c) => !c)}
           userNama={user.nama ?? user.email}
         />
-        <main style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</main>
+        <main className="dashboard-main" style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</main>
       </div>
+      <BottomBar userRole={user.role ?? "manager"} />
     </div>
   );
 }
