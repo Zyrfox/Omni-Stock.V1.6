@@ -84,3 +84,18 @@ export async function linkVendorBahan(data: {
   });
   revalidatePath("/suppliers");
 }
+
+export async function setVendorBahan(
+  vendorId: string,
+  items: Array<{ bahanId: string }>
+) {
+  await db.delete(vendorBahan).where(eq(vendorBahan.vendorId, vendorId));
+  if (items.length > 0) {
+    for (const item of items) {
+      const id = await generateId("vendor_bahan");
+      await db.insert(vendorBahan).values({ id, vendorId, bahanId: item.bahanId, hargaPerSatuan: "0", isPrimary: false });
+    }
+  }
+  revalidatePath("/suppliers");
+  revalidatePath("/dashboard");
+}

@@ -24,6 +24,7 @@ export default async function SuppliersPage() {
     <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
       <SuppliersClient
         vendors={vendors as any}
+        allBahan={bahanList.map((b) => ({ id: b.id, namaBahan: b.namaBahan }))}
         stats={{
           totalVendor: parseInt(statsResult?.total_vendor ?? "0"),
           totalBahan: bahanList.length,
