@@ -8,7 +8,7 @@ import { authClient } from "@/lib/auth-client";
 
 // 4 items pinned to the bottom bar
 const PINNED_HREFS = ["/dashboard", "/products", "/category", "/billing"];
-const ALL_FLAT = NAV_ITEMS.flatMap((s) => s.items) as Array<{ label: string; icon: string; href: string; adminOnly: boolean }>;
+const ALL_FLAT = NAV_ITEMS.flatMap((s) => s.items as unknown as Array<{ label: string; icon: string; href: string; adminOnly: boolean }>);
 
 interface BottomBarProps {
   userRole: string;
