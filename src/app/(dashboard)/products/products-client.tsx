@@ -64,8 +64,18 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch">("direct");
   const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
+  const [searchBahan, setSearchBahan] = useState("");
+  const [searchResep, setSearchResep] = useState("");
+  const [searchMenu, setSearchMenu] = useState("");
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
+
+  const q1 = searchBahan.toLowerCase();
+  const q2 = searchResep.toLowerCase();
+  const q3 = searchMenu.toLowerCase();
+  const filteredBahans = q1 ? bahans.filter((b) => b.namaBahan.toLowerCase().includes(q1) || b.id.toLowerCase().includes(q1)) : bahans;
+  const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
+  const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
 
   async function handleSaveMenu() {
     if (!menuForm.namaMenu.trim()) return;
@@ -290,6 +300,14 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       {/* Tab 1 — Master Bahan */}
       {activeTab === 1 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+            <input
+              value={searchBahan}
+              onChange={(e) => setSearchBahan(e.target.value)}
+              placeholder="Cari nama bahan atau ID..."
+              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -301,10 +319,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {bahans.length === 0 ? (
-                <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada bahan. Klik "Tambah Bahan" untuk memulai.</td></tr>
+              {filteredBahans.length === 0 ? (
+                <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchBahan ? `Tidak ada bahan "${searchBahan}"` : `Belum ada bahan. Klik "Tambah Bahan" untuk memulai.`}</td></tr>
               ) : (
-                bahans.map((b) => (
+                filteredBahans.map((b) => (
                   <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                     <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
@@ -334,6 +352,14 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       {/* Tab 2 — Master Resep */}
       {activeTab === 2 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+            <input
+              value={searchResep}
+              onChange={(e) => setSearchResep(e.target.value)}
+              placeholder="Cari nama menu atau ID..."
+              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -345,10 +371,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {menus.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Tambahkan dari tab Master Menu.</td></tr>
+              {filteredResep.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchResep ? `Tidak ada menu "${searchResep}"` : `Belum ada menu. Tambahkan dari tab Master Menu.`}</td></tr>
               ) : (
-                menus.map((m) => (
+                filteredResep.map((m) => (
                   <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                     <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
@@ -393,6 +419,14 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       {/* Tab 3 — Master Menu */}
       {activeTab === 3 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+            <input
+              value={searchMenu}
+              onChange={(e) => setSearchMenu(e.target.value)}
+              placeholder="Cari nama menu atau ID..."
+              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -404,10 +438,10 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               </tr>
             </thead>
             <tbody>
-              {menus.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada menu. Klik "+ Tambah Menu" untuk memulai.</td></tr>
+              {filteredMenus.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}</td></tr>
               ) : (
-                menus.map((m) => {
+                filteredMenus.map((m) => {
                   const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
                   const cogs = parseFloat(m.totalCogs ?? "0");
                   const hj = parseFloat(m.hargaJual ?? "0");
