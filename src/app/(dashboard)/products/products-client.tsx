@@ -72,6 +72,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const [searchBahan, setSearchBahan] = useState("");
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
+  const [dragMenuId, setDragMenuId] = useState<string | null>(null);
+  const [dragOverMenuId, setDragOverMenuId] = useState<string | null>(null);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
 
@@ -81,6 +83,21 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const filteredBahans = q1 ? bahans.filter((b) => b.namaBahan.toLowerCase().includes(q1) || b.id.toLowerCase().includes(q1)) : bahans;
   const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
   const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
+
+  function handleMenuDrop(toId: string) {
+    if (!dragMenuId || dragMenuId === toId) { setDragMenuId(null); setDragOverMenuId(null); return; }
+    setMenus((prev) => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex((m) => m.id === dragMenuId);
+      const toIdx = arr.findIndex((m) => m.id === toId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      return arr;
+    });
+    setDragMenuId(null);
+    setDragOverMenuId(null);
+  }
 
   async function handleSaveMenu() {
     if (!menuForm.namaMenu.trim()) return;
@@ -437,6 +454,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
+                <th style={{ padding: "10px 8px", borderBottom: "1px solid #1E1E2E", width: 24 }} />
                 {["ID Menu", "Nama Menu", "Kategori", "Outlet", "Recipe", "Total COGS", "Harga Jual", "Margin"].map((h) => (
                   <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
@@ -446,7 +464,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
             </thead>
             <tbody>
               {filteredMenus.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}</td></tr>
+                <tr><td colSpan={9} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}</td></tr>
               ) : (
                 filteredMenus.map((m) => {
                   const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
@@ -455,7 +473,23 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                   const margin = hj > 0 && cogs > 0 ? ((hj - cogs) / hj * 100) : null;
                   const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
                   return (
-                    <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <tr
+                      key={m.id}
+                      className="table-row-hover"
+                      draggable
+                      onDragStart={() => setDragMenuId(m.id)}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverMenuId(m.id); }}
+                      onDrop={() => handleMenuDrop(m.id)}
+                      onDragEnd={() => { setDragMenuId(null); setDragOverMenuId(null); }}
+                      style={{
+                        borderBottom: "1px solid #131320",
+                        opacity: dragMenuId === m.id ? 0.4 : 1,
+                        background: dragOverMenuId === m.id && dragMenuId !== m.id ? "rgba(200,241,53,0.06)" : undefined,
+                        outline: dragOverMenuId === m.id && dragMenuId !== m.id ? "1px solid rgba(200,241,53,0.3)" : undefined,
+                        transition: "background 0.1s",
+                      }}
+                    >
+                      <td style={{ padding: "10px 8px", color: "#374151", cursor: "grab", userSelect: "none", textAlign: "center", fontSize: 14 }}>⠿</td>
                       <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
                       <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
                       <td style={{ padding: "10px 14px" }}><Badge color="blue" size="sm">{m.kategori ?? "—"}</Badge></td>
