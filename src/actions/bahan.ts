@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { masterBahan, vendorBahan } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { generateId } from "@/lib/id-generator";
+import { generateId, generateBahanId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
 
 export async function getMasterBahan(outletId?: string) {
@@ -33,20 +33,35 @@ export async function createBahan(data: {
   stokMinimum: number;
   leadTimeDays?: number;
   avgDailyConsumption?: number;
+  vendorId?: string;
 }) {
-  const id = await generateId("master_bahan");
+  const { vendorId, ...bahanData } = data;
+  const id = await generateBahanId(bahanData.kategoriBahan);
   const hargaPerSatuanPorsi =
-    data.isiSatuan > 0 ? (data.hargaBeli / data.isiSatuan).toFixed(6) : "0";
+    bahanData.isiSatuan > 0 ? (bahanData.hargaBeli / bahanData.isiSatuan).toFixed(6) : "0";
 
   await db.insert(masterBahan).values({
     id,
-    ...data,
-    hargaBeli: String(data.hargaBeli),
-    isiSatuan: String(data.isiSatuan),
+    ...bahanData,
+    hargaBeli: String(bahanData.hargaBeli),
+    isiSatuan: String(bahanData.isiSatuan),
     hargaPerSatuanPorsi,
-    leadTimeDays: data.leadTimeDays ?? 1,
-    avgDailyConsumption: data.avgDailyConsumption ?? 0,
+    leadTimeDays: bahanData.leadTimeDays ?? 1,
+    avgDailyConsumption: bahanData.avgDailyConsumption ?? 0,
   });
+
+  // Link to vendor if provided
+  if (vendorId) {
+    const vbId = await generateId("vendor_bahan");
+    await db.insert(vendorBahan).values({
+      id: vbId,
+      vendorId,
+      bahanId: id,
+      hargaPerSatuan: String(bahanData.hargaBeli),
+      isPrimary: true,
+    });
+    revalidatePath("/suppliers");
+  }
 
   revalidatePath("/products");
   revalidatePath("/dashboard");

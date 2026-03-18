@@ -27,6 +27,8 @@ interface ProductsClientProps {
   bahanList: BahanItem[];
   menuList: MenuItem[];
   sfgList: Array<{ id: string; namaSemiFinished: string; satuan: string }>;
+  outletList: Array<{ id: string; namaOutlet: string }>;
+  vendorList: Array<{ id: string; namaVendor: string }>;
 }
 
 // Strip Indonesian thousands-separator dots before parsing (e.g. "50.000" → 50000)
@@ -66,7 +68,7 @@ function inferChannelType(m: MenuItem): string {
   return "dine_in";
 }
 
-export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientProps) {
+export function ProductsClient({ bahanList, menuList, outletList, vendorList }: ProductsClientProps) {
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
   const [showBOMEditor, setShowBOMEditor] = useState(false);
@@ -89,7 +91,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
     namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk",
     kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung",
     satuanDapur: "gram", stokMinimum: "", isiSatuan: "",
-    leadTimeDays: "1", outletId: "OUT-001",
+    leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001",
+    vendorId: "",
   });
   const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -202,6 +205,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         satuanDapur: form.satuanDapur,
         stokMinimum: parseInt(form.stokMinimum),
         leadTimeDays: parseInt(form.leadTimeDays),
+        vendorId: form.vendorId || undefined,
       });
       const hargaPerSatuanPorsi = parseFloat(form.isiSatuan) > 0
         ? (parseFloat(form.hargaBeli) / parseFloat(form.isiSatuan)).toFixed(6)
@@ -213,7 +217,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         isiSatuan: form.isiSatuan, hargaPerSatuanPorsi, outletId: form.outletId,
       }]);
       setShowAddBahan(false);
-      setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: "OUT-001" });
+      setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001", vendorId: "" });
       setYieldMode("direct");
       setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
     } finally {
@@ -730,6 +734,59 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                     <option value="packaged">packaged</option>
                     <option value="raw_bulk">raw_bulk</option>
                   </select>
+                </div>
+
+                {/* Kategori Produk */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori Produk</label>
+                  <select
+                    value={form.kategoriBahan}
+                    onChange={(e) => setForm((f) => ({ ...f, kategoriBahan: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                  >
+                    <option value="">— Pilih Kategori —</option>
+                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage"].map(k => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                  </select>
+                  {form.kategoriBahan && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                      ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>
+                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV"}[form.kategoriBahan] ?? "BHN"}-XXX
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Outlet */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                  <select
+                    value={form.outletId}
+                    onChange={(e) => setForm((f) => ({ ...f, outletId: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  >
+                    <option value="">— Semua Outlet —</option>
+                    {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
+                  </select>
+                </div>
+
+                {/* Vendor */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Vendor / Supplier</label>
+                  <select
+                    value={form.vendorId}
+                    onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.vendorId ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                  >
+                    <option value="">— Tidak ada vendor —</option>
+                    {vendorList.map(v => <option key={v.id} value={v.id}>{v.namaVendor}</option>)}
+                  </select>
+                  {form.vendorId && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                      Bahan akan otomatis ter-sync ke halaman Suppliers
+                    </div>
+                  )}
                 </div>
               </div>
               {/* AI Research Panel — raw_bulk only */}
