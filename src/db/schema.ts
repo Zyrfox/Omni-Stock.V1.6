@@ -132,6 +132,10 @@ export const masterMenu = pgTable("master_menu", {
   kategori: kategoriMenuEnum("kategori"),
   hargaJual: numeric("harga_jual", { precision: 15, scale: 2 }),
   totalCogs: numeric("total_cogs", { precision: 15, scale: 2 }).default("0"),
+  // Channel grouping — "dine_in" | "takeaway" | "grabfood" | "shopee" | "gofood" | "other"
+  channelType: text("channel_type"),
+  // Platform commission % (e.g. 20 = 20%). Used to compute effective margin.
+  platformFeePercent: numeric("platform_fee_percent", { precision: 5, scale: 2 }).default("0"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

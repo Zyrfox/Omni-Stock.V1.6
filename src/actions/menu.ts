@@ -24,6 +24,8 @@ export async function createMenu(data: {
   outletId: string;
   kategori: "food" | "beverage";
   hargaJual?: number;
+  channelType?: string;
+  platformFeePercent?: number;
 }) {
   const id = await generateId("master_menu");
   await db.insert(masterMenu).values({
@@ -32,6 +34,8 @@ export async function createMenu(data: {
     outletId: data.outletId,
     kategori: data.kategori,
     hargaJual: data.hargaJual ? String(data.hargaJual) : null,
+    channelType: data.channelType ?? "dine_in",
+    platformFeePercent: data.platformFeePercent ? String(data.platformFeePercent) : "0",
     totalCogs: "0",
   });
   revalidatePath("/products");
@@ -94,12 +98,16 @@ export async function updateMenu(
     namaMenu?: string;
     kategori?: "food" | "beverage";
     hargaJual?: number | null;
+    channelType?: string;
+    platformFeePercent?: number;
   }
 ) {
   await db.update(masterMenu).set({
     ...(data.namaMenu !== undefined && { namaMenu: data.namaMenu }),
     ...(data.kategori !== undefined && { kategori: data.kategori }),
     ...(data.hargaJual !== undefined && { hargaJual: data.hargaJual !== null ? String(data.hargaJual) : null }),
+    ...(data.channelType !== undefined && { channelType: data.channelType }),
+    ...(data.platformFeePercent !== undefined && { platformFeePercent: String(data.platformFeePercent) }),
     updatedAt: new Date(),
   }).where(eq(masterMenu.id, id));
   revalidatePath("/products");

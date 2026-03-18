@@ -18,6 +18,8 @@ interface BahanItem {
 interface MenuItem {
   id: string; namaMenu: string; kategori: "food" | "beverage" | null;
   outletId: string | null; totalCogs: string | null; hargaJual: string | null;
+  channelType?: string | null;
+  platformFeePercent?: string | null;
   mappingResep?: Array<{ id: string; itemId: string; qty: string; itemType?: "bahan_dasar" | "semi_finished"; bahan?: { namaBahan: string; satuanDapur: string } }>;
 }
 
@@ -33,6 +35,37 @@ function parseNum(v: string | number | undefined): number {
   return parseFloat(String(v).replace(/\.(?=\d{3})/g, "").replace(",", ".")) || 0;
 }
 
+const CHANNELS: Array<{ key: string; label: string; icon: string; defaultFee: number }> = [
+  { key: "dine_in",  label: "Dine In",     icon: "🏠", defaultFee: 0  },
+  { key: "takeaway", label: "Take Away",    icon: "🛍", defaultFee: 0  },
+  { key: "grabfood", label: "GrabFood",     icon: "🟢", defaultFee: 20 },
+  { key: "shopee",   label: "ShopeeFood",   icon: "🟠", defaultFee: 20 },
+  { key: "gofood",   label: "GoFood",       icon: "🔵", defaultFee: 20 },
+  { key: "other",    label: "Lainnya",      icon: "📦", defaultFee: 0  },
+];
+
+function getChannelLabel(key: string | null | undefined) {
+  return CHANNELS.find(c => c.key === key)?.label ?? key ?? "Dine In";
+}
+function getChannelIcon(key: string | null | undefined) {
+  return CHANNELS.find(c => c.key === key)?.icon ?? "🏠";
+}
+// Extract base menu name by stripping known channel suffixes
+function extractBaseName(namaMenu: string): string {
+  for (const ch of CHANNELS) {
+    if (namaMenu.endsWith(` - ${ch.label}`)) return namaMenu.slice(0, -(ch.label.length + 3));
+  }
+  return namaMenu;
+}
+// Infer channelType from menu name suffix if channelType is null
+function inferChannelType(m: MenuItem): string {
+  if (m.channelType) return m.channelType;
+  for (const ch of CHANNELS) {
+    if (m.namaMenu.endsWith(` - ${ch.label}`)) return ch.key;
+  }
+  return "dine_in";
+}
+
 export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientProps) {
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
@@ -46,7 +79,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const bomInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [bomHargaJual, setBomHargaJual] = useState("");
   const [saving, setSaving] = useState(false);
-  const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001" });
+  const [menuForm, setMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", hargaJual: "", outletId: "OUT-001", channelType: "dine_in", platformFeePercent: "0" });
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [addVariantBase, setAddVariantBase] = useState<string>("");
   const [menus, setMenus] = useState<MenuItem[]>(menuList);
 
   // Add Bahan form state
@@ -84,6 +119,17 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
   const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
   const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
 
+  // Group filteredMenus by base name
+  const menuGroups = (() => {
+    const map = new Map<string, MenuItem[]>();
+    for (const m of filteredMenus) {
+      const base = extractBaseName(m.namaMenu);
+      if (!map.has(base)) map.set(base, []);
+      map.get(base)!.push(m);
+    }
+    return Array.from(map.entries()); // [baseName, variants[]]
+  })();
+
   function handleMenuDrop(toId: string) {
     if (!dragMenuId || dragMenuId === toId) { setDragMenuId(null); setDragOverMenuId(null); return; }
     setMenus((prev) => {
@@ -108,13 +154,18 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
         outletId: menuForm.outletId,
         kategori: menuForm.kategori,
         hargaJual: menuForm.hargaJual ? parseFloat(menuForm.hargaJual) : undefined,
+        channelType: menuForm.channelType,
+        platformFeePercent: parseFloat(menuForm.platformFeePercent) || 0,
       });
       setMenus((prev) => [...prev, {
         id: result.id, namaMenu: menuForm.namaMenu.trim(),
         kategori: menuForm.kategori, outletId: menuForm.outletId, totalCogs: "0",
         hargaJual: menuForm.hargaJual || null, mappingResep: [],
+        channelType: menuForm.channelType,
+        platformFeePercent: menuForm.platformFeePercent,
       }]);
-      setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" });
+      setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001", channelType: "dine_in", platformFeePercent: "0" });
+      setAddVariantBase("");
       setShowAddMenu(false);
     } finally {
       setSaving(false);
@@ -271,7 +322,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
           </button>
         ) : (
           <button
-            onClick={() => { setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001" }); }}
+            onClick={() => { setAddVariantBase(""); setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001", channelType: "dine_in", platformFeePercent: "0" }); }}
             className="btn-accent"
             style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
           >
@@ -460,62 +511,167 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
             <thead>
               <tr style={{ background: "#14142A" }}>
                 <th className="col-hide-mobile" style={{ padding: "10px 8px", borderBottom: "1px solid #1E1E2E", width: 24 }} />
-                {["ID Menu", "Nama Menu", "Kategori", "Outlet", "Recipe", "Total COGS", "Harga Jual", "Margin"].map((h) => (
-                  <th key={h} className={h === "Nama Menu" ? "col-sticky-nama" : h === "ID Menu" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
+                {["ID Menu", "Nama / Channel", "Kategori", "Outlet", "Recipe", "Total COGS", "Harga Jual", "Margin", "Aksi"].map((h) => (
+                  <th key={h} className={h === "Nama / Channel" ? "col-sticky-nama" : h === "ID Menu" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filteredMenus.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}</td></tr>
+              {menuGroups.length === 0 ? (
+                <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  {searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}
+                </td></tr>
               ) : (
-                filteredMenus.map((m) => {
-                  const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
-                  const cogs = parseFloat(m.totalCogs ?? "0");
-                  const hj = parseFloat(m.hargaJual ?? "0");
-                  const margin = hj > 0 && cogs > 0 ? ((hj - cogs) / hj * 100) : null;
-                  const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
-                  return (
+                menuGroups.flatMap(([baseName, variants]) => {
+                  const isExpanded = expandedGroups.has(baseName);
+                  const toggle = () => setExpandedGroups(prev => {
+                    const next = new Set(prev);
+                    next.has(baseName) ? next.delete(baseName) : next.add(baseName);
+                    return next;
+                  });
+                  const hasAnyRecipe = variants.some(v => v.mappingResep && v.mappingResep.length > 0);
+
+                  return [
+                    // Group header row
                     <tr
-                      key={m.id}
+                      key={`group-${baseName}`}
                       className="table-row-hover"
-                      draggable
-                      onDragStart={() => setDragMenuId(m.id)}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverMenuId(m.id); }}
-                      onDrop={() => handleMenuDrop(m.id)}
-                      onDragEnd={() => { setDragMenuId(null); setDragOverMenuId(null); }}
-                      style={{
-                        borderBottom: "1px solid #131320",
-                        opacity: dragMenuId === m.id ? 0.4 : 1,
-                        background: dragOverMenuId === m.id && dragMenuId !== m.id ? "rgba(200,241,53,0.06)" : undefined,
-                        outline: dragOverMenuId === m.id && dragMenuId !== m.id ? "1px solid rgba(200,241,53,0.3)" : undefined,
-                        transition: "background 0.1s",
-                      }}
+                      onClick={toggle}
+                      style={{ borderBottom: "1px solid #1E1E2E", cursor: "pointer", background: "#0F0F1A" }}
                     >
-                      <td className="col-hide-mobile" style={{ padding: "10px 8px", color: "#374151", cursor: "grab", userSelect: "none", textAlign: "center", fontSize: 14 }}>⠿</td>
-                      <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
-                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
-                      <td style={{ padding: "10px 14px" }}><Badge color="blue" size="sm">{m.kategori ?? "—"}</Badge></td>
-                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
+                      <td style={{ padding: "10px 8px", color: "#C8F135", fontSize: 14, textAlign: "center" }}>
+                        {isExpanded ? "▾" : "▸"}
+                      </td>
+                      <td className="col-hide-mobile" />
+                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#E2E8F0" }}>
+                        {baseName}
+                      </td>
                       <td style={{ padding: "10px 14px" }}>
-                        {hasRecipe
-                          ? <Badge color="green" size="sm">✓ Recipe Built</Badge>
+                        <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "rgba(200,241,53,0.1)", color: "#C8F135", border: "1px solid rgba(200,241,53,0.2)" }}>
+                          {variants.length} channel
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#4B5563" }} colSpan={2}>
+                        {variants.map(v => (
+                          <span key={v.id} style={{ marginRight: 6, fontSize: 11 }}>
+                            {getChannelIcon(inferChannelType(v))} {getChannelLabel(inferChannelType(v))}
+                          </span>
+                        ))}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {hasAnyRecipe
+                          ? <Badge color="green" size="sm">✓ Ada Resep</Badge>
                           : <Badge color="gray" size="sm">No Recipe</Badge>
                         }
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: cogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {formatRupiah(cogs)}
+                      <td style={{ padding: "10px 14px" }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddVariantBase(baseName);
+                            setMenuForm(f => ({
+                              ...f,
+                              namaMenu: baseName,
+                              channelType: "dine_in",
+                              platformFeePercent: "0",
+                            }));
+                            setShowAddMenu(true);
+                          }}
+                          style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer", whiteSpace: "nowrap" }}
+                        >
+                          + Variant
+                        </button>
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: hj > 0 ? "#E2E8F0" : "#4B5563", fontWeight: 600 }}>
-                        {hj > 0 ? formatRupiah(hj) : "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: marginColor, fontWeight: 700 }}>
-                        {margin !== null ? `${margin.toFixed(1)}%` : "—"}
-                      </td>
-                    </tr>
-                  );
+                      <td />
+                    </tr>,
+
+                    // Sub-rows (channel variants) when expanded
+                    ...(isExpanded ? variants.map((m) => {
+                      const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
+                      const cogs = parseFloat(m.totalCogs ?? "0");
+                      const hj = parseFloat(m.hargaJual ?? "0");
+                      const fee = parseFloat(m.platformFeePercent ?? "0");
+                      const feeAmount = hj * fee / 100;
+                      const netRevenue = hj - feeAmount;
+                      const margin = netRevenue > 0 && cogs > 0 ? ((netRevenue - cogs) / netRevenue * 100) : null;
+                      const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
+                      const chType = inferChannelType(m);
+                      return (
+                        <tr
+                          key={m.id}
+                          draggable
+                          onDragStart={() => setDragMenuId(m.id)}
+                          onDragOver={(e) => { e.preventDefault(); setDragOverMenuId(m.id); }}
+                          onDrop={() => handleMenuDrop(m.id)}
+                          onDragEnd={() => { setDragMenuId(null); setDragOverMenuId(null); }}
+                          className="table-row-hover"
+                          style={{
+                            borderBottom: "1px solid #131320",
+                            background: dragOverMenuId === m.id && dragMenuId !== m.id ? "rgba(200,241,53,0.04)" : "#13131F",
+                            opacity: dragMenuId === m.id ? 0.4 : 1,
+                          }}
+                        >
+                          <td className="col-hide-mobile" style={{ padding: "10px 8px", color: "#374151", cursor: "grab", textAlign: "center", fontSize: 14 }}>⠿</td>
+                          <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
+                          <td className="col-sticky-nama" style={{ padding: "10px 14px 10px 28px", fontSize: 12, fontWeight: 600, color: "#CBD5E1" }}>
+                            <span style={{ fontSize: 11 }}>{getChannelIcon(chType)}</span>{" "}
+                            {getChannelLabel(chType)}
+                            {fee > 0 && (
+                              <span style={{ marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 8, background: "rgba(245,158,11,0.12)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.2)" }}>
+                                fee {fee}%
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <Badge color="blue" size="sm">{m.kategori ?? "—"}</Badge>
+                          </td>
+                          <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
+                          <td style={{ padding: "10px 14px" }}>
+                            {hasRecipe
+                              ? <Badge color="green" size="sm">✓ Recipe Built</Badge>
+                              : <Badge color="gray" size="sm">No Recipe</Badge>
+                            }
+                          </td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <div style={{ fontSize: 12, color: cogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                              {formatRupiah(cogs)}
+                            </div>
+                            {fee > 0 && hj > 0 && (
+                              <div style={{ fontSize: 9, color: "#F59E0B", marginTop: 1 }}>
+                                +{formatRupiah(feeAmount)} fee
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 14px", fontSize: 12, color: hj > 0 ? "#E2E8F0" : "#4B5563", fontWeight: 600 }}>
+                            {hj > 0 ? formatRupiah(hj) : "—"}
+                          </td>
+                          <td style={{ padding: "10px 14px", fontSize: 12, color: marginColor, fontWeight: 700 }}>
+                            {margin !== null ? `${margin.toFixed(1)}%` : "—"}
+                            {fee > 0 && margin !== null && (
+                              <div style={{ fontSize: 9, color: "#6B7280" }}>net margin</div>
+                            )}
+                          </td>
+                          <td style={{ padding: "10px 14px" }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setSelectedMenu(m);
+                                setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.itemType ?? "bahan_dasar") as "bahan_dasar" | "semi_finished", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                                setBomHargaJual(m.hargaJual ?? "");
+                                setBomSearches([]);
+                                setBomOpenIdx(null);
+                                setShowBOMEditor(true);
+                              }}
+                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                            >
+                              {hasRecipe ? "Edit Resep" : "+ Buat Resep"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    }) : []),
+                  ];
                 })
               )}
             </tbody>
@@ -722,18 +878,23 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
       {/* Modal Tambah Menu */}
       {showAddMenu && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 440, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 480, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
-            <div style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Menu Final</h2>
+            <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>
+                {addVariantBase ? `Tambah Variant — ${addVariantBase}` : "Tambah Menu Final"}
+              </h2>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Menu *</label>
                   <input
-                    value={menuForm.namaMenu}
-                    onChange={(e) => setMenuForm((f) => ({ ...f, namaMenu: e.target.value }))}
+                    value={addVariantBase
+                      ? `${addVariantBase} - ${CHANNELS.find(c => c.key === menuForm.channelType)?.label ?? ""}`
+                      : menuForm.namaMenu}
+                    onChange={(e) => { if (!addVariantBase) setMenuForm((f) => ({ ...f, namaMenu: e.target.value })); }}
+                    readOnly={!!addVariantBase}
                     placeholder="cth: Mie Goreng Special"
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: addVariantBase ? "#0A0A14" : "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: addVariantBase ? "#6B7280" : "#E2E8F0", outline: "none", boxSizing: "border-box" as const }}
                   />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -755,13 +916,52 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                       value={menuForm.hargaJual}
                       onChange={(e) => setMenuForm((f) => ({ ...f, hargaJual: e.target.value }))}
                       placeholder="25000"
-                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" as const }}
                     />
                   </div>
                 </div>
+                {/* Channel Type */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 6, textTransform: "uppercase" }}>
+                    Channel / Platform
+                  </label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {CHANNELS.map(ch => (
+                      <button
+                        key={ch.key}
+                        type="button"
+                        onClick={() => setMenuForm(f => ({ ...f, channelType: ch.key, platformFeePercent: String(ch.defaultFee) }))}
+                        style={{
+                          padding: "5px 12px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                          border: `1px solid ${menuForm.channelType === ch.key ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
+                          background: menuForm.channelType === ch.key ? "rgba(200,241,53,0.1)" : "transparent",
+                          color: menuForm.channelType === ch.key ? "#C8F135" : "#6B7280",
+                        }}
+                      >
+                        {ch.icon} {ch.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Platform Fee (only show if channel has fee > 0 or is a platform channel) */}
+                {(parseFloat(menuForm.platformFeePercent) > 0 || ["grabfood","shopee","gofood"].includes(menuForm.channelType)) ? (
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>
+                      Platform Fee (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={menuForm.platformFeePercent}
+                      onChange={(e) => setMenuForm(f => ({ ...f, platformFeePercent: e.target.value }))}
+                      placeholder="20"
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                    <span style={{ fontSize: 10, color: "#4B5563" }}>Komisi platform dari harga jual</span>
+                  </div>
+                ) : null}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowAddMenu(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setShowAddMenu(false); setAddVariantBase(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveMenu} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Menu"}
                 </button>
