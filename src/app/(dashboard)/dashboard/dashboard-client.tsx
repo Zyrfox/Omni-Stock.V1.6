@@ -48,6 +48,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   const [uploadError, setUploadError] = useState("");
   const [poCart, setPoCart] = useState<POCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Compute stats from stockItems or allBahan fallback
@@ -81,6 +83,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
     if (invVendorFilter && i.vendorNama !== invVendorFilter) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filteredItems.length / rowsPerPage);
+  const safePage = Math.min(currentPage, Math.max(0, totalPages - 1));
+  const pagedItems = filteredItems.slice(safePage * rowsPerPage, (safePage + 1) * rowsPerPage);
 
   const safeCount = displayItems.filter((i) => i.status === "SAFE").length;
   const warnCount = displayItems.filter((i) => i.status === "WARNING").length;
@@ -405,16 +411,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       </div>
 
       {/* Inventory Table + PO Cart */}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {/* Table */}
         <div
           style={{
-            flex: 1,
             background: "#13131F",
             border: "1px solid #1E1E2E",
             borderRadius: 12,
             overflow: "hidden",
-            minWidth: 0,
           }}
         >
           <div style={{ padding: "12px 16px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -449,7 +453,16 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 ✕ Reset
               </button>
             )}
-            <span style={{ fontSize: 10, color: "#4B5563", marginLeft: "auto" }}>{filteredItems.length} item</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+              <span style={{ fontSize: 10, color: "#4B5563" }}>{filteredItems.length} item</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(0); }}
+                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "#6B7280", outline: "none" }}
+              >
+                {[20, 30, 40, 50].map((n) => <option key={n} value={n}>{n} baris</option>)}
+              </select>
+            </div>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -486,15 +499,16 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map((item, idx) => {
+                  pagedItems.map((item, idx) => {
                     const inCart = item.bahanId ? poCart.find((c) => c.bahanId === item.bahanId) : false;
+                    const globalIdx = safePage * rowsPerPage + idx;
                     return (
                       <tr
                         key={item.bahanId ?? item.namaBahan}
                         className="table-row-hover"
                         style={{ borderBottom: "1px solid #131320", transition: "background 0.1s" }}
                       >
-                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{idx + 1}</td>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{globalIdx + 1}</td>
                         <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>
                           {item.bahanId ?? <span style={{ color: "#EF4444", fontSize: 10 }}>unmatched</span>}
                         </td>
@@ -558,17 +572,43 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </tbody>
             </table>
           </div>
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div style={{ padding: "10px 16px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, color: "#4B5563" }}>
+                Halaman {safePage + 1} dari {totalPages} ({filteredItems.length} item)
+              </span>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => setCurrentPage(0)} disabled={safePage === 0}
+                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>«</button>
+                <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
+                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹ Prev</button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
+                  const p = start + i;
+                  return (
+                    <button key={p} onClick={() => setCurrentPage(p)}
+                      style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                      {p + 1}
+                    </button>
+                  );
+                })}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
+                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>Next ›</button>
+                <button onClick={() => setCurrentPage(totalPages - 1)} disabled={safePage >= totalPages - 1}
+                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>»</button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* PO Cart Sidebar */}
+        {/* PO Cart — below table */}
         {(cartOpen || poCart.length > 0) && (
           <div
             style={{
-              width: 300,
               background: "#13131F",
               border: "1px solid #1E1E2E",
               borderRadius: 12,
-              flexShrink: 0,
               overflow: "hidden",
             }}
           >
@@ -600,18 +640,21 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </span>
             </div>
 
-            <div style={{ padding: 12, maxHeight: 400, overflowY: "auto" }}>
+            <div style={{ padding: 12 }}>
               {poCart.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "24px 0", color: "#4B5563", fontSize: 12 }}>
+                <div style={{ textAlign: "center", padding: "16px 0", color: "#4B5563", fontSize: 12 }}>
                   🛒 Tambahkan bahan dari tabel untuk membuat PO
                 </div>
               ) : (
-                poCart.map((item) => (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
+                {poCart.map((item) => (
                   <div
                     key={item.bahanId}
                     style={{
-                      padding: "10px 0",
-                      borderBottom: "1px solid #1E1E2E",
+                      padding: "10px 12px",
+                      border: "1px solid #1E1E2E",
+                      borderRadius: 8,
+                      background: "#0F0F18",
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -701,7 +744,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       </div>
                     )}
                   </div>
-                ))
+                ))}
+                </div>
               )}
             </div>
 
