@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { BadgeStatus, Badge } from "@/components/shared/badge-status";
-import { calculateStockStatus, estimasiHariHabis } from "@/lib/stock-status";
+import { estimasiHariHabis } from "@/lib/stock-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { processUpload } from "@/actions/upload";
 import type { UploadedStockItem } from "@/actions/upload";
@@ -459,6 +459,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     (h) => (
                       <th
                         key={h}
+                        className={h === "Nama Bahan" ? "col-sticky-nama" : h === "#" || h === "ID Bahan" ? "col-hide-mobile" : undefined}
                         style={{
                           padding: "10px 14px",
                           fontSize: 10,
@@ -493,11 +494,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         className="table-row-hover"
                         style={{ borderBottom: "1px solid #131320", transition: "background 0.1s" }}
                       >
-                        <td style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{idx + 1}</td>
-                        <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{idx + 1}</td>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>
                           {item.bahanId ?? <span style={{ color: "#EF4444", fontSize: 10 }}>unmatched</span>}
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>
+                        <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>
                           {item.namaBahan}
                         </td>
                         <td style={{ padding: "10px 14px" }}>

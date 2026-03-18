@@ -285,4 +285,22 @@
   button {
     min-height: 36px;
   }
+
+  /* Sticky "Nama Bahan" column — stays visible when scrolling table horizontally */
+  .col-hide-mobile {
+    display: none !important;
+  }
+  .col-sticky-nama {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #13131F;
+  }
+  thead .col-sticky-nama {
+    background: #14142A;
+    z-index: 3;
+  }
+  .table-row-hover:hover .col-sticky-nama {
+    background: #14142A;
+  }
 }
