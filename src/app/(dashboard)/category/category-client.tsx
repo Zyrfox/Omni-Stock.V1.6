@@ -227,11 +227,12 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
             <span style={{ fontSize: 10, fontWeight: 700, color: "#C8F135" }}>{activeTab}</span>
             <span style={{ fontSize: 10, color: "#4B5563" }}>— {activeTabMeta?.desc}</span>
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
                 {["ID", "Nama Barang", "Outlet", "Satuan", "Min. Stok", "Harga Beli", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                  <th key={h} className={h === "Nama Barang" ? "col-sticky-nama" : h === "ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -243,8 +244,8 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
               ) : (
                 filtered.map((b, idx) => (
                   <tr key={b.id + idx} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
+                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
+                    <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{b.outletId ?? "—"}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{b.satuanDapur ?? "—"}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#4B5563" }}>{b.stokMinimum}</td>
@@ -264,6 +265,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

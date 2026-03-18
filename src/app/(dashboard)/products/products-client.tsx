@@ -330,11 +330,12 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
                 {["ID", "Nama Bahan", "Tipe", "Kemasan Beli", "Satuan Dapur", "Min. Stok", "Harga Beli", "Isi/Yield", "Harga/Porsi", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>
+                  <th key={h} className={h === "Nama Bahan" ? "col-sticky-nama" : h === "ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
                 ))}
@@ -346,8 +347,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               ) : (
                 filteredBahans.map((b) => (
                   <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
+                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
+                    <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
                     <td style={{ padding: "10px 14px" }}><Badge color={b.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{b.tipeBahan}</Badge></td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.satuanBeli}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.satuanDapur}</td>
@@ -368,6 +369,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -382,11 +384,12 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
                 {["ID Menu", "Nama Menu", "Outlet", "Komposisi", "Total COGS", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
+                  <th key={h} className={h === "Nama Menu" ? "col-sticky-nama" : h === "ID Menu" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
                   </th>
                 ))}
@@ -398,8 +401,8 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               ) : (
                 filteredResep.map((m) => (
                   <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
+                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
+                    <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
                     <td style={{ padding: "10px 14px" }}>
                       {m.mappingResep && m.mappingResep.length > 0 ? (
@@ -437,6 +440,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -451,12 +455,13 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
-                <th style={{ padding: "10px 8px", borderBottom: "1px solid #1E1E2E", width: 24 }} />
+                <th className="col-hide-mobile" style={{ padding: "10px 8px", borderBottom: "1px solid #1E1E2E", width: 24 }} />
                 {["ID Menu", "Nama Menu", "Kategori", "Outlet", "Recipe", "Total COGS", "Harga Jual", "Margin"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
+                  <th key={h} className={h === "Nama Menu" ? "col-sticky-nama" : h === "ID Menu" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>
                     {h}
                   </th>
                 ))}
@@ -489,9 +494,9 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
                         transition: "background 0.1s",
                       }}
                     >
-                      <td style={{ padding: "10px 8px", color: "#374151", cursor: "grab", userSelect: "none", textAlign: "center", fontSize: 14 }}>⠿</td>
-                      <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
+                      <td className="col-hide-mobile" style={{ padding: "10px 8px", color: "#374151", cursor: "grab", userSelect: "none", textAlign: "center", fontSize: 14 }}>⠿</td>
+                      <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
+                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
                       <td style={{ padding: "10px 14px" }}><Badge color="blue" size="sm">{m.kategori ?? "—"}</Badge></td>
                       <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
                       <td style={{ padding: "10px 14px" }}>
@@ -515,6 +520,7 @@ export function ProductsClient({ bahanList, menuList, sfgList }: ProductsClientP
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

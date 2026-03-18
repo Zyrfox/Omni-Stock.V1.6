@@ -67,11 +67,12 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#14142A" }}>
               {["PO ID", "Bahan", "Vendor", "Outlet", "Qty", "Total Biaya", "Status", "Dibuat Oleh", "Tanggal", "Action"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} className={h === "Bahan" ? "col-sticky-nama" : h === "PO ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -81,8 +82,8 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
             ) : (
               orders.map((po) => (
                 <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => setSelectedPO(po)}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>{po.id}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{po.bahan?.namaBahan}</td>
+                  <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>{po.id}</td>
+                  <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{po.bahan?.namaBahan}</td>
                   <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{po.vendor?.namaVendor}</td>
                   <td style={{ padding: "10px 14px" }}><Badge color="blue" size="sm">{po.outlet?.namaOutlet ?? po.outletId}</Badge></td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>{po.qtyOrder} {po.bahan?.satuanDapur}</td>
@@ -125,6 +126,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Detail Modal */}
