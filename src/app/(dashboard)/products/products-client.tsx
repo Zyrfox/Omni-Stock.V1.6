@@ -13,14 +13,14 @@ interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
   satuanBeli: string; satuanDapur: string; stokMinimum: number;
   hargaBeli: string; isiSatuan: string; hargaPerSatuanPorsi: string | null;
-  outletId: string | null;
+  outletId: string | null; kategoriBahan?: string | null;
 }
 interface MenuItem {
   id: string; namaMenu: string; kategori: "food" | "beverage" | null;
   outletId: string | null; totalCogs: string | null; hargaJual: string | null;
   channelType?: string | null;
   platformFeePercent?: string | null;
-  mappingResep?: Array<{ id: string; itemId: string; qty: string; itemType?: "bahan_dasar" | "semi_finished"; bahan?: { namaBahan: string; satuanDapur: string } }>;
+  mappingResep?: Array<{ id: string; itemId: string; qty: string; itemType?: "bahan_dasar" | "semi_finished"; bahan?: { namaBahan: string; satuanDapur: string; kategoriBahan?: string | null } }>;
 }
 
 interface ProductsClientProps {
@@ -74,7 +74,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [showBOMEditor, setShowBOMEditor] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
-  const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
+  const [bomLines, setBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished" | "kemasan"; itemId: string; qty: number }>>([]);
   const [bomSearches, setBomSearches] = useState<string[]>([]);
   const [bomOpenIdx, setBomOpenIdx] = useState<number | null>(null);
   const [bomDropdownRect, setBomDropdownRect] = useState<DOMRect | null>(null);
@@ -96,16 +96,18 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   });
   const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [estimating, setEstimating] = useState(false);
-  const [yieldMode, setYieldMode] = useState<"direct" | "batch">("direct");
+  const [yieldMode, setYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [batchFields, setBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
+  const [porsiEstimasi, setPorsiEstimasi] = useState("");
 
   // Edit Bahan state
   const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
   const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1" });
   const [editAiEstimation, setEditAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [editEstimating, setEditEstimating] = useState(false);
-  const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch">("direct");
+  const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
+  const [editPorsiEstimasi, setEditPorsiEstimasi] = useState("");
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
   const [searchBahan, setSearchBahan] = useState("");
   const [searchResep, setSearchResep] = useState("");
@@ -220,6 +222,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001", vendorId: "" });
       setYieldMode("direct");
       setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
+      setPorsiEstimasi("");
     } finally {
       setSaving(false);
     }
@@ -273,6 +276,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       setEditAiEstimation(null);
       setEditYieldMode("direct");
       setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
+      setEditPorsiEstimasi("");
     } finally {
       setSaving(false);
     }
@@ -289,7 +293,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     setSaving(true);
     try {
       await Promise.all([
-        saveBOM(selectedMenu.id, "menu", bomLines),
+        saveBOM(selectedMenu.id, "menu", bomLines.map(l => ({ ...l, itemType: l.itemType === "kemasan" ? "bahan_dasar" : l.itemType } as { itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }))),
         updateMenu(selectedMenu.id, {
           hargaJual: bomHargaJual ? parseFloat(bomHargaJual) : null,
         }),
@@ -479,7 +483,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <button
                         onClick={() => {
                           setSelectedMenu(m);
-                          setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.itemType ?? "bahan_dasar") as "bahan_dasar" | "semi_finished", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                          setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
                           setBomHargaJual(m.hargaJual ?? "");
                           setBomSearches([]);
                           setBomOpenIdx(null);
@@ -661,7 +665,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                             <button
                               onClick={() => {
                                 setSelectedMenu(m);
-                                setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.itemType ?? "bahan_dasar") as "bahan_dasar" | "semi_finished", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                                setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
                                 setBomHargaJual(m.hargaJual ?? "");
                                 setBomSearches([]);
                                 setBomOpenIdx(null);
@@ -745,14 +749,14 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}
                   >
                     <option value="">— Pilih Kategori —</option>
-                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage"].map(k => (
+                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => (
                       <option key={k} value={k}>{k}</option>
                     ))}
                   </select>
                   {form.kategoriBahan && (
                     <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
                       ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>
-                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV"}[form.kategoriBahan] ?? "BHN"}-XXX
+                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"}[form.kategoriBahan] ?? "BHN"}-XXX
                       </span>
                     </div>
                   )}
@@ -792,6 +796,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               {/* AI Research Panel — raw_bulk only */}
               {form.tipeBahan === "raw_bulk" && (
                 <div style={{ marginTop: 16, padding: 16, background: "rgba(200,241,53,0.05)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 8 }}>
+                  {yieldMode !== "porsi" && (<>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
@@ -839,6 +844,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       )}
                     </div>
                   )}
+                  </>)}
 
                   {/* Yield Mode Calculator */}
                   <div style={{ marginTop: 14 }}>
@@ -848,6 +854,9 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       </button>
                       <button type="button" onClick={() => setYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "batch" ? 700 : 400, background: yieldMode === "batch" ? "#1E1E2E" : "transparent", color: yieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Batch Produksi
+                      </button>
+                      <button type="button" onClick={() => setYieldMode("porsi")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "porsi" ? 700 : 400, background: yieldMode === "porsi" ? "#1E1E2E" : "transparent", color: yieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Estimasi Porsi
                       </button>
                     </div>
                     {yieldMode === "direct" && (() => {
@@ -917,12 +926,39 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                         </div>
                       );
                     })()}
+                    {yieldMode === "porsi" && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "#6B7280" }}>1 {form.satuanBeli || "kemasan"} sekitar</span>
+                          <input
+                            type="number" min={1} value={porsiEstimasi}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setPorsiEstimasi(v);
+                              if (parseNum(v) > 0) setForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
+                            }}
+                            placeholder="40"
+                            style={{ width: 80, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                          />
+                          <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
+                        </div>
+                        {parseNum(porsiEstimasi) > 0 && parseNum(form.hargaBeli) > 0 && (
+                          <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                            <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
+                              Rp {Math.round(parseNum(form.hargaBeli) / parseNum(porsiEstimasi)).toLocaleString("id-ID")}
+                            </span>
+                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setShowAddBahan(false); setAiEstimation(null); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); setPorsiEstimasi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveBahan} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Bahan"}
                 </button>
@@ -1085,6 +1121,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               {/* AI Research Panel — raw_bulk only */}
               {editForm.tipeBahan === "raw_bulk" && (
                 <div style={{ marginTop: 16, padding: 16, background: "rgba(200,241,53,0.05)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 8 }}>
+                  {editYieldMode !== "porsi" && (<>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
@@ -1127,6 +1164,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       </div>
                     </div>
                   )}
+                  </>)}
                   {/* Yield Mode Calculator */}
                   <div style={{ marginTop: 14 }}>
                     <div style={{ display: "flex", gap: 3, marginBottom: 10, background: "#0F0F18", borderRadius: 6, padding: 3 }}>
@@ -1135,6 +1173,9 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       </button>
                       <button type="button" onClick={() => setEditYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "batch" ? 700 : 400, background: editYieldMode === "batch" ? "#1E1E2E" : "transparent", color: editYieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Batch Produksi
+                      </button>
+                      <button type="button" onClick={() => setEditYieldMode("porsi")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "porsi" ? 700 : 400, background: editYieldMode === "porsi" ? "#1E1E2E" : "transparent", color: editYieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                        Estimasi Porsi
                       </button>
                     </div>
                     {editYieldMode === "direct" && (() => {
@@ -1204,12 +1245,39 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                         </div>
                       );
                     })()}
+                    {editYieldMode === "porsi" && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "#6B7280" }}>1 {editForm.satuanBeli || "kemasan"} sekitar</span>
+                          <input
+                            type="number" min={1} value={editPorsiEstimasi}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setEditPorsiEstimasi(v);
+                              if (parseNum(v) > 0) setEditForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
+                            }}
+                            placeholder="40"
+                            style={{ width: 80, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                          />
+                          <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
+                        </div>
+                        {parseNum(editPorsiEstimasi) > 0 && parseNum(editForm.hargaBeli) > 0 && (
+                          <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                            <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
+                              Rp {Math.round(parseNum(editForm.hargaBeli) / parseNum(editPorsiEstimasi)).toLocaleString("id-ID")}
+                            </span>
+                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditYieldMode("direct"); setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditYieldMode("direct"); setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); setEditPorsiEstimasi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleUpdateBahan} disabled={saving} style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
@@ -1259,11 +1327,12 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
                       <select
                         value={line.itemType}
-                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished" | "kemasan", itemId: "" } : x))}
                         style={{ width: 110, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
                       >
                         <option value="bahan_dasar">Bahan</option>
                         <option value="semi_finished">Sub-Resep</option>
+                        <option value="kemasan">📦 Kemasan</option>
                       </select>
                       <div style={{ flex: 1 }}>
                         <input
@@ -1366,8 +1435,13 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             const line = bomLines[bomOpenIdx];
             if (!line) return null;
             const q = (bomSearches[bomOpenIdx] ?? "").toLowerCase();
-            const options = (line.itemType === "bahan_dasar" ? bahanList : bahanList.filter((b) => b.tipeBahan === "raw_bulk"))
-              .filter((b) => !q || b.namaBahan.toLowerCase().includes(q));
+            const options = (
+              line.itemType === "kemasan"
+                ? bahanList.filter((b) => b.kategoriBahan === "Kemasan & Alat Makan")
+                : line.itemType === "bahan_dasar"
+                  ? bahanList.filter((b) => b.kategoriBahan !== "Kemasan & Alat Makan")
+                  : bahanList.filter((b) => b.tipeBahan === "raw_bulk")
+            ).filter((b) => !q || b.namaBahan.toLowerCase().includes(q));
             if (options.length === 0) return (
               <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>
             );

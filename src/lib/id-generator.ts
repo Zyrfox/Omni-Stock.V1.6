@@ -69,6 +69,7 @@ export const KATEGORI_PREFIX: Record<string, string> = {
   "Ice Cream": "ICE",
   "Noodles": "NDL",
   "Beverage": "BEV",
+  "Kemasan & Alat Makan": "KMS",
 };
 
 export const PRODUCT_CATEGORIES = Object.keys(KATEGORI_PREFIX);
