@@ -7,7 +7,7 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
 import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
-import { estimateRawBulkYield, type RawBulkEstimationResult } from "@/actions/gemini";
+import { estimateRawBulkYield, estimatePorsiSaja, type RawBulkEstimationResult } from "@/actions/gemini";
 
 interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
@@ -99,6 +99,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [yieldMode, setYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [batchFields, setBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [porsiEstimasi, setPorsiEstimasi] = useState("");
+  const [porsiLoading, setPorsiLoading] = useState(false);
+  const [porsiNarasi, setPorsiNarasi] = useState("");
 
   // Edit Bahan state
   const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
@@ -108,6 +110,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [editPorsiEstimasi, setEditPorsiEstimasi] = useState("");
+  const [editPorsiLoading, setEditPorsiLoading] = useState(false);
+  const [editPorsiNarasi, setEditPorsiNarasi] = useState("");
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
   const [bahanPage, setBahanPage] = useState(0);
   const [bahanRowsPerPage, setBahanRowsPerPage] = useState(20);
@@ -226,7 +230,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001", vendorId: "" });
       setYieldMode("direct");
       setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
-      setPorsiEstimasi("");
+      setPorsiEstimasi(""); setPorsiNarasi("");
     } finally {
       setSaving(false);
     }
@@ -282,7 +286,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       setEditAiEstimation(null);
       setEditYieldMode("direct");
       setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
-      setEditPorsiEstimasi("");
+      setEditPorsiEstimasi(""); setEditPorsiNarasi("");
     } finally {
       setSaving(false);
     }
@@ -888,7 +892,17 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <button type="button" onClick={() => setYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "batch" ? 700 : 400, background: yieldMode === "batch" ? "#1E1E2E" : "transparent", color: yieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Batch Produksi
                       </button>
-                      <button type="button" onClick={() => setYieldMode("porsi")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "porsi" ? 700 : 400, background: yieldMode === "porsi" ? "#1E1E2E" : "transparent", color: yieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                      <button type="button" onClick={async () => {
+                        setYieldMode("porsi");
+                        if (form.namaBahan && !porsiEstimasi) {
+                          setPorsiLoading(true); setPorsiNarasi("");
+                          try {
+                            const r = await estimatePorsiSaja(form.namaBahan, form.satuanBeli, parseNum(form.hargaBeli) || undefined);
+                            if (r.porsiPerKemasan) { setPorsiEstimasi(String(r.porsiPerKemasan)); setForm(f => ({ ...f, isiSatuan: String(r.porsiPerKemasan), satuanDapur: "porsi" })); }
+                            setPorsiNarasi(r.narasi);
+                          } finally { setPorsiLoading(false); }
+                        }
+                      }} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: yieldMode === "porsi" ? 700 : 400, background: yieldMode === "porsi" ? "#1E1E2E" : "transparent", color: yieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Estimasi Porsi
                       </button>
                     </div>
@@ -961,28 +975,51 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     })()}
                     {yieldMode === "porsi" && (
                       <div style={{ marginTop: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, color: "#6B7280" }}>1 {form.satuanBeli || "kemasan"} sekitar</span>
-                          <input
-                            type="number" min={1} value={porsiEstimasi}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setPorsiEstimasi(v);
-                              if (parseNum(v) > 0) setForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
-                            }}
-                            placeholder="40"
-                            style={{ width: 80, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
-                          />
-                          <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
-                        </div>
-                        {parseNum(porsiEstimasi) > 0 && parseNum(form.hargaBeli) > 0 && (
-                          <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
-                            <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
-                              Rp {Math.round(parseNum(form.hargaBeli) / parseNum(porsiEstimasi)).toLocaleString("id-ID")}
-                            </span>
-                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                        {porsiLoading ? (
+                          <div style={{ padding: "14px 0", textAlign: "center" }}>
+                            <span style={{ fontSize: 11, color: "#F59E0B" }}>✦ Claude sedang menghitung estimasi porsi...</span>
                           </div>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, color: "#6B7280" }}>1 {form.satuanBeli || "kemasan"} sekitar</span>
+                              <input
+                                type="number" min={1} value={porsiEstimasi}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setPorsiEstimasi(v);
+                                  if (parseNum(v) > 0) setForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
+                                }}
+                                placeholder="?"
+                                style={{ width: 72, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                              />
+                              <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
+                              {form.namaBahan && (
+                                <button type="button" onClick={async () => {
+                                  setPorsiLoading(true); setPorsiNarasi("");
+                                  try {
+                                    const r = await estimatePorsiSaja(form.namaBahan, form.satuanBeli, parseNum(form.hargaBeli) || undefined);
+                                    if (r.porsiPerKemasan) { setPorsiEstimasi(String(r.porsiPerKemasan)); setForm(f => ({ ...f, isiSatuan: String(r.porsiPerKemasan), satuanDapur: "porsi" })); }
+                                    setPorsiNarasi(r.narasi);
+                                  } finally { setPorsiLoading(false); }
+                                }} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 5, border: "1px solid rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.08)", color: "#F59E0B", cursor: "pointer", fontWeight: 600 }}>
+                                  ✦ Estimasi AI
+                                </button>
+                              )}
+                            </div>
+                            {porsiNarasi && (
+                              <div style={{ marginTop: 6, fontSize: 10, color: "#9CA3AF", fontStyle: "italic" }}>{porsiNarasi}</div>
+                            )}
+                            {parseNum(porsiEstimasi) > 0 && parseNum(form.hargaBeli) > 0 && (
+                              <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                                <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
+                                  Rp {Math.round(parseNum(form.hargaBeli) / parseNum(porsiEstimasi)).toLocaleString("id-ID")}
+                                </span>
+                                <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
@@ -1242,7 +1279,17 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <button type="button" onClick={() => setEditYieldMode("batch")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "batch" ? 700 : 400, background: editYieldMode === "batch" ? "#1E1E2E" : "transparent", color: editYieldMode === "batch" ? "#C8F135" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Batch Produksi
                       </button>
-                      <button type="button" onClick={() => setEditYieldMode("porsi")} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "porsi" ? 700 : 400, background: editYieldMode === "porsi" ? "#1E1E2E" : "transparent", color: editYieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                      <button type="button" onClick={async () => {
+                        setEditYieldMode("porsi");
+                        if (editForm.namaBahan && !editPorsiEstimasi) {
+                          setEditPorsiLoading(true); setEditPorsiNarasi("");
+                          try {
+                            const r = await estimatePorsiSaja(editForm.namaBahan, editForm.satuanBeli, parseNum(editForm.hargaBeli) || undefined);
+                            if (r.porsiPerKemasan) { setEditPorsiEstimasi(String(r.porsiPerKemasan)); setEditForm(f => ({ ...f, isiSatuan: String(r.porsiPerKemasan), satuanDapur: "porsi" })); }
+                            setEditPorsiNarasi(r.narasi);
+                          } finally { setEditPorsiLoading(false); }
+                        }
+                      }} style={{ flex: 1, padding: "5px 8px", fontSize: 10, fontWeight: editYieldMode === "porsi" ? 700 : 400, background: editYieldMode === "porsi" ? "#1E1E2E" : "transparent", color: editYieldMode === "porsi" ? "#F59E0B" : "#4B5563", border: "none", borderRadius: 4, cursor: "pointer" }}>
                         Estimasi Porsi
                       </button>
                     </div>
@@ -1315,28 +1362,51 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     })()}
                     {editYieldMode === "porsi" && (
                       <div style={{ marginTop: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, color: "#6B7280" }}>1 {editForm.satuanBeli || "kemasan"} sekitar</span>
-                          <input
-                            type="number" min={1} value={editPorsiEstimasi}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setEditPorsiEstimasi(v);
-                              if (parseNum(v) > 0) setEditForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
-                            }}
-                            placeholder="40"
-                            style={{ width: 80, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
-                          />
-                          <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
-                        </div>
-                        {parseNum(editPorsiEstimasi) > 0 && parseNum(editForm.hargaBeli) > 0 && (
-                          <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
-                            <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
-                              Rp {Math.round(parseNum(editForm.hargaBeli) / parseNum(editPorsiEstimasi)).toLocaleString("id-ID")}
-                            </span>
-                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                        {editPorsiLoading ? (
+                          <div style={{ padding: "14px 0", textAlign: "center" }}>
+                            <span style={{ fontSize: 11, color: "#F59E0B" }}>✦ Claude sedang menghitung estimasi porsi...</span>
                           </div>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, color: "#6B7280" }}>1 {editForm.satuanBeli || "kemasan"} sekitar</span>
+                              <input
+                                type="number" min={1} value={editPorsiEstimasi}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setEditPorsiEstimasi(v);
+                                  if (parseNum(v) > 0) setEditForm(f => ({ ...f, isiSatuan: v, satuanDapur: "porsi" }));
+                                }}
+                                placeholder="?"
+                                style={{ width: 72, background: "#0F0F18", border: "1px solid #F59E0B", borderRadius: 7, padding: "6px 8px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                              />
+                              <span style={{ fontSize: 11, color: "#6B7280" }}>porsi</span>
+                              {editForm.namaBahan && (
+                                <button type="button" onClick={async () => {
+                                  setEditPorsiLoading(true); setEditPorsiNarasi("");
+                                  try {
+                                    const r = await estimatePorsiSaja(editForm.namaBahan, editForm.satuanBeli, parseNum(editForm.hargaBeli) || undefined);
+                                    if (r.porsiPerKemasan) { setEditPorsiEstimasi(String(r.porsiPerKemasan)); setEditForm(f => ({ ...f, isiSatuan: String(r.porsiPerKemasan), satuanDapur: "porsi" })); }
+                                    setEditPorsiNarasi(r.narasi);
+                                  } finally { setEditPorsiLoading(false); }
+                                }} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 5, border: "1px solid rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.08)", color: "#F59E0B", cursor: "pointer", fontWeight: 600 }}>
+                                  ✦ Estimasi AI
+                                </button>
+                              )}
+                            </div>
+                            {editPorsiNarasi && (
+                              <div style={{ marginTop: 6, fontSize: 10, color: "#9CA3AF", fontStyle: "italic" }}>{editPorsiNarasi}</div>
+                            )}
+                            {parseNum(editPorsiEstimasi) > 0 && parseNum(editForm.hargaBeli) > 0 && (
+                              <div style={{ marginTop: 8, padding: "8px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                                <span style={{ fontSize: 10, color: "#4B5563" }}>Harga per porsi: </span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
+                                  Rp {Math.round(parseNum(editForm.hargaBeli) / parseNum(editPorsiEstimasi)).toLocaleString("id-ID")}
+                                </span>
+                                <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>Satuan dapur di-set ke "porsi"</div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
@@ -1345,7 +1415,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               )}
 
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditYieldMode("direct"); setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); setEditPorsiEstimasi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => { setEditTarget(null); setEditAiEstimation(null); setEditYieldMode("direct"); setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); setEditPorsiEstimasi(""); setEditPorsiNarasi(""); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleUpdateBahan} disabled={saving} style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
