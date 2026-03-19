@@ -76,15 +76,17 @@ Berikan estimasi dalam format JSON KETAT berikut (tanpa markdown):
       namaMenuContoh: String(data.nama_menu_contoh ?? ""),
       narasi: String(data.narasi ?? ""),
     };
-  } catch (err) {
+  } catch (err: unknown) {
+    const msg = String(err);
+    const isAuth = msg.includes("401") || msg.includes("authentication_error") || msg.includes("invalid x-api-key");
     return {
       hargaPasarPerKg: null,
       hargaPasarFormatted: "Tidak tersedia",
       estimasiPorsiPerKemasan: null,
       estimasiGramPerPorsi: null,
       namaMenuContoh: "",
-      narasi: "Estimasi AI tidak tersedia.",
-      error: String(err),
+      narasi: isAuth ? "API key tidak valid. Perbarui ANTHROPIC_API_KEY di file .env.local dengan key baru dari console.anthropic.com" : "Estimasi AI tidak tersedia.",
+      error: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : msg,
     };
   }
 }
@@ -139,12 +141,14 @@ Jawab HANYA dalam format JSON (tanpa markdown):
       hargaPerPorsi,
       narasi: String(data.narasi ?? ""),
     };
-  } catch (err) {
+  } catch (err: unknown) {
+    const msg = String(err);
+    const isAuth = msg.includes("401") || msg.includes("authentication_error") || msg.includes("invalid x-api-key");
     return {
       porsiPerKemasan: null,
       hargaPerPorsi: null,
-      narasi: "Estimasi tidak tersedia.",
-      error: String(err),
+      narasi: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : "Estimasi tidak tersedia.",
+      error: isAuth ? "API key tidak valid" : msg,
     };
   }
 }

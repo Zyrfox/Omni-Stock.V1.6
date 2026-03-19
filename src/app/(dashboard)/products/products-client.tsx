@@ -115,6 +115,10 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
   const [bahanPage, setBahanPage] = useState(0);
   const [bahanRowsPerPage, setBahanRowsPerPage] = useState(20);
+  const [resepPage, setResepPage] = useState(0);
+  const [resepRowsPerPage, setResepRowsPerPage] = useState(20);
+  const [menuPage, setMenuPage] = useState(0);
+  const [menuRowsPerPage, setMenuRowsPerPage] = useState(20);
   const [searchBahan, setSearchBahan] = useState("");
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
@@ -130,6 +134,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const safeBahanPage = Math.min(bahanPage, Math.max(0, Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1));
   const pagedBahans = filteredBahans.slice(safeBahanPage * bahanRowsPerPage, (safeBahanPage + 1) * bahanRowsPerPage);
   const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
+  const safeResepPage = Math.min(resepPage, Math.max(0, Math.ceil(filteredResep.length / resepRowsPerPage) - 1));
+  const pagedResep = filteredResep.slice(safeResepPage * resepRowsPerPage, (safeResepPage + 1) * resepRowsPerPage);
   const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
 
   // Group filteredMenus by base name
@@ -142,6 +148,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     }
     return Array.from(map.entries()); // [baseName, variants[]]
   })();
+  const safeMenuPage = Math.min(menuPage, Math.max(0, Math.ceil(menuGroups.length / menuRowsPerPage) - 1));
+  const pagedMenuGroups = menuGroups.slice(safeMenuPage * menuRowsPerPage, (safeMenuPage + 1) * menuRowsPerPage);
 
   function handleMenuDrop(toId: string) {
     if (!dragMenuId || dragMenuId === toId) { setDragMenuId(null); setDragOverMenuId(null); return; }
@@ -475,7 +483,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
             <input
               value={searchResep}
-              onChange={(e) => setSearchResep(e.target.value)}
+              onChange={(e) => { setSearchResep(e.target.value); setResepPage(0); }}
               placeholder="Cari nama menu atau ID..."
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
@@ -495,7 +503,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               {filteredResep.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchResep ? `Tidak ada menu "${searchResep}"` : `Belum ada menu. Tambahkan dari tab Master Menu.`}</td></tr>
               ) : (
-                filteredResep.map((m) => (
+                pagedResep.map((m) => (
                   <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                     <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
                     <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
@@ -537,6 +545,29 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             </tbody>
           </table>
           </div>
+          {/* Pagination Resep */}
+          {filteredResep.length > 0 && (
+            <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>Baris per halaman:</span>
+                {[20, 30, 40, 50].map(n => (
+                  <button key={n} onClick={() => { setResepRowsPerPage(n); setResepPage(0); }}
+                    style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${resepRowsPerPage === n ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: resepRowsPerPage === n ? "rgba(200,241,53,0.12)" : "transparent", color: resepRowsPerPage === n ? "#C8F135" : "#4B5563", fontSize: 11, cursor: "pointer" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>
+                  {safeResepPage * resepRowsPerPage + 1}–{Math.min((safeResepPage + 1) * resepRowsPerPage, filteredResep.length)} dari {filteredResep.length}
+                </span>
+                <button onClick={() => setResepPage(p => Math.max(0, p - 1))} disabled={safeResepPage === 0}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeResepPage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeResepPage === 0 ? "default" : "pointer" }}>‹</button>
+                <button onClick={() => setResepPage(p => Math.min(Math.ceil(filteredResep.length / resepRowsPerPage) - 1, p + 1))} disabled={safeResepPage >= Math.ceil(filteredResep.length / resepRowsPerPage) - 1}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeResepPage >= Math.ceil(filteredResep.length / resepRowsPerPage) - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeResepPage >= Math.ceil(filteredResep.length / resepRowsPerPage) - 1 ? "default" : "pointer" }}>›</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -546,7 +577,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
             <input
               value={searchMenu}
-              onChange={(e) => setSearchMenu(e.target.value)}
+              onChange={(e) => { setSearchMenu(e.target.value); setMenuPage(0); }}
               placeholder="Cari nama menu atau ID..."
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
@@ -569,7 +600,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                   {searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}
                 </td></tr>
               ) : (
-                menuGroups.flatMap(([baseName, variants]) => {
+                pagedMenuGroups.flatMap(([baseName, variants]) => {
                   const isExpanded = expandedGroups.has(baseName);
                   const toggle = () => setExpandedGroups(prev => {
                     const next = new Set(prev);
@@ -722,6 +753,29 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             </tbody>
           </table>
           </div>
+          {/* Pagination Menu */}
+          {menuGroups.length > 0 && (
+            <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>Baris per halaman:</span>
+                {[20, 30, 40, 50].map(n => (
+                  <button key={n} onClick={() => { setMenuRowsPerPage(n); setMenuPage(0); }}
+                    style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${menuRowsPerPage === n ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: menuRowsPerPage === n ? "rgba(200,241,53,0.12)" : "transparent", color: menuRowsPerPage === n ? "#C8F135" : "#4B5563", fontSize: 11, cursor: "pointer" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>
+                  {safeMenuPage * menuRowsPerPage + 1}–{Math.min((safeMenuPage + 1) * menuRowsPerPage, menuGroups.length)} dari {menuGroups.length} grup
+                </span>
+                <button onClick={() => setMenuPage(p => Math.max(0, p - 1))} disabled={safeMenuPage === 0}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeMenuPage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeMenuPage === 0 ? "default" : "pointer" }}>‹</button>
+                <button onClick={() => setMenuPage(p => Math.min(Math.ceil(menuGroups.length / menuRowsPerPage) - 1, p + 1))} disabled={safeMenuPage >= Math.ceil(menuGroups.length / menuRowsPerPage) - 1}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeMenuPage >= Math.ceil(menuGroups.length / menuRowsPerPage) - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeMenuPage >= Math.ceil(menuGroups.length / menuRowsPerPage) - 1 ? "default" : "pointer" }}>›</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
