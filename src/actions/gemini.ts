@@ -79,14 +79,15 @@ Berikan estimasi dalam format JSON KETAT berikut (tanpa markdown):
   } catch (err: unknown) {
     const msg = String(err);
     const isAuth = msg.includes("401") || msg.includes("authentication_error") || msg.includes("invalid x-api-key");
+    const isCredit = msg.includes("credit balance") || msg.includes("too low") || msg.includes("402");
     return {
       hargaPasarPerKg: null,
       hargaPasarFormatted: "Tidak tersedia",
       estimasiPorsiPerKemasan: null,
       estimasiGramPerPorsi: null,
       namaMenuContoh: "",
-      narasi: isAuth ? "API key tidak valid. Perbarui ANTHROPIC_API_KEY di file .env.local dengan key baru dari console.anthropic.com" : "Estimasi AI tidak tersedia.",
-      error: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : msg,
+      narasi: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : isCredit ? "Kredit Anthropic habis — top up di console.anthropic.com/settings/billing" : "Estimasi AI tidak tersedia.",
+      error: isAuth ? "API key tidak valid" : isCredit ? "Kredit habis — top up di console.anthropic.com/settings/billing" : msg,
     };
   }
 }
@@ -144,11 +145,12 @@ Jawab HANYA dalam format JSON (tanpa markdown):
   } catch (err: unknown) {
     const msg = String(err);
     const isAuth = msg.includes("401") || msg.includes("authentication_error") || msg.includes("invalid x-api-key");
+    const isCredit = msg.includes("credit balance") || msg.includes("too low") || msg.includes("402");
     return {
       porsiPerKemasan: null,
       hargaPerPorsi: null,
-      narasi: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : "Estimasi tidak tersedia.",
-      error: isAuth ? "API key tidak valid" : msg,
+      narasi: isAuth ? "API key tidak valid — perbarui ANTHROPIC_API_KEY di .env.local" : isCredit ? "Kredit Anthropic habis — top up di console.anthropic.com/settings/billing" : "Estimasi tidak tersedia.",
+      error: isAuth ? "API key tidak valid" : isCredit ? "Kredit habis" : msg,
     };
   }
 }

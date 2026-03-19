@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
@@ -33,6 +33,10 @@ interface POLogsClientProps {
 export function POLogsClient({ orders, stats }: POLogsClientProps) {
   const [selectedPO, setSelectedPO] = useState<POItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "draft" | "sent" | "received">("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
   const router = useRouter();
 
   async function handleSend(id: string) {
@@ -52,6 +56,15 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
 
   const TIMELINE = ["draft", "sent", "received"];
 
+  const q = search.toLowerCase();
+  const filtered = orders.filter((po) => {
+    const matchSearch = !q || po.bahan?.namaBahan?.toLowerCase().includes(q) || po.vendor?.namaVendor?.toLowerCase().includes(q) || po.id.toLowerCase().includes(q);
+    const matchStatus = !statusFilter || po.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+  const safePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1));
+  const paged = filtered.slice(safePage * rowsPerPage, (safePage + 1) * rowsPerPage);
+
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
@@ -67,6 +80,21 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        {/* Search + filter bar */}
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            placeholder="Cari bahan, vendor, atau PO ID..."
+            style={{ flex: 1, minWidth: 180, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+          />
+          {(["", "draft", "sent", "received"] as const).map((s) => (
+            <button key={s} onClick={() => { setStatusFilter(s); setPage(0); }}
+              style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${statusFilter === s ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: statusFilter === s ? "rgba(200,241,53,0.1)" : "transparent", color: statusFilter === s ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer" }}>
+              {s === "" ? "Semua" : s.toUpperCase()}
+            </button>
+          ))}
+        </div>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -77,10 +105,10 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
             </tr>
           </thead>
           <tbody>
-            {orders.length === 0 ? (
-              <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada PO.</td></tr>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{search || statusFilter ? "Tidak ada PO yang cocok." : "Belum ada PO."}</td></tr>
             ) : (
-              orders.map((po) => (
+              paged.map((po) => (
                 <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => setSelectedPO(po)}>
                   <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>{po.id}</td>
                   <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{po.bahan?.namaBahan}</td>
@@ -127,6 +155,29 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
           </tbody>
         </table>
         </div>
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11, color: "#4B5563" }}>Baris per halaman:</span>
+              {[20, 30, 40, 50].map(n => (
+                <button key={n} onClick={() => { setRowsPerPage(n); setPage(0); }}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${rowsPerPage === n ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: rowsPerPage === n ? "rgba(200,241,53,0.12)" : "transparent", color: rowsPerPage === n ? "#C8F135" : "#4B5563", fontSize: 11, cursor: "pointer" }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 11, color: "#4B5563" }}>
+                {safePage * rowsPerPage + 1}–{Math.min((safePage + 1) * rowsPerPage, filtered.length)} dari {filtered.length}
+              </span>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
+                style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹</button>
+              <button onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / rowsPerPage) - 1, p + 1))} disabled={safePage >= Math.ceil(filtered.length / rowsPerPage) - 1}
+                style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safePage >= Math.ceil(filtered.length / rowsPerPage) - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage >= Math.ceil(filtered.length / rowsPerPage) - 1 ? "default" : "pointer" }}>›</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
@@ -169,8 +220,8 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
                     const isDone = TIMELINE.indexOf(selectedPO.status) > idx;
                     const color = step === "draft" ? "#6B7280" : step === "sent" ? "#F59E0B" : "#22C55E";
                     return (
-                      <>
-                        <div key={step} style={{ textAlign: "center", flex: 1 }}>
+                      <Fragment key={step}>
+                        <div style={{ textAlign: "center", flex: 1 }}>
                           <div style={{
                             width: 36, height: 36, borderRadius: "50%", margin: "0 auto 6px",
                             background: isActive || isDone ? `rgba(${step === "draft" ? "107,114,128" : step === "sent" ? "245,158,11" : "34,197,94"},0.15)` : "#1E1E2E",
@@ -186,9 +237,9 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
                           {isActive && <div style={{ fontSize: 8, color, marginTop: 2 }}>Current</div>}
                         </div>
                         {idx < TIMELINE.length - 1 && (
-                          <div key={`sep-${idx}`} style={{ flex: 1, height: 1, background: "#2D2D44" }} />
+                          <div style={{ flex: 1, height: 1, background: "#2D2D44" }} />
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </div>
