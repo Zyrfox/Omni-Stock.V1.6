@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
-import { createVendor } from "@/actions/vendor";
+import { createVendor, getVendorPOs } from "@/actions/vendor";
 
 interface VendorItem {
   id: string; namaVendor: string; kontakWa: string | null;
@@ -13,16 +13,43 @@ interface VendorItem {
   vendorPlatform?: string | null; linkToko?: string | null;
 }
 
+type POItem = Awaited<ReturnType<typeof getVendorPOs>>[number];
+
 interface SuppliersClientProps {
   vendors: VendorItem[];
   allBahan?: Array<{ id: string; namaBahan: string }>;
   stats: { totalVendor: number; totalBahan: number; vendorDenganWa: number };
 }
 
+const STATUS_COLOR: Record<string, "amber" | "blue" | "green" | "gray"> = {
+  draft: "amber", sent: "blue", received: "green",
+};
+
+function formatWANumber(wa: string) {
+  const clean = wa.replace(/\D/g, "");
+  if (clean.startsWith("0")) return "62" + clean.slice(1);
+  if (clean.startsWith("62")) return clean;
+  return "62" + clean;
+}
+
 export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
   const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
+  const [vendorPOs, setVendorPOs] = useState<POItem[]>([]);
+  const [loadingPOs, setLoadingPOs] = useState(false);
   const [showAddVendor, setShowAddVendor] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  async function openVendorDetail(v: VendorItem) {
+    setSelectedVendor(v);
+    setVendorPOs([]);
+    setLoadingPOs(true);
+    try {
+      const pos = await getVendorPOs(v.id);
+      setVendorPOs(pos as POItem[]);
+    } finally {
+      setLoadingPOs(false);
+    }
+  }
   const [form, setForm] = useState({
     namaVendor: "", kontakWa: "", noRekening: "", estimasiPengiriman: "3",
     vendorPlatform: "offline", linkToko: "",
@@ -57,9 +84,14 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
           <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>📞 Kontak WA</div>
-            <div style={{ fontSize: 13, color: "#22C55E", fontWeight: 600 }}>
-              {selectedVendor.kontakWa ? `📱 ${selectedVendor.kontakWa}` : "—"}
-            </div>
+            {selectedVendor.kontakWa ? (
+              <a href={`https://wa.me/${formatWANumber(selectedVendor.kontakWa)}`} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 13, color: "#22C55E", fontWeight: 600, textDecoration: "none", display: "block" }}>
+                📱 {selectedVendor.kontakWa} ↗
+              </a>
+            ) : (
+              <div style={{ fontSize: 13, color: "#4B5563" }}>—</div>
+            )}
           </div>
           <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>💳 Info Pembayaran</div>
@@ -74,9 +106,46 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
             <div style={{ fontSize: 13, color: "#C8F135", fontWeight: 700 }}>{formatRupiah(selectedVendor.totalPengeluaran)}</div>
           </div>
         </div>
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 8 }}>Riwayat PO</div>
-          <div style={{ fontSize: 12, color: "#4B5563" }}>Belum ada data PO untuk vendor ini.</div>
+        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Riwayat PO</div>
+            <div style={{ fontSize: 11, color: "#4B5563" }}>{vendorPOs.length} transaksi</div>
+          </div>
+          {loadingPOs ? (
+            <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Memuat...</div>
+          ) : vendorPOs.length === 0 ? (
+            <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada PO untuk vendor ini.</div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#14142A" }}>
+                    {["PO ID", "Bahan", "Outlet", "Qty", "Harga Satuan", "Total", "Status", "Tanggal"].map((h) => (
+                      <th key={h} style={{ padding: "9px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendorPOs.map((po) => (
+                    <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                      <td style={{ padding: "9px 14px", fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>{po.id}</td>
+                      <td style={{ padding: "9px 14px", fontSize: 12, color: "#E2E8F0" }}>{po.bahan?.namaBahan ?? "—"}</td>
+                      <td style={{ padding: "9px 14px", fontSize: 11, color: "#6B7280" }}>{po.outlet?.namaOutlet ?? "—"}</td>
+                      <td style={{ padding: "9px 14px", fontSize: 12, color: "#E2E8F0" }}>{parseFloat(po.qtyOrder)} {po.bahan?.satuanBeli ?? ""}</td>
+                      <td style={{ padding: "9px 14px", fontSize: 12, color: "#E2E8F0" }}>{formatRupiah(parseFloat(po.hargaSatuan))}</td>
+                      <td style={{ padding: "9px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>{formatRupiah(parseFloat(po.totalHarga))}</td>
+                      <td style={{ padding: "9px 14px" }}>
+                        <Badge color={STATUS_COLOR[po.status] ?? "gray"} size="sm">{po.status.toUpperCase()}</Badge>
+                      </td>
+                      <td style={{ padding: "9px 14px", fontSize: 11, color: "#6B7280", whiteSpace: "nowrap" }}>
+                        {po.createdAt ? new Date(po.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -121,7 +190,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                 };
                 const platform = v.vendorPlatform ?? "offline";
                 return (
-                <tr key={v.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => setSelectedVendor(v)}>
+                <tr key={v.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => openVendorDetail(v)}>
                   <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{v.namaVendor}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

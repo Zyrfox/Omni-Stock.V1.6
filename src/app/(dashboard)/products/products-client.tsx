@@ -7,7 +7,7 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
 import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
-import { estimateRawBulkYield, estimatePorsiSaja, type RawBulkEstimationResult } from "@/actions/gemini";
+import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
 
 interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
@@ -96,6 +96,18 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   });
   const [aiEstimation, setAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [aiStep, setAiStep] = useState<"idle" | "questions" | "result">("idle");
+  const [aiContext, setAiContext] = useState({ penggunaan: "", skalaPorsi: "" });
+  // Wizard state for raw_bulk guided entry
+  const [wiz, setWiz] = useState<{
+    step: 1 | 2;
+    metode: string;
+    loadingQ: boolean;
+    questions: ProductionQuestion[];
+    answers: Record<string, string>;
+    running: boolean;
+    result: WizardEstimationResult | null;
+  }>({ step: 1, metode: "", loadingQ: false, questions: [], answers: {}, running: false, result: null });
   const [yieldMode, setYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [batchFields, setBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [porsiEstimasi, setPorsiEstimasi] = useState("");
@@ -107,6 +119,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", kategoriBahan: "", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: "" });
   const [editAiEstimation, setEditAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [editEstimating, setEditEstimating] = useState(false);
+  const [editAiStep, setEditAiStep] = useState<"idle" | "questions" | "result">("idle");
+  const [editAiContext, setEditAiContext] = useState({ penggunaan: "", skalaPorsi: "" });
   const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [editPorsiEstimasi, setEditPorsiEstimasi] = useState("");
@@ -193,19 +207,38 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     }
   }
 
-  async function handleEstimateYield() {
+  function handleEstimateYield() {
     if (!form.namaBahan || !form.isiSatuan) return;
+    setAiStep("questions");
+    setAiContext({ penggunaan: "", skalaPorsi: "" });
+    setAiEstimation(null);
+  }
+
+  async function runEstimation(ctx: { penggunaan: string; skalaPorsi: string }) {
     setEstimating(true);
     setAiEstimation(null);
     try {
       const result = await estimateRawBulkYield(
-        form.namaBahan,
-        parseFloat(form.isiSatuan) || 0,
-        form.satuanDapur || "gram"
+        form.namaBahan, parseFloat(form.isiSatuan) || 0, form.satuanDapur || "gram", ctx
       );
       setAiEstimation(result);
+      setAiStep("result");
     } finally {
       setEstimating(false);
+    }
+  }
+
+  async function runEditEstimation(ctx: { penggunaan: string; skalaPorsi: string }) {
+    setEditEstimating(true);
+    setEditAiEstimation(null);
+    try {
+      const result = await estimateRawBulkYield(
+        editForm.namaBahan, parseFloat(editForm.isiSatuan) || 0, editForm.satuanDapur || "gram", ctx
+      );
+      setEditAiEstimation(result);
+      setEditAiStep("result");
+    } finally {
+      setEditEstimating(false);
     }
   }
 
@@ -237,6 +270,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       setShowAddBahan(false);
       setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001", vendorId: "" });
       setYieldMode("direct");
+      setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" });
+      setWiz({ step: 1, metode: "", loadingQ: false, questions: [], answers: {}, running: false, result: null });
       setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
       setPorsiEstimasi(""); setPorsiNarasi("");
     } finally {
@@ -248,24 +283,17 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     setEditTarget(b);
     setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, kategoriBahan: b.kategoriBahan ?? "", hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1", outletId: b.outletId ?? "" });
     setEditAiEstimation(null);
+    setEditAiStep("idle");
+    setEditAiContext({ penggunaan: "", skalaPorsi: "" });
     setEditYieldMode("direct");
     setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   }
 
-  async function handleEstimateEditYield() {
+  function handleEstimateEditYield() {
     if (!editForm.namaBahan || !editForm.isiSatuan) return;
-    setEditEstimating(true);
+    setEditAiStep("questions");
+    setEditAiContext({ penggunaan: "", skalaPorsi: "" });
     setEditAiEstimation(null);
-    try {
-      const result = await estimateRawBulkYield(
-        editForm.namaBahan,
-        parseFloat(editForm.isiSatuan) || 0,
-        editForm.satuanDapur || "gram"
-      );
-      setEditAiEstimation(result);
-    } finally {
-      setEditEstimating(false);
-    }
   }
 
   async function handleUpdateBahan() {
@@ -340,7 +368,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         </div>
         {activeTab === 1 ? (
           <button
-            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
+            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" }); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
             className="btn-accent"
             style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
           >
@@ -786,106 +814,298 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Bahan Baku</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                {[
-                  { label: "Nama Bahan *", key: "namaBahan", placeholder: "Cth: Stok Makanan - Beras" },
-                  { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram" },
-                  { label: "Kemasan Beli", key: "satuanBeli", placeholder: "1_karung" },
-                  { label: "Min. Stok *", key: "stokMinimum", placeholder: "5000", type: "number" },
-                  { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "610000", type: "number" },
-                  { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "50000", type: "number" },
-                  { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
-                ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
-                  <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
-                    <input
-                      type={type ?? "text"}
-                      value={(form as any)[key]}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                      placeholder={placeholder}
-                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
-                    />
-                    {key === "satuanDapur" && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
-                        {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map((u) => (
-                          <button key={u} type="button" onClick={() => setForm((f) => ({ ...f, satuanDapur: u }))}
-                            style={{ padding: "2px 8px", borderRadius: 10, border: `1px solid ${form.satuanDapur === u ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
-                              background: form.satuanDapur === u ? "rgba(200,241,53,0.12)" : "transparent",
-                              color: form.satuanDapur === u ? "#C8F135" : "#6B7280", fontSize: 10, cursor: "pointer" }}>
-                            {u}
-                          </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+                {/* 1. Nama Bahan */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Bahan *</label>
+                  <input type="text" value={form.namaBahan} onChange={(e) => setForm(f => ({ ...f, namaBahan: e.target.value }))}
+                    placeholder="Cth: Stok Makanan - Beras"
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                </div>
+
+                {/* 2. Tipe Bahan — card selector */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 6, textTransform: "uppercase" }}>Tipe Bahan *</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {([
+                      { value: "packaged", label: "📦 Packaged", desc: "Produk kemasan, minuman, item satuan" },
+                      { value: "raw_bulk", label: "🌾 Raw Bulk", desc: "Bahan curah, yield dihitung pakai AI" },
+                    ] as const).map(opt => (
+                      <button key={opt.value} type="button"
+                        onClick={() => {
+                          setForm(f => ({ ...f, tipeBahan: opt.value }));
+                          setWiz({ step: 1, metode: "", loadingQ: false, questions: [], answers: {}, running: false, result: null });
+                        }}
+                        style={{ padding: "10px 12px", borderRadius: 8, cursor: "pointer", textAlign: "left",
+                          border: `1px solid ${form.tipeBahan === opt.value ? (opt.value === "raw_bulk" ? "rgba(200,241,53,0.5)" : "rgba(96,165,250,0.5)") : "#2D2D44"}`,
+                          background: form.tipeBahan === opt.value ? (opt.value === "raw_bulk" ? "rgba(200,241,53,0.07)" : "rgba(96,165,250,0.07)") : "transparent" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: form.tipeBahan === opt.value ? (opt.value === "raw_bulk" ? "#C8F135" : "#60A5FA") : "#6B7280" }}>{opt.label}</div>
+                        <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3a. PACKAGED — standard fields */}
+                {form.tipeBahan === "packaged" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {[
+                      { label: "Satuan Dapur", key: "satuanDapur", placeholder: "gram" },
+                      { label: "Kemasan Beli", key: "satuanBeli", placeholder: "1_karung" },
+                      { label: "Min. Stok *", key: "stokMinimum", placeholder: "5000", type: "number" },
+                      { label: "Harga Beli (Rp) *", key: "hargaBeli", placeholder: "610000", type: "number" },
+                      { label: "Isi Kemasan (Yield) *", key: "isiSatuan", placeholder: "50000", type: "number" },
+                      { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
+                    ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
+                      <div key={key}>
+                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                        <input type={type ?? "text"} value={(form as any)[key]} onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                        {key === "satuanDapur" && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                            {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => (
+                              <button key={u} type="button" onClick={() => setForm(f => ({ ...f, satuanDapur: u }))}
+                                style={{ padding: "2px 8px", borderRadius: 10, fontSize: 10, cursor: "pointer",
+                                  border: `1px solid ${form.satuanDapur === u ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
+                                  background: form.satuanDapur === u ? "rgba(200,241,53,0.12)" : "transparent",
+                                  color: form.satuanDapur === u ? "#C8F135" : "#6B7280" }}>{u}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 3b. RAW BULK — AI Wizard */}
+                {form.tipeBahan === "raw_bulk" && (
+                  <div style={{ background: "rgba(200,241,53,0.04)", border: "1px solid rgba(200,241,53,0.2)", borderRadius: 10, overflow: "hidden" }}>
+                    {/* Wizard header */}
+                    <div style={{ padding: "10px 16px", borderBottom: "1px solid rgba(200,241,53,0.1)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI WIZARD</span>
+                        <span style={{ fontSize: 10, color: "#4B5563" }}>Bantu isi data bahan curah</span>
+                      </div>
+                      {/* Progress dots */}
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {[1,2].map(s => (
+                          <div key={s} style={{ width: 6, height: 6, borderRadius: "50%",
+                            background: wiz.result ? "#C8F135" : wiz.step >= s ? "#C8F135" : "#2D2D44" }} />
                         ))}
                       </div>
+                    </div>
+
+                    <div style={{ padding: 16 }}>
+                      {/* Step 1: Harga & Kemasan */}
+                      {wiz.step === 1 && !wiz.result && (
+                        <div>
+                          <div style={{ fontSize: 12, color: "#E2E8F0", fontWeight: 600, marginBottom: 12 }}>
+                            💬 {form.namaBahan ? `"${form.namaBahan}"` : "Bahan ini"} dibeli dengan harga berapa dan kemasan apa?
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                            <div>
+                              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Harga Beli (Rp) *</label>
+                              <input type="number" value={form.hargaBeli} onChange={e => setForm(f => ({ ...f, hargaBeli: e.target.value }))}
+                                placeholder="665000"
+                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                            </div>
+                            <div>
+                              <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kemasan Beli *</label>
+                              <input type="text" value={form.satuanBeli} onChange={e => setForm(f => ({ ...f, satuanBeli: e.target.value }))}
+                                placeholder="1_karung_50kg"
+                                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                                {["1_karung","1_ember","1_botol","1_pack","1_kg","1_liter"].map(u => (
+                                  <button key={u} type="button" onClick={() => setForm(f => ({ ...f, satuanBeli: u }))}
+                                    style={{ padding: "2px 7px", borderRadius: 10, fontSize: 9, cursor: "pointer",
+                                      border: `1px solid ${form.satuanBeli === u ? "rgba(200,241,53,0.5)" : "#2D2D44"}`,
+                                      background: form.satuanBeli === u ? "rgba(200,241,53,0.12)" : "transparent",
+                                      color: form.satuanBeli === u ? "#C8F135" : "#6B7280" }}>{u}</button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <button type="button"
+                            disabled={!form.hargaBeli || !form.satuanBeli || !form.namaBahan || wiz.loadingQ}
+                            onClick={async () => {
+                              if (!form.hargaBeli || !form.satuanBeli || !form.namaBahan) return;
+                              setWiz(w => ({ ...w, loadingQ: true, questions: [], answers: {}, metode: "" }));
+                              try {
+                                const r = await generateProductionQuestions(
+                                  form.namaBahan, form.satuanBeli, parseNum(form.hargaBeli) || undefined
+                                );
+                                setWiz(w => ({ ...w, loadingQ: false, questions: r.questions, metode: r.metode, step: 2 }));
+                              } catch { setWiz(w => ({ ...w, loadingQ: false, step: 2 })); }
+                            }}
+                            style={{ width: "100%", padding: "9px", borderRadius: 7, border: "none", fontSize: 12, fontWeight: 700,
+                              background: form.hargaBeli && form.satuanBeli && form.namaBahan && !wiz.loadingQ ? "rgba(200,241,53,0.2)" : "rgba(255,255,255,0.03)",
+                              color: form.hargaBeli && form.satuanBeli && form.namaBahan && !wiz.loadingQ ? "#C8F135" : "#374151",
+                              cursor: form.hargaBeli && form.satuanBeli && form.namaBahan && !wiz.loadingQ ? "pointer" : "not-allowed" }}>
+                            {wiz.loadingQ ? "✦ AI sedang menganalisa bahan..." : "✦ Analisa dengan AI → Buat Pertanyaan"}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Step 2: AI-generated production questions */}
+                      {wiz.step === 2 && !wiz.result && (
+                        <div>
+                          <div style={{ fontSize: 12, color: "#E2E8F0", fontWeight: 600, marginBottom: 4 }}>
+                            📋 Spesifikasi Produksi {form.namaBahan ? `"${form.namaBahan}"` : ""}
+                          </div>
+                          {wiz.metode && (
+                            <div style={{ fontSize: 10, color: "#C8F135", marginBottom: 10, padding: "5px 10px", background: "rgba(200,241,53,0.07)", borderRadius: 5, display: "inline-block" }}>
+                              ✦ AI: {wiz.metode}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 14 }}>
+                            Jawab sesuai cara kerja dapur kamu untuk hasil estimasi yang akurat
+                          </div>
+
+                          {wiz.questions.length === 0 ? (
+                            <div style={{ fontSize: 11, color: "#6B7280", textAlign: "center", padding: "12px 0" }}>Memuat pertanyaan...</div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
+                              {wiz.questions.map((q, i) => (
+                                <div key={q.id}>
+                                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#9CA3AF", marginBottom: 6 }}>
+                                    {i + 1}. {q.question}
+                                  </label>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <input
+                                      type={q.type === "number" ? "number" : "text"}
+                                      min={q.type === "number" ? 0 : undefined}
+                                      value={wiz.answers[q.id] ?? ""}
+                                      onChange={e => setWiz(w => ({ ...w, answers: { ...w.answers, [q.id]: e.target.value } }))}
+                                      placeholder={q.placeholder ?? ""}
+                                      style={{ flex: 1, background: "#0F0F18",
+                                        border: `1px solid ${wiz.answers[q.id] ? "#F59E0B" : "#2D2D44"}`,
+                                        borderRadius: 7, padding: "8px 10px", fontSize: 13, color: "#E2E8F0", outline: "none",
+                                        fontWeight: wiz.answers[q.id] ? 700 : 400 }}
+                                    />
+                                    {q.unit && <span style={{ fontSize: 11, color: "#6B7280", whiteSpace: "nowrap", minWidth: 36 }}>{q.unit}</span>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button type="button" onClick={() => setWiz(w => ({ ...w, step: 1 }))}
+                              style={{ flex: 1, padding: "8px", borderRadius: 7, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", fontSize: 11, cursor: "pointer" }}>
+                              ← Kembali
+                            </button>
+                            <button type="button"
+                              disabled={wiz.running || wiz.questions.length === 0}
+                              onClick={async () => {
+                                setWiz(w => ({ ...w, running: true }));
+                                try {
+                                  const r = await estimateFromWizardAnswers(
+                                    form.namaBahan, parseNum(form.hargaBeli),
+                                    form.satuanBeli, wiz.metode, wiz.questions, wiz.answers
+                                  );
+                                  setWiz(w => ({ ...w, running: false, result: r }));
+                                  if (r.isiSatuan) setForm(f => ({ ...f, isiSatuan: String(r.isiSatuan), satuanDapur: r.satuanDapur }));
+                                } catch { setWiz(w => ({ ...w, running: false })); }
+                              }}
+                              style={{ flex: 2, padding: "9px", borderRadius: 7, border: "none", fontSize: 12, fontWeight: 700,
+                                background: wiz.running ? "rgba(200,241,53,0.05)" : "rgba(200,241,53,0.2)",
+                                color: "#C8F135", cursor: wiz.running ? "not-allowed" : "pointer" }}>
+                              {wiz.running ? "⏳ AI sedang menghitung..." : "✦ Hitung dengan AI"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Result */}
+                      {wiz.result && (
+                        <div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                            <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 7 }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Estimasi Porsi / Kemasan</div>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: "#C8F135" }}>{wiz.result.estimasiPorsiPerKemasan ?? "—"} <span style={{ fontSize: 12 }}>porsi</span></div>
+                            </div>
+                            <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 7 }}>
+                              <div style={{ fontSize: 9, color: "#4B5563", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Harga per Porsi</div>
+                              <div style={{ fontSize: 22, fontWeight: 800, color: "#F59E0B" }}>Rp {wiz.result.hargaPerPorsi?.toLocaleString("id-ID") ?? "—"}</div>
+                            </div>
+                            {wiz.result.gramPerAlat && (
+                              <div style={{ gridColumn: "1 / -1", padding: "8px 12px", background: "#0F0F18", borderRadius: 7 }}>
+                                <div style={{ fontSize: 10, color: "#6B7280" }}>
+                                  Ukuran satuan ≈ <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{wiz.result.gramPerAlat} {wiz.result.satuanDapur}</span>
+                                  {" · "}Total kemasan: <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{wiz.result.isiSatuan?.toLocaleString("id-ID")} {wiz.result.satuanDapur}</span>
+                                </div>
+                              </div>
+                            )}
+                            <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", fontStyle: "italic", lineHeight: 1.7 }}>{wiz.result.narasi}</div>
+                          </div>
+                          <div style={{ display: "flex", gap: 7 }}>
+                            <button type="button" onClick={() => setWiz(w => ({ ...w, step: 1, result: null, metode: "", questions: [], answers: {} }))}
+                              style={{ flex: 1, padding: "7px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", fontSize: 11, cursor: "pointer" }}>
+                              ↺ Hitung Ulang
+                            </button>
+                            <div style={{ flex: 2, padding: "7px 10px", background: "rgba(200,241,53,0.07)", border: "1px solid rgba(200,241,53,0.2)", borderRadius: 6, fontSize: 10, color: "#6B7280" }}>
+                              ✓ <span style={{ color: "#C8F135" }}>Isi Kemasan & Satuan Dapur telah diisi otomatis</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Min Stok & Lead Time always visible for raw_bulk */}
+                    <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(200,241,53,0.1)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      {[
+                        { label: "Min. Stok *", key: "stokMinimum", placeholder: "5000" },
+                        { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1" },
+                      ].map(({ label, key, placeholder }) => (
+                        <div key={key}>
+                          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                          <input type="number" value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                            placeholder={placeholder}
+                            style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Kategori & Outlet */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori Produk</label>
+                    <select value={form.kategoriBahan} onChange={e => setForm(f => ({ ...f, kategoriBahan: e.target.value }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}>
+                      <option value="">— Pilih Kategori —</option>
+                      {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                    {form.kategoriBahan && (
+                      <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>{({"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"} as Record<string,string>)[form.kategoriBahan] ?? "BHN"}-XXX</span></div>
                     )}
                   </div>
-                ))}
-                <div>
-                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Tipe Bahan *</label>
-                  <select
-                    value={form.tipeBahan}
-                    onChange={(e) => setForm((f) => ({ ...f, tipeBahan: e.target.value as any }))}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
-                  >
-                    <option value="packaged">packaged</option>
-                    <option value="raw_bulk">raw_bulk</option>
-                  </select>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                    <select value={form.outletId} onChange={e => setForm(f => ({ ...f, outletId: e.target.value }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}>
+                      <option value="">— Semua Outlet —</option>
+                      {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Kategori Produk */}
+                {/* 5. Vendor */}
                 <div>
-                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori Produk</label>
-                  <select
-                    value={form.kategoriBahan}
-                    onChange={(e) => setForm((f) => ({ ...f, kategoriBahan: e.target.value }))}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}
-                  >
-                    <option value="">— Pilih Kategori —</option>
-                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => (
-                      <option key={k} value={k}>{k}</option>
-                    ))}
-                  </select>
-                  {form.kategoriBahan && (
-                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
-                      ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>
-                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"}[form.kategoriBahan] ?? "BHN"}-XXX
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Outlet */}
-                <div>
-                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
-                  <select
-                    value={form.outletId}
-                    onChange={(e) => setForm((f) => ({ ...f, outletId: e.target.value }))}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
-                  >
-                    <option value="">— Semua Outlet —</option>
-                    {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
-                  </select>
-                </div>
-
-                {/* Vendor */}
-                <div style={{ gridColumn: "1 / -1" }}>
                   <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Vendor / Supplier</label>
-                  <select
-                    value={form.vendorId}
-                    onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.vendorId ? "#E2E8F0" : "#4B5563", outline: "none" }}
-                  >
+                  <select value={form.vendorId} onChange={e => setForm(f => ({ ...f, vendorId: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.vendorId ? "#E2E8F0" : "#4B5563", outline: "none" }}>
                     <option value="">— Tidak ada vendor —</option>
                     {vendorList.map(v => <option key={v.id} value={v.id}>{v.namaVendor}</option>)}
                   </select>
-                  {form.vendorId && (
-                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
-                      Bahan akan otomatis ter-sync ke halaman Suppliers
-                    </div>
-                  )}
+                  {form.vendorId && <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>Bahan akan otomatis ter-sync ke halaman Suppliers</div>}
                 </div>
               </div>
-              {/* AI Research Panel — raw_bulk only */}
-              {form.tipeBahan === "raw_bulk" && (
+              {/* AI Research Panel — superseded by wizard above */}
+              {false && form.tipeBahan === "raw_bulk" && (
                 <div style={{ marginTop: 16, padding: 16, background: "rgba(200,241,53,0.05)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 8 }}>
                   {yieldMode !== "porsi" && (<>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -893,48 +1113,103 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
                       <span style={{ fontSize: 10, color: "#4B5563" }}>Estimasi Yield Bahan</span>
                     </div>
-                    <button
-                      onClick={handleEstimateYield}
-                      disabled={estimating || !form.namaBahan || !form.isiSatuan}
-                      style={{
-                        fontSize: 11, padding: "5px 12px",
-                        border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
-                        background: estimating ? "rgba(200,241,53,0.05)" : "rgba(200,241,53,0.1)",
-                        color: "#C8F135", cursor: estimating || !form.namaBahan || !form.isiSatuan ? "not-allowed" : "pointer",
-                        opacity: !form.namaBahan || !form.isiSatuan ? 0.5 : 1,
-                      }}
-                    >
-                      {estimating ? "⏳ Menghitung..." : "🔍 Hitung Estimasi Yield"}
-                    </button>
+                    {aiStep === "idle" ? (
+                      <button onClick={handleEstimateYield} disabled={!form.namaBahan || !form.isiSatuan}
+                        style={{ fontSize: 11, padding: "5px 12px", border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
+                          background: "rgba(200,241,53,0.1)", color: "#C8F135",
+                          cursor: !form.namaBahan || !form.isiSatuan ? "not-allowed" : "pointer",
+                          opacity: !form.namaBahan || !form.isiSatuan ? 0.5 : 1 }}>
+                        🔍 Hitung Estimasi Yield
+                      </button>
+                    ) : (
+                      <button onClick={() => { setAiStep("idle"); setAiEstimation(null); setAiContext({ penggunaan: "", skalaPorsi: "" }); }}
+                        style={{ fontSize: 11, padding: "5px 12px", border: "1px solid rgba(75,85,99,0.4)", borderRadius: 6,
+                          background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+                        ✕ Ulangi
+                      </button>
+                    )}
                   </div>
-                  {!aiEstimation && !estimating && (
+
+                  {/* Step: idle — placeholder */}
+                  {aiStep === "idle" && (
                     <div style={{ fontSize: 11, color: "#4B5563", textAlign: "center", padding: "8px 0" }}>
-                      Isi nama bahan & isi kemasan, lalu klik "Hitung Estimasi Yield"
+                      Isi nama bahan &amp; isi kemasan, lalu klik "Hitung Estimasi Yield"
                     </div>
                   )}
-                  {aiEstimation && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
-                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Harga Pasar</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: "#C8F135" }}>{aiEstimation.hargaPasarFormatted}</div>
-                      </div>
-                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
-                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Estimasi Porsi / Kemasan</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: "#E2E8F0" }}>
-                          ±{aiEstimation.estimasiPorsiPerKemasan ?? "?"} porsi
+
+                  {/* Step: questions */}
+                  {aiStep === "questions" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 6, fontWeight: 600 }}>
+                          1. Bahan ini digunakan untuk?
                         </div>
-                        {aiEstimation.namaMenuContoh && (
-                          <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>{aiEstimation.namaMenuContoh}</div>
-                        )}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {["Menu utama (nasi/lauk)", "Minuman", "Dessert / kue", "Camilan / snack", "Bumbu / pelengkap"].map(opt => (
+                            <button key={opt} type="button"
+                              onClick={() => setAiContext(c => ({ ...c, penggunaan: opt }))}
+                              style={{ padding: "4px 10px", fontSize: 10, borderRadius: 20, cursor: "pointer",
+                                border: `1px solid ${aiContext.penggunaan === opt ? "#C8F135" : "#2D2D44"}`,
+                                background: aiContext.penggunaan === opt ? "rgba(200,241,53,0.12)" : "transparent",
+                                color: aiContext.penggunaan === opt ? "#C8F135" : "#6B7280" }}>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", lineHeight: 1.6, fontStyle: "italic" }}>
-                        {aiEstimation.narasi}
-                      </div>
-                      {aiEstimation.error && (
-                        <div style={{ gridColumn: "1 / -1", fontSize: 10, color: "#F59E0B" }}>⚠ {aiEstimation.error}</div>
+                      {aiContext.penggunaan && (
+                        <div>
+                          <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 6, fontWeight: 600 }}>
+                            2. Porsi untuk skala apa?
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                            {["Restoran (standar)", "Kafe / coffee shop", "Warung / catering"].map(opt => (
+                              <button key={opt} type="button"
+                                onClick={() => {
+                                  const ctx = { ...aiContext, skalaPorsi: opt };
+                                  setAiContext(ctx);
+                                  runEstimation(ctx);
+                                }}
+                                style={{ padding: "4px 10px", fontSize: 10, borderRadius: 20, cursor: "pointer",
+                                  border: `1px solid ${aiContext.skalaPorsi === opt ? "#60A5FA" : "#2D2D44"}`,
+                                  background: aiContext.skalaPorsi === opt ? "rgba(96,165,250,0.12)" : "transparent",
+                                  color: aiContext.skalaPorsi === opt ? "#60A5FA" : "#6B7280" }}>
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
+
+                  {/* Step: loading */}
+                  {estimating && (
+                    <div style={{ fontSize: 11, color: "#C8F135", textAlign: "center", padding: "10px 0" }}>
+                      ⏳ AI sedang menganalisis...
+                    </div>
+                  )}
+
+                  {/* Step: result */}
+                  {aiStep === "result" && aiEstimation && !estimating && (() => {
+                    const est = aiEstimation!;
+                    return (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Harga Pasar</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#C8F135" }}>{est.hargaPasarFormatted}</div>
+                      </div>
+                      <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
+                        <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Estimasi Porsi / Kemasan</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#E2E8F0" }}>±{est.estimasiPorsiPerKemasan ?? "?"} porsi</div>
+                        {est.namaMenuContoh && <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>{est.namaMenuContoh}</div>}
+                      </div>
+                      <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", lineHeight: 1.6, fontStyle: "italic" }}>{est.narasi}</div>
+                      {est.error && <div style={{ gridColumn: "1 / -1", fontSize: 10, color: "#F59E0B" }}>⚠ {est.error}</div>}
+                      <div style={{ gridColumn: "1 / -1", fontSize: 9, color: "#374151" }}>Konteks: {aiContext.penggunaan} · {aiContext.skalaPorsi}</div>
+                    </div>
+                    );
+                  })()}
                   </>)}
 
                   {/* Yield Mode Calculator */}
@@ -1286,26 +1561,81 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, letterSpacing: 1 }}>✦ AI RESEARCH</span>
                       <span style={{ fontSize: 10, color: "#4B5563" }}>Estimasi Yield Bahan</span>
                     </div>
-                    <button
-                      onClick={handleEstimateEditYield}
-                      disabled={editEstimating || !editForm.namaBahan || !editForm.isiSatuan}
-                      style={{
-                        fontSize: 11, padding: "5px 12px",
-                        border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
-                        background: editEstimating ? "rgba(200,241,53,0.05)" : "rgba(200,241,53,0.1)",
-                        color: "#C8F135", cursor: editEstimating || !editForm.namaBahan || !editForm.isiSatuan ? "not-allowed" : "pointer",
-                        opacity: !editForm.namaBahan || !editForm.isiSatuan ? 0.5 : 1,
-                      }}
-                    >
-                      {editEstimating ? "⏳ Menghitung..." : "🔍 Hitung Estimasi Yield"}
-                    </button>
+                    {editAiStep === "idle" ? (
+                      <button onClick={handleEstimateEditYield} disabled={!editForm.namaBahan || !editForm.isiSatuan}
+                        style={{ fontSize: 11, padding: "5px 12px", border: "1px solid rgba(200,241,53,0.4)", borderRadius: 6,
+                          background: "rgba(200,241,53,0.1)", color: "#C8F135",
+                          cursor: !editForm.namaBahan || !editForm.isiSatuan ? "not-allowed" : "pointer",
+                          opacity: !editForm.namaBahan || !editForm.isiSatuan ? 0.5 : 1 }}>
+                        🔍 Hitung Estimasi Yield
+                      </button>
+                    ) : (
+                      <button onClick={() => { setEditAiStep("idle"); setEditAiEstimation(null); setEditAiContext({ penggunaan: "", skalaPorsi: "" }); }}
+                        style={{ fontSize: 11, padding: "5px 12px", border: "1px solid rgba(75,85,99,0.4)", borderRadius: 6,
+                          background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+                        ✕ Ulangi
+                      </button>
+                    )}
                   </div>
-                  {!editAiEstimation && !editEstimating && (
+
+                  {editAiStep === "idle" && (
                     <div style={{ fontSize: 11, color: "#4B5563", textAlign: "center", padding: "8px 0" }}>
                       Klik "Hitung Estimasi Yield" untuk estimasi AI
                     </div>
                   )}
-                  {editAiEstimation && (
+
+                  {editAiStep === "questions" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 6, fontWeight: 600 }}>
+                          1. Bahan ini digunakan untuk?
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                          {["Menu utama (nasi/lauk)", "Minuman", "Dessert / kue", "Camilan / snack", "Bumbu / pelengkap"].map(opt => (
+                            <button key={opt} type="button"
+                              onClick={() => setEditAiContext(c => ({ ...c, penggunaan: opt }))}
+                              style={{ padding: "4px 10px", fontSize: 10, borderRadius: 20, cursor: "pointer",
+                                border: `1px solid ${editAiContext.penggunaan === opt ? "#C8F135" : "#2D2D44"}`,
+                                background: editAiContext.penggunaan === opt ? "rgba(200,241,53,0.12)" : "transparent",
+                                color: editAiContext.penggunaan === opt ? "#C8F135" : "#6B7280" }}>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {editAiContext.penggunaan && (
+                        <div>
+                          <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 6, fontWeight: 600 }}>
+                            2. Porsi untuk skala apa?
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                            {["Restoran (standar)", "Kafe / coffee shop", "Warung / catering"].map(opt => (
+                              <button key={opt} type="button"
+                                onClick={() => {
+                                  const ctx = { ...editAiContext, skalaPorsi: opt };
+                                  setEditAiContext(ctx);
+                                  runEditEstimation(ctx);
+                                }}
+                                style={{ padding: "4px 10px", fontSize: 10, borderRadius: 20, cursor: "pointer",
+                                  border: `1px solid ${editAiContext.skalaPorsi === opt ? "#60A5FA" : "#2D2D44"}`,
+                                  background: editAiContext.skalaPorsi === opt ? "rgba(96,165,250,0.12)" : "transparent",
+                                  color: editAiContext.skalaPorsi === opt ? "#60A5FA" : "#6B7280" }}>
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {editEstimating && (
+                    <div style={{ fontSize: 11, color: "#C8F135", textAlign: "center", padding: "10px 0" }}>
+                      ⏳ AI sedang menganalisis...
+                    </div>
+                  )}
+
+                  {editAiStep === "result" && editAiEstimation && !editEstimating && (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <div style={{ padding: "10px 12px", background: "#0F0F18", borderRadius: 6 }}>
                         <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>Harga Pasar</div>
@@ -1320,6 +1650,12 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       </div>
                       <div style={{ gridColumn: "1 / -1", fontSize: 11, color: "#9CA3AF", lineHeight: 1.6, fontStyle: "italic" }}>
                         {editAiEstimation.narasi}
+                      </div>
+                      {editAiEstimation.error && (
+                        <div style={{ gridColumn: "1 / -1", fontSize: 10, color: "#F59E0B" }}>⚠ {editAiEstimation.error}</div>
+                      )}
+                      <div style={{ gridColumn: "1 / -1", fontSize: 9, color: "#374151" }}>
+                        Konteks: {editAiContext.penggunaan} · {editAiContext.skalaPorsi}
                       </div>
                     </div>
                   )}

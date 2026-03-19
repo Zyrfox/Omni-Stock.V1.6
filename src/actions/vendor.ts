@@ -85,6 +85,14 @@ export async function linkVendorBahan(data: {
   revalidatePath("/suppliers");
 }
 
+export async function getVendorPOs(vendorId: string) {
+  return db.query.purchaseOrders.findMany({
+    where: eq(purchaseOrders.vendorId, vendorId),
+    with: { bahan: true, outlet: true },
+    orderBy: (po, { desc }) => [desc(po.createdAt)],
+  });
+}
+
 export async function setVendorBahan(
   vendorId: string,
   items: Array<{ bahanId: string }>
