@@ -48,6 +48,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   const [uploadError, setUploadError] = useState("");
   const [poCart, setPoCart] = useState<POCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [ongkir, setOngkir] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -676,21 +677,24 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                             ))}
                           </select>
                         ) : (
-                          <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 3 }}>{item.vendorNama}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", marginBottom: 2 }}>{item.vendorNama}</div>
                         )}
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                           <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
                             {item.tipeBahan}
                           </Badge>
                           {item.kontakWa && (
-                            <a
-                              href={`https://wa.me/${formatWANumber(item.kontakWa)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}
-                            >
-                              📱 WA
-                            </a>
+                            <>
+                              <span style={{ fontSize: 10, color: "#4B5563" }}>{item.kontakWa}</span>
+                              <a
+                                href={`https://wa.me/${formatWANumber(item.kontakWa)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}
+                              >
+                                📱 WA
+                              </a>
+                            </>
                           )}
                         </div>
                       </div>
@@ -701,75 +705,129 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         ✕
                       </button>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                      <span style={{ fontSize: 10, color: "#4B5563" }}>Qty:</span>
-                      <input
-                        type="number"
-                        value={item.qty}
-                        min={1}
-                        onChange={(e) =>
-                          setPoCart((prev) =>
-                            prev.map((c) =>
-                              c.bahanId === item.bahanId
-                                ? { ...c, qty: parseInt(e.target.value) || 1 }
-                                : c
+                    <div style={{ marginTop: 8, padding: "8px 10px", background: "#131320", borderRadius: 6, border: "1px solid #1E1E2E" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 10, color: "#4B5563", flexShrink: 0 }}>Harga satuan:</span>
+                        <input
+                          type="number"
+                          value={item.hargaSatuan}
+                          min={0}
+                          onChange={(e) =>
+                            setPoCart((prev) =>
+                              prev.map((c) =>
+                                c.bahanId === item.bahanId
+                                  ? { ...c, hargaSatuan: parseFloat(e.target.value) || 0 }
+                                  : c
+                              )
                             )
-                          )
-                        }
-                        style={{
-                          width: 60,
-                          background: "#0F0F18",
-                          border: "1px solid #2D2D44",
-                          borderRadius: 6,
-                          padding: "4px 8px",
-                          fontSize: 12,
-                          color: "#E2E8F0",
-                          outline: "none",
-                        }}
-                      />
-                    </div>
-                    {item.tipeBahan === "raw_bulk" && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          padding: "6px 8px",
-                          background: "rgba(200,241,53,0.05)",
-                          border: "1px solid rgba(200,241,53,0.15)",
-                          borderRadius: 6,
-                          fontSize: 10,
-                          color: "#C8F135",
-                        }}
-                      >
-                        ✦ AI Research — estimasi harga & yield akan di-generate saat buat PO
+                          }
+                          style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                        />
                       </div>
-                    )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, color: "#4B5563", flexShrink: 0 }}>Qty:</span>
+                        <input
+                          type="number"
+                          value={item.qty}
+                          min={1}
+                          onChange={(e) =>
+                            setPoCart((prev) =>
+                              prev.map((c) =>
+                                c.bahanId === item.bahanId
+                                  ? { ...c, qty: parseInt(e.target.value) || 1 }
+                                  : c
+                              )
+                            )
+                          }
+                          style={{ width: 70, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                        />
+                        {item.hargaSatuan > 0 && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "#C8F135", marginLeft: "auto" }}>
+                            = Rp {(item.qty * item.hargaSatuan).toLocaleString("id-ID")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
                 </div>
               )}
             </div>
 
-            {poCart.length > 0 && (
-              <div style={{ padding: 12, borderTop: "1px solid #1E1E2E" }}>
-                <button
-                  onClick={createDraftPOs}
-                  className="btn-accent"
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  + Buat {poCart.length} Draft PO
-                </button>
-              </div>
-            )}
+            {poCart.length > 0 && (() => {
+              const subtotal = poCart.reduce((sum, c) => sum + c.qty * c.hargaSatuan, 0);
+              const grandTotal = subtotal + ongkir;
+              function buildWAText() {
+                const lines: string[] = [];
+                lines.push("📋 *PURCHASE ORDER — OMNI-STOCK*");
+                lines.push(`📅 ${new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}`);
+                lines.push("");
+                // Group by vendor
+                const byVendor = new Map<string, typeof poCart>();
+                for (const c of poCart) {
+                  if (!byVendor.has(c.vendorNama)) byVendor.set(c.vendorNama, []);
+                  byVendor.get(c.vendorNama)!.push(c);
+                }
+                for (const [vName, items] of byVendor) {
+                  const firstItem = items[0];
+                  lines.push(`🏪 *${vName}*${firstItem.kontakWa ? ` — WA: ${firstItem.kontakWa}` : ""}`);
+                  for (const c of items) {
+                    const sub = c.qty * c.hargaSatuan;
+                    lines.push(`  • ${c.namaBahan} — ${c.qty}x${c.hargaSatuan > 0 ? ` @ Rp ${c.hargaSatuan.toLocaleString("id-ID")} = Rp ${sub.toLocaleString("id-ID")}` : ""}`);
+                  }
+                  lines.push("");
+                }
+                lines.push(`💰 *Subtotal: Rp ${subtotal.toLocaleString("id-ID")}*`);
+                if (ongkir > 0) lines.push(`🚚 Ongkir: Rp ${ongkir.toLocaleString("id-ID")}`);
+                lines.push(`✅ *TOTAL: Rp ${grandTotal.toLocaleString("id-ID")}*`);
+                return lines.join("\n");
+              }
+              return (
+                <div style={{ padding: 12, borderTop: "1px solid #1E1E2E" }}>
+                  {/* Totals */}
+                  <div style={{ marginBottom: 12, padding: "10px 14px", background: "#0F0F18", borderRadius: 8, border: "1px solid #1E1E2E" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: "#4B5563" }}>Subtotal ({poCart.length} item)</span>
+                      <span style={{ fontSize: 11, color: "#E2E8F0", fontWeight: 600 }}>Rp {subtotal.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 10 }}>
+                      <span style={{ fontSize: 11, color: "#4B5563", flexShrink: 0 }}>Ongkir (Rp)</span>
+                      <input
+                        type="number"
+                        value={ongkir || ""}
+                        min={0}
+                        placeholder="0"
+                        onChange={(e) => setOngkir(parseFloat(e.target.value) || 0)}
+                        style={{ width: 120, background: "#131320", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", textAlign: "right" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #1E1E2E" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Grand Total</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "#C8F135" }}>Rp {grandTotal.toLocaleString("id-ID")}</span>
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(buildWAText());
+                        alert("Teks PO disalin! Tempel ke grup WhatsApp.");
+                      }}
+                      style={{ flex: 1, padding: "9px", border: "1px solid rgba(37,211,102,0.4)", borderRadius: 8, background: "rgba(37,211,102,0.08)", color: "#25D366", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
+                    >
+                      📋 Salin untuk WA
+                    </button>
+                    <button
+                      onClick={createDraftPOs}
+                      className="btn-accent"
+                      style={{ flex: 1, padding: "9px", border: "none", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                    >
+                      + Buat {poCart.length} Draft PO
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

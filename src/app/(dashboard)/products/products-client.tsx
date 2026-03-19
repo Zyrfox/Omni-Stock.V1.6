@@ -102,13 +102,15 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
 
   // Edit Bahan state
   const [editTarget, setEditTarget] = useState<BahanItem | null>(null);
-  const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1" });
+  const [editForm, setEditForm] = useState({ namaBahan: "", tipeBahan: "packaged" as "packaged" | "raw_bulk", kategoriBahan: "", hargaBeli: "", satuanBeli: "", satuanDapur: "", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: "" });
   const [editAiEstimation, setEditAiEstimation] = useState<RawBulkEstimationResult | null>(null);
   const [editEstimating, setEditEstimating] = useState(false);
   const [editYieldMode, setEditYieldMode] = useState<"direct" | "batch" | "porsi">("direct");
   const [editBatchFields, setEditBatchFields] = useState({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
   const [editPorsiEstimasi, setEditPorsiEstimasi] = useState("");
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
+  const [bahanPage, setBahanPage] = useState(0);
+  const [bahanRowsPerPage, setBahanRowsPerPage] = useState(20);
   const [searchBahan, setSearchBahan] = useState("");
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
@@ -121,6 +123,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const q2 = searchResep.toLowerCase();
   const q3 = searchMenu.toLowerCase();
   const filteredBahans = q1 ? bahans.filter((b) => b.namaBahan.toLowerCase().includes(q1) || b.id.toLowerCase().includes(q1)) : bahans;
+  const safeBahanPage = Math.min(bahanPage, Math.max(0, Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1));
+  const pagedBahans = filteredBahans.slice(safeBahanPage * bahanRowsPerPage, (safeBahanPage + 1) * bahanRowsPerPage);
   const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
   const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
 
@@ -230,7 +234,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
 
   function openEdit(b: BahanItem) {
     setEditTarget(b);
-    setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1" });
+    setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, kategoriBahan: b.kategoriBahan ?? "", hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1", outletId: b.outletId ?? "" });
     setEditAiEstimation(null);
     setEditYieldMode("direct");
     setEditBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" });
@@ -259,12 +263,14 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       await updateBahan(editTarget.id, {
         namaBahan: editForm.namaBahan,
         tipeBahan: editForm.tipeBahan,
+        kategoriBahan: editForm.kategoriBahan || undefined,
         hargaBeli: parseFloat(editForm.hargaBeli),
         satuanBeli: editForm.satuanBeli,
         satuanDapur: editForm.satuanDapur,
         stokMinimum: parseInt(editForm.stokMinimum),
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
+        outletId: editForm.outletId || undefined,
       });
       const isiSatuan = parseNum(editForm.isiSatuan);
       const hargaBeli = parseNum(editForm.hargaBeli);
@@ -384,7 +390,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
             <input
               value={searchBahan}
-              onChange={(e) => setSearchBahan(e.target.value)}
+              onChange={(e) => { setSearchBahan(e.target.value); setBahanPage(0); }}
               placeholder="Cari nama bahan atau ID..."
               style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
@@ -404,7 +410,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               {filteredBahans.length === 0 ? (
                 <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchBahan ? `Tidak ada bahan "${searchBahan}"` : `Belum ada bahan. Klik "Tambah Bahan" untuk memulai.`}</td></tr>
               ) : (
-                filteredBahans.map((b) => (
+                pagedBahans.map((b) => (
                   <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
                     <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
                     <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
@@ -429,6 +435,33 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             </tbody>
           </table>
           </div>
+          {/* Pagination */}
+          {filteredBahans.length > 0 && (
+            <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>Baris per halaman:</span>
+                {[20, 30, 40, 50].map(n => (
+                  <button key={n} onClick={() => { setBahanRowsPerPage(n); setBahanPage(0); }}
+                    style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${bahanRowsPerPage === n ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: bahanRowsPerPage === n ? "rgba(200,241,53,0.12)" : "transparent", color: bahanRowsPerPage === n ? "#C8F135" : "#4B5563", fontSize: 11, cursor: "pointer" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>
+                  {safeBahanPage * bahanRowsPerPage + 1}–{Math.min((safeBahanPage + 1) * bahanRowsPerPage, filteredBahans.length)} dari {filteredBahans.length}
+                </span>
+                <button onClick={() => setBahanPage(p => Math.max(0, p - 1))} disabled={safeBahanPage === 0}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeBahanPage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeBahanPage === 0 ? "default" : "pointer" }}>
+                  ‹
+                </button>
+                <button onClick={() => setBahanPage(p => Math.min(Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1, p + 1))} disabled={safeBahanPage >= Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1}
+                  style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeBahanPage >= Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeBahanPage >= Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1 ? "default" : "pointer" }}>
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1114,6 +1147,41 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                   >
                     <option value="packaged">packaged</option>
                     <option value="raw_bulk">raw_bulk</option>
+                  </select>
+                </div>
+
+                {/* Kategori Produk */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori Produk</label>
+                  <select
+                    value={editForm.kategoriBahan}
+                    onChange={(e) => setEditForm((f) => ({ ...f, kategoriBahan: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: editForm.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                  >
+                    <option value="">— Pilih Kategori —</option>
+                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                  </select>
+                  {editForm.kategoriBahan && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                      ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>
+                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"}[editForm.kategoriBahan] ?? "BHN"}-XXX
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Outlet */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                  <select
+                    value={editForm.outletId}
+                    onChange={(e) => setEditForm((f) => ({ ...f, outletId: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  >
+                    <option value="">— Semua Outlet —</option>
+                    {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
                   </select>
                 </div>
               </div>

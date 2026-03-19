@@ -81,6 +81,7 @@ export async function updateBahan(
     stokMinimum: number;
     leadTimeDays: number;
     avgDailyConsumption: number;
+    outletId: string;
   }>
 ) {
   const updates: Record<string, unknown> = { ...data, updatedAt: new Date() };
