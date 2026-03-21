@@ -57,6 +57,8 @@ export async function updateVendor(
     kontakWa: string;
     noRekening: string;
     estimasiPengiriman: number;
+    vendorPlatform: string;
+    linkToko: string;
   }>
 ) {
   await db.update(masterVendor).set({ ...data, updatedAt: new Date() }).where(eq(masterVendor.id, id));
