@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
+import Link from "next/link";
 
 type TabRole = "STAFF" | "SPV" | "MANAGER";
 
@@ -329,13 +330,25 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Guest access */}
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Link
+              href="/dashboard"
+              style={{ fontSize: 11, color: "#4B5563", textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#C8F135")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#4B5563")}
+            >
+              👁 Lihat sebagai Tamu →
+            </Link>
+          </div>
+
           {/* Footer */}
           <p
             style={{
               textAlign: "center",
               fontSize: 10,
               color: "#4B5563",
-              marginTop: 28,
+              marginTop: 16,
               marginBottom: 0,
             }}
           >
