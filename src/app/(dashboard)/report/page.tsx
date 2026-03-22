@@ -76,7 +76,7 @@ export default async function ReportPage() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Pengeluaran" value={formatRupiah(parseFloat(statsResult?.total_pengeluaran ?? "0"))} icon="💸" color="#EF4444" />
         <StatCard label="Total PO Selesai" value={parseInt(statsResult?.total_po_selesai ?? "0")} icon="✅" color="#22C55E" />
         <StatCard label="Avg Lead Time" value={`${Math.round(parseFloat(statsResult?.avg_lead_time ?? "0"))} hari`} icon="⏱" color="#60A5FA" />

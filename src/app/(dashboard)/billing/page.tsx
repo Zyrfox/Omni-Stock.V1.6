@@ -38,7 +38,7 @@ export default async function BillingPage() {
         <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Manajemen invoice & pembayaran</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Invoice" value={parseInt(stats?.total ?? "0")} icon="📄" color="#60A5FA" />
         <StatCard label="Outstanding" value={formatRupiah(parseFloat(stats?.outstanding ?? "0"))} icon="⏳" color="#F59E0B" sub={`${stats?.outstanding_count ?? 0} invoice`} />
         <StatCard label="Lunas" value={formatRupiah(parseFloat(stats?.lunas ?? "0"))} icon="✅" color="#22C55E" sub={`${stats?.lunas_count ?? 0} invoice`} />

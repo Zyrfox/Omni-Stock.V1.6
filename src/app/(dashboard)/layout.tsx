@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
           {/* Guest banner */}
           {isGuest && (
-            <div style={{ background: "rgba(200,241,53,0.08)", borderBottom: "1px solid rgba(200,241,53,0.2)", padding: "8px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="guest-banner" style={{ background: "rgba(200,241,53,0.08)", borderBottom: "1px solid rgba(200,241,53,0.2)", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: "#C8F135", fontWeight: 600 }}>
                 👁 Mode Tamu — hanya bisa melihat, tidak bisa melakukan aksi
               </span>

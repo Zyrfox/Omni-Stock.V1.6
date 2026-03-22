@@ -247,6 +247,17 @@
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
+  /* 2-column panel grids: stack to 1 column on mobile */
+  .panel-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Guest banner: wrap text properly */
+  .guest-banner {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   /* Tables: enable horizontal scroll */
   .table-scroll-wrapper {
     overflow-x: auto;

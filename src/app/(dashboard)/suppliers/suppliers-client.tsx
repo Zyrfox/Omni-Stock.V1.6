@@ -139,7 +139,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
             </button>
           )}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+        <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
           <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>📞 Kontak WA</div>
             {selectedVendor.kontakWa ? (
@@ -285,7 +285,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Vendor" value={stats.totalVendor} icon="🚚" color="#60A5FA" />
         <StatCard label="Total Bahan" value={stats.totalBahan} icon="📦" color="#22C55E" />
         <StatCard label="Vendor dengan WA" value={stats.vendorDenganWa} icon="📱" color="#C8F135" />

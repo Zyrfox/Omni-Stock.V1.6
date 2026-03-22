@@ -256,7 +256,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       </div>
 
       {/* Widget Row 2×2 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div className="panel-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
         {/* Widget 1 — Top Contributors */}
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>👥 Top Contributors</div>

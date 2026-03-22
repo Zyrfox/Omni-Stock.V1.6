@@ -396,7 +396,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       </div>
 
       {/* Stat Bar */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Master Bahan Baku" value={bahans.length} icon="📦" color="#60A5FA" />
         <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon="📋" color="#F59E0B" />
         <StatCard label="Master Menu Final" value={menuList.length} icon="🍽" color="#C8F135" />
