@@ -4,17 +4,17 @@ import type { auth } from "@/lib/auth";
 
 type Session = typeof auth.$Infer.Session;
 
-// Routes that don't require authentication (guest-accessible)
-const PUBLIC_ROUTES = ["/login", "/api/auth", "/dashboard", "/products", "/suppliers", "/billing", "/report", "/stores", "/assets", "/delivery", "/po-logs", "/upload-history"];
-// Routes that require admin role
+// Routes that bypass session check entirely (auth endpoints + static)
+const AUTH_ROUTES = ["/login", "/api/auth", "/change-password"];
+// Routes that require authentication (guests cannot access)
 const ADMIN_ONLY_ROUTES = ["/users", "/settings"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes and static assets
+  // Allow auth routes and static assets through immediately
   if (
-    PUBLIC_ROUTES.some((r) => pathname.startsWith(r)) ||
+    AUTH_ROUTES.some((r) => pathname.startsWith(r)) ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {
@@ -32,11 +32,15 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // No session → redirect to login
+  // No session → allow guest access, but block admin-only routes
   if (!session) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("from", pathname);
-    return NextResponse.redirect(loginUrl);
+    if (ADMIN_ONLY_ROUTES.some((r) => pathname.startsWith(r))) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    // All other routes: allow through as guest
+    return NextResponse.next();
   }
 
   // Force password change for first-time users
