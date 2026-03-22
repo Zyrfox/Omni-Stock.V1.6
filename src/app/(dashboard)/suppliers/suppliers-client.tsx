@@ -6,6 +6,7 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createVendor, updateVendor, getVendorPOs } from "@/actions/vendor";
+import { useAppContext } from "@/contexts/app-context";
 
 interface VendorItem {
   id: string; namaVendor: string; kontakWa: string | null;
@@ -34,6 +35,7 @@ function formatWANumber(wa: string) {
 }
 
 export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
+  const { isGuest } = useAppContext();
   const router = useRouter();
   const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
   const [vendorPOs, setVendorPOs] = useState<POItem[]>([]);
@@ -130,10 +132,12 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
         </button>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>{selectedVendor.namaVendor}</h1>
-          <button onClick={openEditVendor}
-            style={{ fontSize: 11, padding: "6px 14px", borderRadius: 7, border: "1px solid #2D2D44", background: "#1E1E2E", color: "#E2E8F0", cursor: "pointer", fontWeight: 600 }}>
-            ✏ Edit Vendor
-          </button>
+          {!isGuest && (
+            <button onClick={openEditVendor}
+              style={{ fontSize: 11, padding: "6px 14px", borderRadius: 7, border: "1px solid #2D2D44", background: "#1E1E2E", color: "#E2E8F0", cursor: "pointer", fontWeight: 600 }}>
+              ✏ Edit Vendor
+            </button>
+          )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
           <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
@@ -273,10 +277,12 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Suppliers</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Manajemen vendor & pemasok bahan baku</p>
         </div>
-        <button onClick={() => setShowAddVendor(true)} className="btn-accent"
-          style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
-          + Tambah Vendor
-        </button>
+        {!isGuest && (
+          <button onClick={() => setShowAddVendor(true)} className="btn-accent"
+            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
+            + Tambah Vendor
+          </button>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>

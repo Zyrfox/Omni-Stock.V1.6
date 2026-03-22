@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { masterBahan, vendorBahan } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { generateId, generateBahanId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
 
@@ -100,4 +100,42 @@ export async function deleteBahan(id: string) {
   await db.delete(masterBahan).where(eq(masterBahan.id, id));
   revalidatePath("/products");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Rename a bahan ID (admin only).
+ * Strategy: insert a copy with new ID → update FK references → delete old row.
+ * This avoids FK constraint issues without needing DDL or superuser privileges.
+ */
+export async function renameBahanId(oldId: string, newId: string) {
+  const trimmedNew = newId.trim().toUpperCase();
+
+  if (!trimmedNew) throw new Error("ID baru tidak boleh kosong");
+  if (trimmedNew === oldId) throw new Error("ID baru sama dengan ID lama");
+  if (!/^[A-Z0-9][A-Z0-9\-]+$/.test(trimmedNew)) throw new Error("Format ID tidak valid (gunakan huruf besar, angka, dan tanda -");
+
+  // Check if new ID already exists
+  const existing = await db.query.masterBahan.findFirst({ where: eq(masterBahan.id, trimmedNew) });
+  if (existing) throw new Error(`ID ${trimmedNew} sudah digunakan`);
+
+  // Get old bahan data
+  const old = await db.query.masterBahan.findFirst({ where: eq(masterBahan.id, oldId) });
+  if (!old) throw new Error("Bahan tidak ditemukan");
+
+  await db.transaction(async (tx) => {
+    // 1. Insert copy with new ID
+    const { id: _drop, ...rest } = old;
+    await tx.insert(masterBahan).values({ ...rest, id: trimmedNew });
+
+    // 2. Update FK references (purchase_orders, vendor_bahan)
+    await tx.execute(sql`UPDATE purchase_orders SET bahan_id = ${trimmedNew} WHERE bahan_id = ${oldId}`);
+    await tx.execute(sql`UPDATE vendor_bahan SET bahan_id = ${trimmedNew} WHERE bahan_id = ${oldId}`);
+
+    // 3. Delete old row (no more FK references pointing to it)
+    await tx.delete(masterBahan).where(eq(masterBahan.id, oldId));
+  });
+
+  revalidatePath("/products");
+  revalidatePath("/dashboard");
+  return { newId: trimmedNew };
 }

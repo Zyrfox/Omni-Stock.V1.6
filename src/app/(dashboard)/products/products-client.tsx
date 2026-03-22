@@ -5,8 +5,9 @@ import { createPortal } from "react-dom";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
-import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
+import { createBahan, updateBahan, deleteBahan, renameBahanId } from "@/actions/bahan";
 import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
+import { useAppContext } from "@/contexts/app-context";
 import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
 
 interface BahanItem {
@@ -69,6 +70,15 @@ function inferChannelType(m: MenuItem): string {
 }
 
 export function ProductsClient({ bahanList, menuList, outletList, vendorList }: ProductsClientProps) {
+  const { isGuest, userRole } = useAppContext();
+  const isAdmin = userRole === "admin";
+
+  // Rename bahan ID state (admin only)
+  const [renameTarget, setRenameTarget] = useState<{ id: string } | null>(null);
+  const [renameNewId, setRenameNewId] = useState("");
+  const [renameLoading, setRenameLoading] = useState(false);
+  const [renameError, setRenameError] = useState("");
+
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
   const [showBOMEditor, setShowBOMEditor] = useState(false);
@@ -366,7 +376,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Products & Recipes</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Master bahan baku, resep, dan menu final</p>
         </div>
-        {activeTab === 1 ? (
+        {!isGuest && (activeTab === 1 ? (
           <button
             onClick={() => { setShowAddBahan(true); setAiEstimation(null); setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" }); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
             className="btn-accent"
@@ -382,7 +392,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           >
             + Tambah Menu
           </button>
-        )}
+        ))}
       </div>
 
       {/* Stat Bar */}
@@ -464,10 +474,17 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       {b.hargaPerSatuanPorsi ? formatRupiah(parseFloat(b.hargaPerSatuanPorsi)) : "—"}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => openEdit(b)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
-                        <button onClick={() => handleDeleteBahan(b.id)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
-                      </div>
+                      {isGuest ? (
+                        <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>
+                      ) : (
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {isAdmin && (
+                            <button onClick={() => { setRenameTarget({ id: b.id }); setRenameNewId(b.id); setRenameError(""); }} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer" }}>ID</button>
+                          )}
+                          <button onClick={() => openEdit(b)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                          <button onClick={() => handleDeleteBahan(b.id)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -1991,6 +2008,52 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           })()}
         </div>,
         document.body
+      )}
+
+      {/* Modal Rename ID Bahan (admin only) */}
+      {renameTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div className="modal-fadein" style={{ width: 400, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 6px" }}>Rename ID Bahan</h2>
+              <p style={{ fontSize: 11, color: "#6B7280", margin: "0 0 20px" }}>ID lama: <span style={{ color: "#C8F135", fontFamily: "monospace" }}>{renameTarget.id}</span></p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>ID Baru</label>
+                <input
+                  type="text"
+                  value={renameNewId}
+                  onChange={(e) => { setRenameNewId(e.target.value.toUpperCase()); setRenameError(""); }}
+                  placeholder="MCR-BTMK-001"
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 13, color: "#C8F135", outline: "none", boxSizing: "border-box", fontFamily: "monospace" }}
+                />
+                {renameError && <div style={{ fontSize: 11, color: "#EF4444", marginTop: 6 }}>{renameError}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={() => setRenameTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button
+                  disabled={renameLoading}
+                  onClick={async () => {
+                    setRenameLoading(true);
+                    setRenameError("");
+                    try {
+                      await renameBahanId(renameTarget.id, renameNewId);
+                      setRenameTarget(null);
+                    } catch (e: unknown) {
+                      setRenameError(e instanceof Error ? e.message : "Gagal rename ID");
+                    } finally {
+                      setRenameLoading(false);
+                    }
+                  }}
+                  className="btn-accent"
+                  style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+                >
+                  {renameLoading ? "Menyimpan..." : "Simpan ID"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

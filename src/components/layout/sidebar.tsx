@@ -214,6 +214,18 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
           </div>
         )}
 
+        {userRole === "guest" ? (
+          /* Guest: show login button instead of user menu */
+          <div style={{ padding: "12px 14px", borderTop: "1px solid #1E1E2E" }}>
+            {collapsed ? (
+              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "50%", background: "#C8F135", color: "#0A0A0F", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>→</Link>
+            ) : (
+              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 12px", borderRadius: 8, background: "rgba(200,241,53,0.1)", border: "1px solid rgba(200,241,53,0.3)", color: "#C8F135", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>
+                🔑 Login ke Akun
+              </Link>
+            )}
+          </div>
+        ) : (
         <div
           onClick={() => !collapsed && setShowUserMenu((v) => !v)}
           style={{
@@ -260,6 +272,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
             </span>
           )}
         </div>
+        )}
       </div>
 
       {/* Modal Ganti Password */}
