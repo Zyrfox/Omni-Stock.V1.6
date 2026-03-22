@@ -297,6 +297,16 @@
     min-height: 36px;
   }
 
+  /* Stat card value: reduce font size on mobile */
+  .stat-card-val {
+    font-size: 20px !important;
+  }
+
+  /* Stat card icon: hide on mobile to avoid overlap */
+  .stat-card-icon {
+    display: none !important;
+  }
+
   /* Sticky "Nama Bahan" column — stays visible when scrolling table horizontally */
   .col-hide-mobile {
     display: none !important;

@@ -72,7 +72,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
         <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Manajemen Purchase Order</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total PO" value={stats.total} icon="📋" color="#60A5FA" />
         <StatCard label="Draft" value={stats.draft} icon="📝" color="#6B7280" />
         <StatCard label="Sent" value={stats.sent} icon="📤" color="#F59E0B" />

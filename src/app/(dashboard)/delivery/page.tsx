@@ -30,13 +30,14 @@ export default async function DeliveryPage() {
         <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Pantau status pengiriman bahan baku</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="In Transit" value={parseInt(statsResult?.in_transit ?? "0")} icon="🚚" color="#60A5FA" />
         <StatCard label="Pending" value={parseInt(statsResult?.pending ?? "0")} icon="⏳" color="#F59E0B" />
         <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon="✅" color="#22C55E" />
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        <div className="table-scroll-wrapper">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#14142A" }}>
@@ -76,6 +77,7 @@ export default async function DeliveryPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

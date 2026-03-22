@@ -20,6 +20,7 @@ export function StatCard({ label, value, icon, color = "#E2E8F0", sub }: StatCar
     >
       {icon && (
         <div
+          className="stat-card-icon"
           style={{
             position: "absolute",
             top: 12,
@@ -45,6 +46,7 @@ export function StatCard({ label, value, icon, color = "#E2E8F0", sub }: StatCar
         {label}
       </div>
       <div
+        className="stat-card-val"
         style={{
           fontSize: 28,
           fontWeight: 800,

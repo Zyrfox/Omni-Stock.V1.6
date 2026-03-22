@@ -477,7 +477,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       {isGuest ? (
                         <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>
                       ) : (
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 4 }}>
                           {isAdmin && (
                             <button onClick={() => { setRenameTarget({ id: b.id }); setRenameNewId(b.id); setRenameError(""); }} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer" }}>ID</button>
                           )}

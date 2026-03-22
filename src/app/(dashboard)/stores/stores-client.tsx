@@ -116,6 +116,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
       {/* Tab 1 — Upload Compliance per Outlet */}
       {activeTab === 1 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -156,12 +157,14 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Tab 2 — Menu Profitability Matrix */}
       {activeTab === 2 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -226,6 +229,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
