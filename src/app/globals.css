@@ -220,6 +220,11 @@
   background-color: #14142A;
 }
 
+/* ─── Table cells: top-align so multi-line rows look consistent ─── */
+table td {
+  vertical-align: top;
+}
+
 /* ─── Bottom bar: desktop hidden, mobile visible ─── */
 .bottom-bar-mobile {
   display: none;

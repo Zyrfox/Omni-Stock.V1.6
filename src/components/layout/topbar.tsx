@@ -202,9 +202,12 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                         Min: {item.stokMinimum}{item.vendorNama ? ` · ${item.vendorNama}` : ""}
                       </div>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)" }}>
+                    <button
+                      onClick={() => { router.push("/products"); setShowNotif(false); }}
+                      style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)", cursor: "pointer" }}
+                    >
                       PANTAU
-                    </span>
+                    </button>
                   </div>
                 ))}
                 <div style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563", textAlign: "center" }}>

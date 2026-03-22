@@ -473,7 +473,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>
                       {b.hargaPerSatuanPorsi ? formatRupiah(parseFloat(b.hargaPerSatuanPorsi)) : "—"}
                     </td>
-                    <td style={{ padding: "10px 14px" }}>
+                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                       {isGuest ? (
                         <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>
                       ) : (

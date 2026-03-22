@@ -80,7 +80,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       {/* Header row with tabs + Tambah Outlet */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div style={{ background: "#14142A", padding: 4, borderRadius: 8, display: "inline-flex", gap: 2 }}>
           {tabs.map((t, i) => (
             <button

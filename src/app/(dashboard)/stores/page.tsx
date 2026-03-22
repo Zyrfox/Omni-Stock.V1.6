@@ -46,7 +46,7 @@ export default async function StoresPage() {
         <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Compliance & performa per outlet</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Outlet" value={parseInt(statsResult?.total ?? "0")} icon="🏪" color="#60A5FA" sub="Aktif" />
         <StatCard label="Inventory Net Worth" value="Rp 0" icon="💰" color="#22C55E" sub="Total semua cabang" />
         <StatCard label="Avg Upload Compliance" value="0%" icon="📊" color="#F59E0B" sub="Target: 80%" />
