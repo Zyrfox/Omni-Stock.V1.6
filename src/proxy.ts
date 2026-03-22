@@ -4,8 +4,8 @@ import type { auth } from "@/lib/auth";
 
 type Session = typeof auth.$Infer.Session;
 
-// Routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/api/auth"];
+// Routes that don't require authentication (guest-accessible)
+const PUBLIC_ROUTES = ["/login", "/api/auth", "/dashboard", "/products", "/suppliers", "/billing", "/report", "/stores", "/assets", "/delivery", "/po-logs", "/upload-history"];
 // Routes that require admin role
 const ADMIN_ONLY_ROUTES = ["/users", "/settings"];
 
