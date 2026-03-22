@@ -321,6 +321,10 @@ table td {
     left: 0;
     z-index: 2;
     background: #13131F;
+    max-width: 140px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   thead .col-sticky-nama {
     background: #14142A;

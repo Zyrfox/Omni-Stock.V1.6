@@ -845,6 +845,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E1E2E" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>PO Logs Terbaru</span>
         </div>
+        <div className="table-scroll-wrapper">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#14142A" }}>
@@ -933,6 +934,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
