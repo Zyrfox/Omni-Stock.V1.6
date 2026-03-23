@@ -31,6 +31,7 @@ export async function createUser(data: {
   const id = await generateId("users");
   const passwordHash = await hashPassword(data.password);
 
+
   // Insert directly into users table with our custom USR-xxx ID
   await db.insert(users).values({
     id,

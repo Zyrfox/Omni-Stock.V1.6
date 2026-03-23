@@ -148,6 +148,12 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [searchMenu, setSearchMenu] = useState("");
   const [dragMenuId, setDragMenuId] = useState<string | null>(null);
   const [dragOverMenuId, setDragOverMenuId] = useState<string | null>(null);
+  const [dragBahanId, setDragBahanId] = useState<string | null>(null);
+  const [dragOverBahanId, setDragOverBahanId] = useState<string | null>(null);
+  const [dragResepId, setDragResepId] = useState<string | null>(null);
+  const [dragOverResepId, setDragOverResepId] = useState<string | null>(null);
+  const [dragGroupBase, setDragGroupBase] = useState<string | null>(null);
+  const [dragOverGroupBase, setDragOverGroupBase] = useState<string | null>(null);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
 
@@ -188,6 +194,50 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     });
     setDragMenuId(null);
     setDragOverMenuId(null);
+  }
+
+  function handleBahanDrop(toId: string) {
+    if (!dragBahanId || dragBahanId === toId) { setDragBahanId(null); setDragOverBahanId(null); return; }
+    setBahans((prev) => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex((b) => b.id === dragBahanId);
+      const toIdx = arr.findIndex((b) => b.id === toId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      return arr;
+    });
+    setDragBahanId(null);
+    setDragOverBahanId(null);
+  }
+
+  function handleResepDrop(toId: string) {
+    if (!dragResepId || dragResepId === toId) { setDragResepId(null); setDragOverResepId(null); return; }
+    setMenus((prev) => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex((m) => m.id === dragResepId);
+      const toIdx = arr.findIndex((m) => m.id === toId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      return arr;
+    });
+    setDragResepId(null);
+    setDragOverResepId(null);
+  }
+
+  function handleGroupDrop(toBase: string) {
+    if (!dragGroupBase || dragGroupBase === toBase) { setDragGroupBase(null); setDragOverGroupBase(null); return; }
+    setMenus((prev) => {
+      const fromItems = prev.filter((m) => extractBaseName(m.namaMenu) === dragGroupBase);
+      const rest = prev.filter((m) => extractBaseName(m.namaMenu) !== dragGroupBase);
+      const insertIdx = rest.findIndex((m) => extractBaseName(m.namaMenu) === toBase);
+      if (insertIdx < 0) return prev;
+      rest.splice(insertIdx, 0, ...fromItems);
+      return rest;
+    });
+    setDragGroupBase(null);
+    setDragOverGroupBase(null);
   }
 
   async function handleSaveMenu() {
@@ -461,8 +511,21 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                 <tr><td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchBahan ? `Tidak ada bahan "${searchBahan}"` : `Belum ada bahan. Klik "Tambah Bahan" untuk memulai.`}</td></tr>
               ) : (
                 pagedBahans.map((b) => (
-                  <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
+                  <tr
+                    key={b.id}
+                    draggable
+                    onDragStart={() => setDragBahanId(b.id)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverBahanId(b.id); }}
+                    onDrop={() => handleBahanDrop(b.id)}
+                    onDragEnd={() => { setDragBahanId(null); setDragOverBahanId(null); }}
+                    className="table-row-hover"
+                    style={{
+                      borderBottom: "1px solid #131320",
+                      background: dragOverBahanId === b.id && dragBahanId !== b.id ? "rgba(200,241,53,0.04)" : undefined,
+                      opacity: dragBahanId === b.id ? 0.4 : 1,
+                    }}
+                  >
+                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563", cursor: "grab" }}>⠿ {b.id}</td>
                     <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
                     <td style={{ padding: "10px 14px" }}><Badge color={b.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{b.tipeBahan}</Badge></td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.satuanBeli}</td>
@@ -549,8 +612,21 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                 <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchResep ? `Tidak ada menu "${searchResep}"` : `Belum ada menu. Tambahkan dari tab Master Menu.`}</td></tr>
               ) : (
                 pagedResep.map((m) => (
-                  <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{m.id}</td>
+                  <tr
+                    key={m.id}
+                    draggable
+                    onDragStart={() => setDragResepId(m.id)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverResepId(m.id); }}
+                    onDrop={() => handleResepDrop(m.id)}
+                    onDragEnd={() => { setDragResepId(null); setDragOverResepId(null); }}
+                    className="table-row-hover"
+                    style={{
+                      borderBottom: "1px solid #131320",
+                      background: dragOverResepId === m.id && dragResepId !== m.id ? "rgba(200,241,53,0.04)" : undefined,
+                      opacity: dragResepId === m.id ? 0.4 : 1,
+                    }}
+                  >
+                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563", cursor: "grab" }}>⠿ {m.id}</td>
                     <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
                     <td style={{ padding: "10px 14px" }}>
@@ -658,14 +734,24 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     // Group header row
                     <tr
                       key={`group-${baseName}`}
+                      draggable
+                      onDragStart={(e) => { e.stopPropagation(); setDragGroupBase(baseName); }}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverGroupBase(baseName); }}
+                      onDrop={(e) => { e.stopPropagation(); handleGroupDrop(baseName); }}
+                      onDragEnd={() => { setDragGroupBase(null); setDragOverGroupBase(null); }}
                       className="table-row-hover"
                       onClick={toggle}
-                      style={{ borderBottom: "1px solid #1E1E2E", cursor: "pointer", background: "#0F0F1A" }}
+                      style={{
+                        borderBottom: "1px solid #1E1E2E",
+                        cursor: "grab",
+                        background: dragOverGroupBase === baseName && dragGroupBase !== baseName ? "rgba(200,241,53,0.06)" : "#0F0F1A",
+                        opacity: dragGroupBase === baseName ? 0.4 : 1,
+                      }}
                     >
                       <td style={{ padding: "10px 8px", color: "#C8F135", fontSize: 14, textAlign: "center" }}>
                         {isExpanded ? "▾" : "▸"}
                       </td>
-                      <td className="col-hide-mobile" />
+                      <td className="col-hide-mobile" style={{ padding: "10px 8px", color: "#374151", fontSize: 14, textAlign: "center" }}>⠿</td>
                       <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#E2E8F0" }}>
                         {baseName}
                       </td>
