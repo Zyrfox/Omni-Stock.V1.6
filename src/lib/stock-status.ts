@@ -59,3 +59,20 @@ export const STATUS_CONFIG = {
     dot: "bg-red-500",
   },
 } as const;
+
+/**
+ * Format stokMinimum in both satuanDapur and kemasan units.
+ * Example: stokMinimum=60, isiSatuan=20, satuanDapur="pcs", satuanBeli="Pack"
+ *   → { primary: "60 pcs", secondary: "3 Pack" }
+ */
+export function formatMinStok(
+  stokMinimum: number,
+  isiSatuan: number,
+  satuanDapur: string,
+  satuanBeli: string
+): { primary: string; secondary: string | null } {
+  const primary = `${stokMinimum} ${satuanDapur}`;
+  if (isiSatuan <= 0) return { primary, secondary: null };
+  const kemasan = Math.ceil(stokMinimum / isiSatuan);
+  return { primary, secondary: `${kemasan} ${satuanBeli}` };
+}

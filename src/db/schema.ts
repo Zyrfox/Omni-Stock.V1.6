@@ -121,6 +121,10 @@ export const semiFinished = pgTable("semi_finished", {
   namaSemiFinished: text("nama_semi_finished").notNull(),
   satuan: text("satuan").notNull(),
   stokMinimum: numeric("stok_minimum", { precision: 15, scale: 4 }).notNull(),
+  jumlahHasil: numeric("jumlah_hasil", { precision: 15, scale: 4 }).notNull().default("1"),
+  satuanHasil: text("satuan_hasil").notNull().default("porsi"),
+  totalCogs: numeric("total_cogs", { precision: 15, scale: 2 }).notNull().default("0"),
+  cogsPerUnit: numeric("cogs_per_unit", { precision: 15, scale: 6 }).notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -295,6 +299,12 @@ export const mappingResepRelations = relations(mappingResep, ({ one }) => ({
     references: [masterMenu.id],
     relationName: "menuRecipes",
   }),
+  // Link parentId → semi_finished (works for semi_finished parents)
+  parentSfg: one(semiFinished, {
+    fields: [mappingResep.parentId],
+    references: [semiFinished.id],
+    relationName: "sfgRecipes",
+  }),
 }));
 
 export const salesTransactionsRelations = relations(salesTransactions, ({ one }) => ({
@@ -317,8 +327,9 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, { fields: [accounts.userId], references: [users.id] }),
 }));
 
-export const semiFinishedRelations = relations(semiFinished, ({ one }) => ({
+export const semiFinishedRelations = relations(semiFinished, ({ one, many }) => ({
   outlet: one(outlets, { fields: [semiFinished.outletId], references: [outlets.id] }),
+  mappingResep: many(mappingResep, { relationName: "sfgRecipes" }),
 }));
 
 // ─── Type Exports ─────────────────────────────────────────

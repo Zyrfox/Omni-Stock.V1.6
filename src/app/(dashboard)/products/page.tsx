@@ -4,15 +4,15 @@ import { Suspense } from "react";
 import { ProductsClient } from "./products-client";
 import { getMasterBahan } from "@/actions/bahan";
 import { getMasterMenu } from "@/actions/menu";
+import { getSemiFinished } from "@/actions/semi-finished";
 import { getOutlets } from "@/actions/outlet";
 import { getMasterVendor } from "@/actions/vendor";
-import { db } from "@/db";
 
 export default async function ProductsPage() {
   const [bahanList, menuList, sfgList, outletList, vendorList] = await Promise.all([
     getMasterBahan(),
     getMasterMenu(),
-    db.query.semiFinished.findMany({ orderBy: (s, { asc }) => [asc(s.namaSemiFinished)] }),
+    getSemiFinished(),
     getOutlets(),
     getMasterVendor(),
   ]);

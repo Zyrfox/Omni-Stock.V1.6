@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { masterMenu, mappingResep, masterBahan } from "@/db/schema";
+import { masterMenu, mappingResep, masterBahan, semiFinished } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
@@ -77,6 +77,13 @@ export async function saveBOM(
       });
       if (bahan?.hargaPerSatuanPorsi) {
         totalCogs += line.qty * parseFloat(bahan.hargaPerSatuanPorsi);
+      }
+    } else if (line.itemType === "semi_finished") {
+      const sfg = await db.query.semiFinished.findFirst({
+        where: eq(semiFinished.id, line.itemId),
+      });
+      if (sfg?.cogsPerUnit) {
+        totalCogs += line.qty * parseFloat(sfg.cogsPerUnit);
       }
     }
   }

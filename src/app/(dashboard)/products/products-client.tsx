@@ -7,8 +7,10 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan, renameBahanId } from "@/actions/bahan";
 import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
+import { createSemiFinished, updateSemiFinished, deleteSemiFinished, saveSFGBOM } from "@/actions/semi-finished";
 import { useAppContext } from "@/contexts/app-context";
 import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
+import { formatMinStok } from "@/lib/stock-status";
 
 interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
@@ -24,10 +26,28 @@ interface MenuItem {
   mappingResep?: Array<{ id: string; itemId: string; qty: string; itemType?: "bahan_dasar" | "semi_finished"; bahan?: { namaBahan: string; satuanDapur: string; kategoriBahan?: string | null } }>;
 }
 
+interface SFGItem {
+  id: string;
+  namaSemiFinished: string;
+  satuan: string;
+  satuanHasil: string;
+  jumlahHasil: string;
+  totalCogs: string;
+  cogsPerUnit: string;
+  outletId: string | null;
+  mappingResep?: Array<{
+    id: string;
+    itemId: string;
+    qty: string;
+    itemType: "bahan_dasar" | "semi_finished";
+    bahan?: { namaBahan: string; satuanDapur: string } | null;
+  }>;
+}
+
 interface ProductsClientProps {
   bahanList: BahanItem[];
   menuList: MenuItem[];
-  sfgList: Array<{ id: string; namaSemiFinished: string; satuan: string }>;
+  sfgList: SFGItem[];
   outletList: Array<{ id: string; namaOutlet: string }>;
   vendorList: Array<{ id: string; namaVendor: string }>;
 }
@@ -69,7 +89,7 @@ function inferChannelType(m: MenuItem): string {
   return "dine_in";
 }
 
-export function ProductsClient({ bahanList, menuList, outletList, vendorList }: ProductsClientProps) {
+export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outletList, vendorList }: ProductsClientProps) {
   const { isGuest, userRole } = useAppContext();
   const isAdmin = userRole === "admin";
 
@@ -79,7 +99,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [renameLoading, setRenameLoading] = useState(false);
   const [renameError, setRenameError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
+  const [activeTab, setActiveTab] = useState<1 | 2 | 3 | 4>(1);
   const [showAddBahan, setShowAddBahan] = useState(false);
   const [showBOMEditor, setShowBOMEditor] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -158,6 +178,28 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [bahanViewMode, setBahanViewMode] = useState<"card" | "table">("card");
   const [menuViewMode, setMenuViewMode] = useState<"card" | "table">("card");
 
+  // Min stok mode toggle (for add/edit bahan forms)
+  const [stokMinimumMode, setStokMinimumMode] = useState<"satuanDapur" | "kemasan">("satuanDapur");
+  const [editStokMinimumMode, setEditStokMinimumMode] = useState<"satuanDapur" | "kemasan">("satuanDapur");
+
+  // Raw Menu (SFG) state
+  const [sfgList, setSfgList] = useState<SFGItem[]>(sfgListProp);
+  const [showAddSFG, setShowAddSFG] = useState(false);
+  const [sfgForm, setSfgForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
+  const [editSFG, setEditSFG] = useState<SFGItem | null>(null);
+  const [editSFGForm, setEditSFGForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1" });
+  const [showSFGEditor, setShowSFGEditor] = useState(false);
+  const [selectedSFG, setSelectedSFG] = useState<SFGItem | null>(null);
+  const [sfgBomLines, setSfgBomLines] = useState<Array<{ itemType: "bahan_dasar" | "semi_finished"; itemId: string; qty: number }>>([]);
+  const [sfgBomSearches, setSfgBomSearches] = useState<string[]>([]);
+  const [sfgBomOpenIdx, setSfgBomOpenIdx] = useState<number | null>(null);
+  const [sfgBomDropdownRect, setSfgBomDropdownRect] = useState<DOMRect | null>(null);
+  const sfgBomInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [sfgPage, setSfgPage] = useState(0);
+  const [sfgRowsPerPage, setSfgRowsPerPage] = useState(20);
+  const [searchSFG, setSearchSFG] = useState("");
+  const [sfgSaving, setSfgSaving] = useState(false);
+
   useEffect(() => {
     function check() { setIsMobile(window.innerWidth < 768); }
     check();
@@ -165,7 +207,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
+  const tabs = ["1. Master Bahan", "2. Raw Menu", "3. Master Resep", "4. Master Menu"];
 
   const q1 = searchBahan.toLowerCase();
   const q2 = searchResep.toLowerCase();
@@ -324,20 +366,26 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         satuanBeli: form.satuanBeli,
         isiSatuan: parseFloat(form.isiSatuan),
         satuanDapur: form.satuanDapur,
-        stokMinimum: parseInt(form.stokMinimum),
+        stokMinimum: stokMinimumMode === "kemasan"
+          ? Math.round(parseInt(form.stokMinimum) * parseFloat(form.isiSatuan || "1"))
+          : parseInt(form.stokMinimum),
         leadTimeDays: parseInt(form.leadTimeDays),
         vendorId: form.vendorId || undefined,
       });
+      const resolvedStokMin = stokMinimumMode === "kemasan"
+        ? Math.round(parseInt(form.stokMinimum) * parseFloat(form.isiSatuan || "1"))
+        : parseInt(form.stokMinimum);
       const hargaPerSatuanPorsi = parseFloat(form.isiSatuan) > 0
         ? (parseFloat(form.hargaBeli) / parseFloat(form.isiSatuan)).toFixed(6)
         : "0";
       setBahans((prev) => [...prev, {
         id: result.id, namaBahan: form.namaBahan, tipeBahan: form.tipeBahan,
         satuanBeli: form.satuanBeli, satuanDapur: form.satuanDapur,
-        stokMinimum: parseInt(form.stokMinimum), hargaBeli: form.hargaBeli,
+        stokMinimum: resolvedStokMin, hargaBeli: form.hargaBeli,
         isiSatuan: form.isiSatuan, hargaPerSatuanPorsi, outletId: form.outletId,
       }]);
       setShowAddBahan(false);
+      setStokMinimumMode("satuanDapur");
       setForm({ namaBahan: "", tipeBahan: "packaged", kategoriBahan: "", hargaBeli: "", satuanBeli: "1_karung", satuanDapur: "gram", stokMinimum: "", isiSatuan: "", leadTimeDays: "1", outletId: outletList[0]?.id ?? "OUT-001", vendorId: "" });
       setYieldMode("direct");
       setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" });
@@ -351,6 +399,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
 
   function openEdit(b: BahanItem) {
     setEditTarget(b);
+    setEditStokMinimumMode("satuanDapur");
     setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, kategoriBahan: b.kategoriBahan ?? "", hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1", outletId: b.outletId ?? "" });
     setEditAiEstimation(null);
     setEditAiStep("idle");
@@ -377,16 +426,21 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         hargaBeli: parseFloat(editForm.hargaBeli),
         satuanBeli: editForm.satuanBeli,
         satuanDapur: editForm.satuanDapur,
-        stokMinimum: parseInt(editForm.stokMinimum),
+        stokMinimum: editStokMinimumMode === "kemasan"
+          ? Math.round(parseInt(editForm.stokMinimum) * parseFloat(editForm.isiSatuan || "1"))
+          : parseInt(editForm.stokMinimum),
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
         outletId: editForm.outletId || undefined,
       });
+      const resolvedEditStokMin = editStokMinimumMode === "kemasan"
+        ? Math.round(parseInt(editForm.stokMinimum) * parseFloat(editForm.isiSatuan || "1"))
+        : parseInt(editForm.stokMinimum);
       const isiSatuan = parseNum(editForm.isiSatuan);
       const hargaBeli = parseNum(editForm.hargaBeli);
       const hargaPerSatuanPorsi = isiSatuan > 0 ? (hargaBeli / isiSatuan).toFixed(6) : "0";
       setBahans((prev) => prev.map((b) => b.id === editTarget.id
-        ? { ...b, ...editForm, stokMinimum: parseInt(editForm.stokMinimum), hargaPerSatuanPorsi }
+        ? { ...b, ...editForm, stokMinimum: resolvedEditStokMin, hargaPerSatuanPorsi }
         : b));
       setEditTarget(null);
       setEditAiEstimation(null);
@@ -424,7 +478,93 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
     }
   }
 
+  async function handleCreateSFG() {
+    if (!sfgForm.namaSemiFinished.trim()) return;
+    setSfgSaving(true);
+    try {
+      const result = await createSemiFinished({
+        outletId: sfgForm.outletId,
+        namaSemiFinished: sfgForm.namaSemiFinished,
+        satuanHasil: sfgForm.satuanHasil,
+        jumlahHasil: parseFloat(sfgForm.jumlahHasil) || 1,
+      });
+      setSfgList(prev => [...prev, {
+        id: result.id, namaSemiFinished: sfgForm.namaSemiFinished,
+        satuan: sfgForm.satuanHasil, satuanHasil: sfgForm.satuanHasil,
+        jumlahHasil: sfgForm.jumlahHasil, totalCogs: "0", cogsPerUnit: "0",
+        outletId: sfgForm.outletId, mappingResep: [],
+      }]);
+      setShowAddSFG(false);
+      setSfgForm({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
+    } finally {
+      setSfgSaving(false);
+    }
+  }
+
+  async function handleUpdateSFG() {
+    if (!editSFG) return;
+    setSfgSaving(true);
+    try {
+      await updateSemiFinished(editSFG.id, {
+        namaSemiFinished: editSFGForm.namaSemiFinished,
+        satuanHasil: editSFGForm.satuanHasil,
+        jumlahHasil: parseFloat(editSFGForm.jumlahHasil) || 1,
+      });
+      setSfgList(prev => prev.map(s => s.id === editSFG.id
+        ? { ...s, namaSemiFinished: editSFGForm.namaSemiFinished, satuanHasil: editSFGForm.satuanHasil, satuan: editSFGForm.satuanHasil, jumlahHasil: editSFGForm.jumlahHasil }
+        : s));
+      setEditSFG(null);
+    } finally {
+      setSfgSaving(false);
+    }
+  }
+
+  async function handleDeleteSFG(id: string) {
+    if (!confirm("Hapus Raw Menu ini?")) return;
+    await deleteSemiFinished(id);
+    setSfgList(prev => prev.filter(s => s.id !== id));
+  }
+
+  const sfgTotalCOGS = sfgBomLines.reduce((sum, line) => {
+    if (line.itemType === "semi_finished") {
+      const nestedSfg = sfgList.find(s => s.id === line.itemId);
+      return sum + line.qty * parseFloat(nestedSfg?.cogsPerUnit ?? "0");
+    }
+    const bahan = bahanList.find(b => b.id === line.itemId);
+    return sum + line.qty * parseFloat(bahan?.hargaPerSatuanPorsi ?? "0");
+  }, 0);
+
+  async function handleSaveSFGBOM() {
+    if (!selectedSFG) return;
+    setSfgSaving(true);
+    try {
+      await saveSFGBOM(selectedSFG.id, sfgBomLines);
+      const jumlahHasil = parseFloat(selectedSFG.jumlahHasil) || 1;
+      const cogsPerUnit = jumlahHasil > 0 ? sfgTotalCOGS / jumlahHasil : 0;
+      setSfgList(prev => prev.map(s => s.id === selectedSFG.id
+        ? {
+            ...s,
+            totalCogs: sfgTotalCOGS.toFixed(2),
+            cogsPerUnit: cogsPerUnit.toFixed(6),
+            mappingResep: sfgBomLines.map((l, i) => ({
+              id: `tmp-${i}`, itemId: l.itemId, qty: String(l.qty), itemType: l.itemType,
+              bahan: bahanList.find(b => b.id === l.itemId)
+                ? { namaBahan: bahanList.find(b => b.id === l.itemId)!.namaBahan, satuanDapur: bahanList.find(b => b.id === l.itemId)!.satuanDapur }
+                : null,
+            })),
+          }
+        : s));
+      setShowSFGEditor(false);
+    } finally {
+      setSfgSaving(false);
+    }
+  }
+
   const totalCOGS = bomLines.reduce((sum, line) => {
+    if (line.itemType === "semi_finished") {
+      const sfg = sfgList.find(s => s.id === line.itemId);
+      return sum + line.qty * parseFloat(sfg?.cogsPerUnit ?? "0");
+    }
     const bahan = bahanList.find((b) => b.id === line.itemId);
     return sum + line.qty * parseFloat(bahan?.hargaPerSatuanPorsi ?? "0");
   }, 0);
@@ -436,29 +576,40 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Products & Recipes</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Master bahan baku, resep, dan menu final</p>
         </div>
-        {!isGuest && (activeTab === 1 ? (
-          <button
-            onClick={() => { setShowAddBahan(true); setAiEstimation(null); setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" }); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
-            className="btn-accent"
-            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
-          >
-            + Tambah Bahan
-          </button>
-        ) : (
-          <button
-            onClick={() => { setAddVariantBase(""); setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001", channelType: "dine_in", platformFeePercent: "0" }); }}
-            className="btn-accent"
-            style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
-          >
-            + Tambah Menu
-          </button>
-        ))}
+        {!isGuest && (
+          activeTab === 1 ? (
+            <button
+              onClick={() => { setShowAddBahan(true); setAiEstimation(null); setAiStep("idle"); setAiContext({ penggunaan: "", skalaPorsi: "" }); setYieldMode("direct"); setBatchFields({ jumlahSubUnit: "", porsiPerBatch: "", jumlahBatchPerSubUnit: "1" }); }}
+              className="btn-accent"
+              style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+            >
+              + Tambah Bahan
+            </button>
+          ) : activeTab === 2 ? (
+            <button
+              onClick={() => { setSfgForm({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" }); setShowAddSFG(true); }}
+              className="btn-accent"
+              style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+            >
+              + Tambah Raw Menu
+            </button>
+          ) : activeTab === 4 ? (
+            <button
+              onClick={() => { setAddVariantBase(""); setShowAddMenu(true); setMenuForm({ namaMenu: "", kategori: "food", hargaJual: "", outletId: "OUT-001", channelType: "dine_in", platformFeePercent: "0" }); }}
+              className="btn-accent"
+              style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
+            >
+              + Tambah Menu
+            </button>
+          ) : null
+        )}
       </div>
 
       {/* Stat Bar */}
-      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Master Bahan Baku" value={bahans.length} icon="📦" color="#60A5FA" />
-        <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon="📋" color="#F59E0B" />
+        <StatCard label="Raw Menu" value={sfgList.length} icon="🧪" color="#F59E0B" />
+        <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon="📋" color="#A78BFA" />
         <StatCard label="Master Menu Final" value={menuList.length} icon="🍽" color="#C8F135" />
       </div>
 
@@ -476,7 +627,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         {tabs.map((t, i) => (
           <button
             key={t}
-            onClick={() => setActiveTab((i + 1) as 1 | 2 | 3)}
+            onClick={() => setActiveTab((i + 1) as 1 | 2 | 3 | 4)}
             style={{
               padding: "6px 16px",
               borderRadius: 6,
@@ -528,7 +679,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     {[
                       { label: "Kemasan", value: b.satuanBeli },
                       { label: "Dapur", value: b.satuanDapur },
-                      { label: "Min.Stok", value: String(b.stokMinimum) },
+                      { label: "Min.Stok", value: (() => { const f = formatMinStok(b.stokMinimum, parseFloat(b.isiSatuan), b.satuanDapur, b.satuanBeli); return f.secondary ? `${f.primary} (${f.secondary})` : f.primary; })() },
                       { label: "Harga", value: formatRupiah(parseFloat(b.hargaBeli)) },
                       { label: "Isi/Yield", value: b.isiSatuan || "—" },
                     ].map(({ label, value }) => (
@@ -592,7 +743,12 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                     <td style={{ padding: "10px 14px" }}><Badge color={b.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{b.tipeBahan}</Badge></td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.satuanBeli}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.satuanDapur}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.stokMinimum}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
+                      {(() => {
+                        const fmt = formatMinStok(b.stokMinimum, parseFloat(b.isiSatuan), b.satuanDapur, b.satuanBeli);
+                        return <><span>{fmt.primary}</span>{fmt.secondary && <span style={{ display: "block", fontSize: 9, color: "#4B5563" }}>{fmt.secondary}</span>}</>;
+                      })()}
+                    </td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>{formatRupiah(parseFloat(b.hargaBeli))}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.isiSatuan}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>
@@ -648,8 +804,112 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         </div>
       )}
 
-      {/* Tab 2 — Master Resep */}
-      {activeTab === 2 && (
+      {/* Tab 2 — Raw Menu */}
+      {activeTab === 2 && (() => {
+        const filteredSFG = searchSFG ? sfgList.filter(s => s.namaSemiFinished.toLowerCase().includes(searchSFG.toLowerCase()) || s.id.toLowerCase().includes(searchSFG.toLowerCase())) : sfgList;
+        const safeSfgPage = Math.min(sfgPage, Math.max(0, Math.ceil(filteredSFG.length / sfgRowsPerPage) - 1));
+        const pagedSFG = filteredSFG.slice(safeSfgPage * sfgRowsPerPage, (safeSfgPage + 1) * sfgRowsPerPage);
+        return (
+          <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+              <input
+                value={searchSFG}
+                onChange={(e) => { setSearchSFG(e.target.value); setSfgPage(0); }}
+                placeholder="Cari nama raw menu atau ID..."
+                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#14142A" }}>
+                    {["ID", "Nama Raw Menu", "Satuan Hasil", "Jumlah Hasil", "Komposisi", "Total COGS", "COGS/Unit", "Aksi"].map(h => (
+                      <th key={h} className={h === "Nama Raw Menu" ? "col-sticky-nama" : h === "ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSFG.length === 0 ? (
+                    <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchSFG ? `Tidak ada raw menu "${searchSFG}"` : `Belum ada raw menu. Klik "+ Tambah Raw Menu".`}</td></tr>
+                  ) : pagedSFG.map(s => (
+                    <tr key={s.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                      <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{s.id}</td>
+                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{s.namaSemiFinished}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{s.satuanHasil || s.satuan}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{parseFloat(s.jumlahHasil).toLocaleString("id-ID")}</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {s.mappingResep && s.mappingResep.length > 0 ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                            {s.mappingResep.slice(0, 3).map((r, i) => (
+                              <span key={i} style={{ fontSize: 9, padding: "2px 5px", background: "#14142A", borderRadius: 4, color: "#9CA3AF" }}>
+                                {r.bahan?.namaBahan || r.itemId} {r.qty}{r.bahan?.satuanDapur || ""}
+                              </span>
+                            ))}
+                            {s.mappingResep.length > 3 && <span style={{ fontSize: 9, color: "#4B5563" }}>+{s.mappingResep.length - 3}</span>}
+                          </div>
+                        ) : <span style={{ fontSize: 10, color: "#374151" }}>—</span>}
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.totalCogs) > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {parseFloat(s.totalCogs) > 0 ? formatRupiah(parseFloat(s.totalCogs)) : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.cogsPerUnit) > 0 ? "#F59E0B" : "#4B5563", fontWeight: 700 }}>
+                        {parseFloat(s.cogsPerUnit) > 0 ? `${formatRupiah(parseFloat(s.cogsPerUnit))} /${s.satuanHasil || s.satuan}` : "—"}
+                      </td>
+                      <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                        {!isGuest && (
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button
+                              onClick={() => {
+                                setSelectedSFG(s);
+                                setSfgBomLines(s.mappingResep?.map(r => ({ itemType: r.itemType, itemId: r.itemId, qty: parseFloat(r.qty) })) ?? []);
+                                setSfgBomSearches([]);
+                                setSfgBomOpenIdx(null);
+                                setShowSFGEditor(true);
+                              }}
+                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                            >
+                              {s.mappingResep && s.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                            </button>
+                            <button onClick={() => { setEditSFG(s); setEditSFGForm({ namaSemiFinished: s.namaSemiFinished, satuanHasil: s.satuanHasil || s.satuan, jumlahHasil: s.jumlahHasil }); }}
+                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                            <button onClick={() => handleDeleteSFG(s.id)}
+                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filteredSFG.length > 0 && (
+              <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, color: "#4B5563" }}>Baris per halaman:</span>
+                  {[20, 30, 40, 50].map(n => (
+                    <button key={n} onClick={() => { setSfgRowsPerPage(n); setSfgPage(0); }}
+                      style={{ padding: "3px 10px", borderRadius: 6, border: `1px solid ${sfgRowsPerPage === n ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: sfgRowsPerPage === n ? "rgba(200,241,53,0.12)" : "transparent", color: sfgRowsPerPage === n ? "#C8F135" : "#4B5563", fontSize: 11, cursor: "pointer" }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, color: "#4B5563" }}>
+                    {safeSfgPage * sfgRowsPerPage + 1}–{Math.min((safeSfgPage + 1) * sfgRowsPerPage, filteredSFG.length)} dari {filteredSFG.length}
+                  </span>
+                  <button onClick={() => setSfgPage(p => Math.max(0, p - 1))} disabled={safeSfgPage === 0}
+                    style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeSfgPage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeSfgPage === 0 ? "default" : "pointer" }}>‹</button>
+                  <button onClick={() => setSfgPage(p => Math.min(Math.ceil(filteredSFG.length / sfgRowsPerPage) - 1, p + 1))} disabled={safeSfgPage >= Math.ceil(filteredSFG.length / sfgRowsPerPage) - 1}
+                    style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid #2D2D44", background: "transparent", color: safeSfgPage >= Math.ceil(filteredSFG.length / sfgRowsPerPage) - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safeSfgPage >= Math.ceil(filteredSFG.length / sfgRowsPerPage) - 1 ? "default" : "pointer" }}>›</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Tab 3 — Master Resep */}
+      {activeTab === 3 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
             <input
@@ -755,8 +1015,8 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
         </div>
       )}
 
-      {/* Tab 3 — Master Menu */}
-      {activeTab === 3 && (
+      {/* Tab 4 — Master Menu */}
+      {activeTab === 4 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center" }}>
             <input
@@ -1116,10 +1376,29 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
                     ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
                       <div key={key}>
-                        <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                          <label style={{ fontSize: 10, fontWeight: 600, color: "#4B5563", textTransform: "uppercase" }}>{label}</label>
+                          {key === "stokMinimum" && (
+                            <div style={{ display: "flex", gap: 2 }}>
+                              {(["satuanDapur", "kemasan"] as const).map(m => (
+                                <button key={m} type="button" onClick={() => setStokMinimumMode(m)}
+                                  style={{ padding: "1px 6px", borderRadius: 8, fontSize: 9, cursor: "pointer", border: `1px solid ${stokMinimumMode === m ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: stokMinimumMode === m ? "rgba(200,241,53,0.12)" : "transparent", color: stokMinimumMode === m ? "#C8F135" : "#4B5563" }}>
+                                  {m === "satuanDapur" ? form.satuanDapur || "unit" : form.satuanBeli || "kemasan"}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         <input type={type ?? "text"} value={(form as any)[key]} onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
                           placeholder={placeholder}
                           style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                        {key === "stokMinimum" && form.isiSatuan && parseFloat(form.isiSatuan) > 0 && form.stokMinimum && (
+                          <div style={{ fontSize: 10, color: "#4B5563", marginTop: 3 }}>
+                            {stokMinimumMode === "satuanDapur"
+                              ? `≈ ${Math.ceil(parseFloat(form.stokMinimum) / parseFloat(form.isiSatuan))} ${form.satuanBeli || "kemasan"}`
+                              : `= ${Math.round(parseFloat(form.stokMinimum) * parseFloat(form.isiSatuan))} ${form.satuanDapur || "unit"}`}
+                          </div>
+                        )}
                         {key === "satuanDapur" && (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
                             {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map(u => (
@@ -1317,10 +1596,29 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                         { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1" },
                       ].map(({ label, key, placeholder }) => (
                         <div key={key}>
-                          <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                            <label style={{ fontSize: 10, fontWeight: 600, color: "#4B5563", textTransform: "uppercase" }}>{label}</label>
+                            {key === "stokMinimum" && (
+                              <div style={{ display: "flex", gap: 2 }}>
+                                {(["satuanDapur", "kemasan"] as const).map(m => (
+                                  <button key={m} type="button" onClick={() => setStokMinimumMode(m)}
+                                    style={{ padding: "1px 6px", borderRadius: 8, fontSize: 9, cursor: "pointer", border: `1px solid ${stokMinimumMode === m ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: stokMinimumMode === m ? "rgba(200,241,53,0.12)" : "transparent", color: stokMinimumMode === m ? "#C8F135" : "#4B5563" }}>
+                                    {m === "satuanDapur" ? form.satuanDapur || "unit" : form.satuanBeli || "kemasan"}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <input type="number" value={(form as any)[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                             placeholder={placeholder}
                             style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 10px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                          {key === "stokMinimum" && form.isiSatuan && parseFloat(form.isiSatuan) > 0 && form.stokMinimum && (
+                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 3 }}>
+                              {stokMinimumMode === "satuanDapur"
+                                ? `≈ ${Math.ceil(parseFloat(form.stokMinimum) / parseFloat(form.isiSatuan))} ${form.satuanBeli || "kemasan"}`
+                                : `= ${Math.round(parseFloat(form.stokMinimum) * parseFloat(form.isiSatuan))} ${form.satuanDapur || "unit"}`}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1739,7 +2037,19 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                   { label: "Lead Time (hari)", key: "leadTimeDays", placeholder: "1", type: "number" },
                 ].map(({ label, key, placeholder, type }: { label: string; key: string; placeholder: string; type?: string }) => (
                   <div key={key} style={{ gridColumn: key === "namaBahan" ? "1 / -1" : undefined }}>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                      <label style={{ fontSize: 10, fontWeight: 600, color: "#4B5563", textTransform: "uppercase" }}>{label}</label>
+                      {key === "stokMinimum" && (
+                        <div style={{ display: "flex", gap: 2 }}>
+                          {(["satuanDapur", "kemasan"] as const).map(m => (
+                            <button key={m} type="button" onClick={() => setEditStokMinimumMode(m)}
+                              style={{ padding: "1px 6px", borderRadius: 8, fontSize: 9, cursor: "pointer", border: `1px solid ${editStokMinimumMode === m ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: editStokMinimumMode === m ? "rgba(200,241,53,0.12)" : "transparent", color: editStokMinimumMode === m ? "#C8F135" : "#4B5563" }}>
+                              {m === "satuanDapur" ? editForm.satuanDapur || "unit" : editForm.satuanBeli || "kemasan"}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <input
                       type={type ?? "text"}
                       value={(editForm as any)[key]}
@@ -1747,6 +2057,13 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       placeholder={placeholder}
                       style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
+                    {key === "stokMinimum" && editForm.isiSatuan && parseFloat(editForm.isiSatuan) > 0 && editForm.stokMinimum && (
+                      <div style={{ fontSize: 10, color: "#4B5563", marginTop: 3 }}>
+                        {editStokMinimumMode === "satuanDapur"
+                          ? `≈ ${Math.ceil(parseFloat(editForm.stokMinimum) / parseFloat(editForm.isiSatuan))} ${editForm.satuanBeli || "kemasan"}`
+                          : `= ${Math.round(parseFloat(editForm.stokMinimum) * parseFloat(editForm.isiSatuan))} ${editForm.satuanDapur || "unit"}`}
+                      </div>
+                    )}
                     {key === "satuanDapur" && (
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
                         {["gram","ml","liter","kg","porsi","gelas","pcs","pack","lembar","buah"].map((u) => (
@@ -2105,9 +2422,12 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
               </div>
               <div style={{ maxHeight: 260, overflowY: "auto" }}>
                 {bomLines.map((line, idx) => {
-                  const bahan = bahanList.find((b) => b.id === line.itemId);
-                  const satuan = bahan?.satuanDapur;
-                  const subCogs = bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
+                  const sfgItem = line.itemType === "semi_finished" ? sfgList.find(s => s.id === line.itemId) : undefined;
+                  const bahan = line.itemType !== "semi_finished" ? bahanList.find((b) => b.id === line.itemId) : undefined;
+                  const satuan = line.itemType === "semi_finished" ? (sfgItem?.satuanHasil || sfgItem?.satuan) : bahan?.satuanDapur;
+                  const subCogs = line.itemType === "semi_finished"
+                    ? line.qty * parseFloat(sfgItem?.cogsPerUnit ?? "0")
+                    : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
                     <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
                       <select
@@ -2122,7 +2442,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                       <div style={{ flex: 1 }}>
                         <input
                           ref={(el) => { bomInputRefs.current[idx] = el; }}
-                          value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? "")}
+                          value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? ""))}
                           onChange={(e) => {
                             setBomSearches((s) => { const a = [...s]; a[idx] = e.target.value; return a; });
                             setBomOpenIdx(idx);
@@ -2220,12 +2540,23 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             const line = bomLines[bomOpenIdx];
             if (!line) return null;
             const q = (bomSearches[bomOpenIdx] ?? "").toLowerCase();
+            if (line.itemType === "semi_finished") {
+              const sfgOptions = sfgList.filter(s => !q || s.namaSemiFinished.toLowerCase().includes(q));
+              if (sfgOptions.length === 0) return <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>;
+              return sfgOptions.map(s => (
+                <div key={s.id} onMouseDown={() => { setBomLines(l => l.map((x, i) => i === bomOpenIdx ? { ...x, itemId: s.id } : x)); setBomSearches(sr => { const a = [...sr]; a[bomOpenIdx!] = s.namaSemiFinished; return a; }); setBomOpenIdx(null); }}
+                  style={{ padding: "7px 12px", fontSize: 11, cursor: "pointer", color: s.id === line.itemId ? "#C8F135" : "#E2E8F0", background: s.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = s.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent")}>
+                  <div>{s.namaSemiFinished}</div>
+                  <div style={{ fontSize: 9, color: "#F59E0B" }}>{parseFloat(s.cogsPerUnit) > 0 ? `${formatRupiah(parseFloat(s.cogsPerUnit))} /${s.satuanHasil || s.satuan}` : "COGS belum dihitung"}</div>
+                </div>
+              ));
+            }
             const options = (
               line.itemType === "kemasan"
                 ? bahanList.filter((b) => b.kategoriBahan === "Kemasan & Alat Makan")
-                : line.itemType === "bahan_dasar"
-                  ? bahanList.filter((b) => b.kategoriBahan !== "Kemasan & Alat Makan")
-                  : bahanList.filter((b) => b.tipeBahan === "raw_bulk")
+                : bahanList.filter((b) => b.kategoriBahan !== "Kemasan & Alat Makan")
             ).filter((b) => !q || b.namaBahan.toLowerCase().includes(q));
             if (options.length === 0) return (
               <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>
@@ -2242,6 +2573,238 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
                 onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = b.id === line.itemId ? "rgba(200,241,53,0.07)" : "transparent")}
               >
+                {b.namaBahan}
+              </div>
+            ));
+          })()}
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Tambah Raw Menu */}
+      {showAddSFG && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 420, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #F59E0B, #C8F135, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Raw Menu</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Raw Menu *</label>
+                  <input value={sfgForm.namaSemiFinished} onChange={e => setSfgForm(f => ({ ...f, namaSemiFinished: e.target.value }))}
+                    placeholder="cth: Sambal Bawang, Suwir Ayam"
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Satuan Hasil *</label>
+                    <input value={sfgForm.satuanHasil} onChange={e => setSfgForm(f => ({ ...f, satuanHasil: e.target.value }))}
+                      placeholder="gram, porsi, pcs"
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 5 }}>
+                      {["gram", "ml", "porsi", "pcs", "liter"].map(u => (
+                        <button key={u} type="button" onClick={() => setSfgForm(f => ({ ...f, satuanHasil: u }))}
+                          style={{ padding: "2px 7px", borderRadius: 8, fontSize: 10, cursor: "pointer", border: `1px solid ${sfgForm.satuanHasil === u ? "rgba(245,158,11,0.5)" : "#2D2D44"}`, background: sfgForm.satuanHasil === u ? "rgba(245,158,11,0.12)" : "transparent", color: sfgForm.satuanHasil === u ? "#F59E0B" : "#6B7280" }}>{u}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Jumlah Hasil *</label>
+                    <input type="number" value={sfgForm.jumlahHasil} onChange={e => setSfgForm(f => ({ ...f, jumlahHasil: e.target.value }))}
+                      placeholder="200"
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                    <div style={{ fontSize: 10, color: "#4B5563", marginTop: 4 }}>Berapa {sfgForm.satuanHasil || "unit"} yang dihasilkan dari satu batch resep ini?</div>
+                  </div>
+                </div>
+                {outletList.length > 1 && (
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                    <select value={sfgForm.outletId} onChange={e => setSfgForm(f => ({ ...f, outletId: e.target.value }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}>
+                      {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button onClick={() => setShowAddSFG(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleCreateSFG} disabled={sfgSaving || !sfgForm.namaSemiFinished.trim()} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
+                  {sfgSaving ? "Menyimpan..." : "Simpan Raw Menu"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Raw Menu */}
+      {editSFG && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 420, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #60A5FA, #F59E0B, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Raw Menu — <span style={{ color: "#60A5FA", fontFamily: "monospace" }}>{editSFG.id}</span></h2>
+              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 20px" }}>{editSFG.namaSemiFinished}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Raw Menu *</label>
+                  <input value={editSFGForm.namaSemiFinished} onChange={e => setEditSFGForm(f => ({ ...f, namaSemiFinished: e.target.value }))}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Satuan Hasil</label>
+                    <input value={editSFGForm.satuanHasil} onChange={e => setEditSFGForm(f => ({ ...f, satuanHasil: e.target.value }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 5 }}>
+                      {["gram", "ml", "porsi", "pcs", "liter"].map(u => (
+                        <button key={u} type="button" onClick={() => setEditSFGForm(f => ({ ...f, satuanHasil: u }))}
+                          style={{ padding: "2px 7px", borderRadius: 8, fontSize: 10, cursor: "pointer", border: `1px solid ${editSFGForm.satuanHasil === u ? "rgba(245,158,11,0.5)" : "#2D2D44"}`, background: editSFGForm.satuanHasil === u ? "rgba(245,158,11,0.12)" : "transparent", color: editSFGForm.satuanHasil === u ? "#F59E0B" : "#6B7280" }}>{u}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Jumlah Hasil</label>
+                    <input type="number" value={editSFGForm.jumlahHasil} onChange={e => setEditSFGForm(f => ({ ...f, jumlahHasil: e.target.value }))}
+                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button onClick={() => setEditSFG(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleUpdateSFG} disabled={sfgSaving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
+                  {sfgSaving ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal SFG BOM Editor (Raw Menu Recipe) */}
+      {showSFGEditor && selectedSFG && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 620, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #F59E0B, #C8F135, transparent)" }} />
+            <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Resep — <span style={{ color: "#F59E0B" }}>{selectedSFG.namaSemiFinished}</span></h2>
+              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 16px" }}>
+                Hasil: {parseFloat(selectedSFG.jumlahHasil).toLocaleString("id-ID")} {selectedSFG.satuanHasil || selectedSFG.satuan}
+              </p>
+              {/* BOM header */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid #1E1E2E" }}>
+                <div style={{ width: 100, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
+                <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
+                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
+                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
+                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
+                <div style={{ width: 28 }} />
+              </div>
+              <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                {sfgBomLines.map((line, idx) => {
+                  const nestedSfg = line.itemType === "semi_finished" ? sfgList.find(s => s.id === line.itemId && s.id !== selectedSFG.id) : undefined;
+                  const bahan = line.itemType === "bahan_dasar" ? bahanList.find(b => b.id === line.itemId) : undefined;
+                  const satuan = line.itemType === "semi_finished" ? (nestedSfg?.satuanHasil || nestedSfg?.satuan) : bahan?.satuanDapur;
+                  const subCogs = line.itemType === "semi_finished"
+                    ? line.qty * parseFloat(nestedSfg?.cogsPerUnit ?? "0")
+                    : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
+                  return (
+                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                      <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                        style={{ width: 100, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                        <option value="bahan_dasar">Bahan</option>
+                        <option value="semi_finished">Sub-Resep</option>
+                      </select>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          ref={el => { sfgBomInputRefs.current[idx] = el; }}
+                          value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
+                          onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                          onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                          onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
+                          placeholder="— Cari item —"
+                          style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                        />
+                      </div>
+                      <input type="number" value={line.qty} min={0.001} step={0.001}
+                        onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
+                        style={{ width: 70, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
+                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
+                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                      </span>
+                      <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
+                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
+                    </div>
+                  );
+                })}
+                {sfgBomLines.length === 0 && (
+                  <div style={{ padding: "16px 0", textAlign: "center", color: "#374151", fontSize: 11 }}>Belum ada bahan. Klik "+ Tambah Baris".</div>
+                )}
+              </div>
+              <button onClick={() => setSfgBomLines(l => [...l, { itemType: "bahan_dasar", itemId: "", qty: 1 }])}
+                style={{ marginTop: 8, fontSize: 11, padding: "6px 12px", border: "1px dashed #2D2D44", borderRadius: 6, background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+                + Tambah Baris
+              </button>
+              {/* COGS Summary */}
+              <div style={{ marginTop: 14, padding: "12px 14px", background: "#0F0F18", borderRadius: 8, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Total COGS Batch</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#C8F135" }}>Rp {Math.round(sfgTotalCOGS).toLocaleString("id-ID")}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Jumlah Hasil</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0" }}>
+                    {parseFloat(selectedSFG.jumlahHasil).toLocaleString("id-ID")} {selectedSFG.satuanHasil || selectedSFG.satuan}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>COGS / Unit</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#F59E0B" }}>
+                    {parseFloat(selectedSFG.jumlahHasil) > 0
+                      ? `Rp ${Math.round(sfgTotalCOGS / parseFloat(selectedSFG.jumlahHasil)).toLocaleString("id-ID")}`
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
+                <button onClick={() => setShowSFGEditor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={handleSaveSFGBOM} disabled={sfgSaving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
+                  {sfgSaving ? "Menyimpan..." : "Simpan Resep"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SFG BOM combobox dropdown — rendered via portal */}
+      {sfgBomOpenIdx !== null && sfgBomDropdownRect && typeof window !== "undefined" && createPortal(
+        <div style={{ position: "fixed", top: sfgBomDropdownRect.bottom + 2, left: sfgBomDropdownRect.left, width: sfgBomDropdownRect.width, background: "#13131F", border: "1px solid #2D2D44", borderRadius: 7, zIndex: 9999, maxHeight: 220, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.7)" }}>
+          {(() => {
+            const line = sfgBomLines[sfgBomOpenIdx];
+            if (!line) return null;
+            const q = (sfgBomSearches[sfgBomOpenIdx] ?? "").toLowerCase();
+            if (line.itemType === "semi_finished") {
+              const sfgOptions = sfgList.filter(s => s.id !== selectedSFG!.id && (!q || s.namaSemiFinished.toLowerCase().includes(q)));
+              if (sfgOptions.length === 0) return <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>;
+              return sfgOptions.map(s => (
+                <div key={s.id} onMouseDown={() => { setSfgBomLines(l => l.map((x, i) => i === sfgBomOpenIdx ? { ...x, itemId: s.id } : x)); setSfgBomSearches(sr => { const a = [...sr]; a[sfgBomOpenIdx!] = s.namaSemiFinished; return a; }); setSfgBomOpenIdx(null); }}
+                  style={{ padding: "7px 12px", fontSize: 11, cursor: "pointer", color: s.id === line.itemId ? "#C8F135" : "#E2E8F0" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                  <div>{s.namaSemiFinished}</div>
+                  <div style={{ fontSize: 9, color: "#F59E0B" }}>{parseFloat(s.cogsPerUnit) > 0 ? formatRupiah(parseFloat(s.cogsPerUnit)) : "COGS belum dihitung"} /{s.satuanHasil || s.satuan}</div>
+                </div>
+              ));
+            }
+            const opts = bahanList.filter(b => !q || b.namaBahan.toLowerCase().includes(q));
+            if (opts.length === 0) return <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>;
+            return opts.map(b => (
+              <div key={b.id} onMouseDown={() => { setSfgBomLines(l => l.map((x, i) => i === sfgBomOpenIdx ? { ...x, itemId: b.id } : x)); setSfgBomSearches(sr => { const a = [...sr]; a[sfgBomOpenIdx!] = b.namaBahan; return a; }); setSfgBomOpenIdx(null); }}
+                style={{ padding: "7px 12px", fontSize: 11, cursor: "pointer", color: b.id === line.itemId ? "#C8F135" : "#E2E8F0" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                 {b.namaBahan}
               </div>
             ));

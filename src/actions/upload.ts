@@ -134,8 +134,24 @@ export async function processUpload(
         matchedBahanRecord.avgDailyConsumption = avgPerDay;
       }
 
+      // Normalize stokAkhir to satuanDapur if Excel reports in kemasan unit
+      let stokAkhirNorm = row.stokAkhir;
+      if (row.satuan) {
+        const exSat = row.satuan.toLowerCase().trim();
+        const dapurSat = matchedBahanRecord.satuanDapur.toLowerCase().trim();
+        const beliSat = matchedBahanRecord.satuanBeli.toLowerCase().replace(/[^a-z]/g, "").trim();
+        const isiSatuan = parseFloat(matchedBahanRecord.isiSatuan);
+        if (
+          exSat !== dapurSat &&
+          isiSatuan > 1 &&
+          (exSat === beliSat || beliSat.includes(exSat) || exSat.includes(beliSat))
+        ) {
+          stokAkhirNorm = row.stokAkhir * isiSatuan;
+        }
+      }
+
       const status = calculateStockStatus({
-        stokAkhir: row.stokAkhir,
+        stokAkhir: stokAkhirNorm,
         stokMinimum: matchedBahanRecord.stokMinimum,
         leadTimeDays: matchedBahanRecord.leadTimeDays,
         avgDailyConsumption: matchedBahanRecord.avgDailyConsumption,
@@ -148,7 +164,7 @@ export async function processUpload(
         namaBahan: matchedBahanRecord.namaBahan,
         kategori: row.kategori,
         tipeBahan: matchedBahanRecord.tipeBahan,
-        stokAkhir: row.stokAkhir,
+        stokAkhir: stokAkhirNorm,
         satuanDapur: row.satuan || matchedBahanRecord.satuanDapur,
         stokMinimum: matchedBahanRecord.stokMinimum,
         leadTimeDays: matchedBahanRecord.leadTimeDays,
