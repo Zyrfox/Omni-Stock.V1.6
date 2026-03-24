@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { BadgeStatus, Badge } from "@/components/shared/badge-status";
 import { estimasiHariHabis } from "@/lib/stock-status";
@@ -52,6 +52,21 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [invViewMode, setInvViewMode] = useState<"card" | "table">("card");
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    function onFab() { fileRef.current?.click(); }
+    window.addEventListener("omni:fab-upload", onFab);
+    return () => window.removeEventListener("omni:fab-upload", onFab);
+  }, []);
 
   // Compute stats from stockItems or allBahan fallback
   const displayItems: UploadedStockItem[] = stockItems.length > 0 ? stockItems : allBahan.map((b) => ({
@@ -454,6 +469,12 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 ✕ Reset
               </button>
             )}
+            {isMobile && (
+              <div style={{ display: "flex", gap: 4 }}>
+                <button className={`view-toggle-btn${invViewMode === "card" ? " active" : ""}`} onClick={() => setInvViewMode("card")}>Cards</button>
+                <button className={`view-toggle-btn${invViewMode === "table" ? " active" : ""}`} onClick={() => setInvViewMode("table")}>Tabel</button>
+              </div>
+            )}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
               <span style={{ fontSize: 10, color: "#4B5563" }}>{filteredItems.length} item</span>
               <select
@@ -465,7 +486,57 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </select>
             </div>
           </div>
-          <div style={{ overflowX: "auto" }}>
+          {isMobile && invViewMode === "card" ? (
+            <div className="inv-card-list">
+              {pagedItems.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  {displayItems.length === 0 ? "Upload kartu stok untuk melihat inventory." : "Tidak ada item yang cocok."}
+                </div>
+              ) : pagedItems.map((item) => {
+                const statusColor = item.status === "CRITICAL" ? "#EF4444" : item.status === "WARNING" ? "#F59E0B" : "#22C55E";
+                const inCart = item.bahanId ? poCart.find((c) => c.bahanId === item.bahanId) : false;
+                return (
+                  <div key={item.bahanId ?? item.namaBahan} className="inv-card" style={{ borderLeft: `3px solid ${statusColor}` }}>
+                    <div className="inv-card-body">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{item.namaBahan}</span>
+                        <BadgeStatus status={item.status} size="sm" />
+                      </div>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, color: "#4B5563", marginTop: 2 }}>{item.bahanId ?? "—"}</div>
+                      <div className="inv-card-data-grid">
+                        {[
+                          { label: "Stok Akhir", value: `${item.stokAkhir} ${item.satuanDapur}` },
+                          { label: "Min. Stok", value: String(item.stokMinimum) },
+                          { label: "Harga Beli", value: formatRupiah(parseFloat(item.hargaBeli)) },
+                        ].map(({ label, value }) => (
+                          <div key={label} style={{ background: "#13131F", borderRadius: 6, padding: "5px 7px" }}>
+                            <div style={{ fontSize: 8, color: "#4B5563", textTransform: "uppercase" }}>{label}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "#E2E8F0", marginTop: 2 }}>{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        {item.tipeBahan && <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{item.tipeBahan}</Badge>}
+                        {item.vendorNama && <span style={{ fontSize: 9, color: "#4B5563" }}>{item.vendorNama}</span>}
+                      </div>
+                    </div>
+                    {item.status !== "SAFE" && item.bahanId && (
+                      <div className="inv-card-cta" style={{ borderTopColor: statusColor, background: `${statusColor}18` }}>
+                        <span style={{ fontSize: 10, color: statusColor, fontWeight: 600 }}>
+                          {item.status === "CRITICAL" ? "Stok kritis" : "Perlu restock"}
+                        </span>
+                        {inCart
+                          ? <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700 }}>✓ In Cart</span>
+                          : <button onClick={() => addToCart(item)} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 5, border: `1px solid ${statusColor}40`, background: `${statusColor}18`, color: statusColor, cursor: "pointer" }}>+ Rancang PO</button>
+                        }
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#14142A" }}>
@@ -573,6 +644,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </tbody>
             </table>
           </div>
+          )}
           {/* Pagination controls */}
           {totalPages > 1 && (
             <div style={{ padding: "10px 16px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>

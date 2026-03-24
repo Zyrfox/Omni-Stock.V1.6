@@ -6,8 +6,8 @@ import { useState } from "react";
 import { NAV_ITEMS } from "@/lib/constants";
 import { authClient } from "@/lib/auth-client";
 
-// 4 items pinned to the bottom bar
-const PINNED_HREFS = ["/dashboard", "/products", "/category", "/billing"];
+// 3 pinned items — FAB occupies the center slot
+const PINNED_HREFS = ["/dashboard", "/products", "/po-logs"];
 const ALL_FLAT = NAV_ITEMS.flatMap((s) => s.items as unknown as Array<{ label: string; icon: string; href: string; adminOnly: boolean }>);
 
 interface BottomBarProps {
@@ -31,6 +31,29 @@ export function BottomBar({ userRole }: BottomBarProps) {
     router.push("/login");
   }
 
+  function handleFabClick() {
+    if (typeof window === "undefined") return;
+    if (window.location.pathname === "/dashboard") {
+      window.dispatchEvent(new CustomEvent("omni:fab-upload"));
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
+  const slotStyle = (isActive: boolean): React.CSSProperties => ({
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    textDecoration: "none",
+    color: isActive ? "#C8F135" : "#6B7280",
+    backgroundColor: isActive ? "rgba(200,241,53,0.05)" : "transparent",
+    borderTop: isActive ? "2px solid #C8F135" : "2px solid transparent",
+    transition: "color 0.15s",
+  });
+
   return (
     <>
       {/* Bottom navigation bar */}
@@ -48,35 +71,86 @@ export function BottomBar({ userRole }: BottomBarProps) {
           zIndex: 60,
         }}
       >
-        {pinnedItems.map((item) => {
+        {/* Slot 1 — Dashboard */}
+        {pinnedItems[0] && (() => {
+          const item = pinnedItems[0];
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 3,
-                textDecoration: "none",
-                color: isActive ? "#C8F135" : "#6B7280",
-                backgroundColor: isActive ? "rgba(200,241,53,0.05)" : "transparent",
-                borderTop: isActive ? "2px solid #C8F135" : "2px solid transparent",
-                transition: "color 0.15s",
-              }}
-            >
+            <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
               <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
               <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                 {item.label.split(" ")[0]}
               </span>
             </Link>
           );
-        })}
+        })()}
 
-        {/* More button */}
+        {/* Slot 2 — Products */}
+        {pinnedItems[1] && (() => {
+          const item = pinnedItems[1];
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          return (
+            <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+              <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                {item.label.split(" ")[0]}
+              </span>
+            </Link>
+          );
+        })()}
+
+        {/* Slot 3 — FAB Upload */}
+        <button
+          onClick={handleFabClick}
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #C8F135, #86EF3C)",
+              border: "3px solid #0F0F18",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              color: "#0A0A0F",
+              fontWeight: 800,
+              marginTop: -14,
+              boxShadow: "0 4px 14px rgba(200,241,53,0.4)",
+            }}
+          >
+            ⬆
+          </div>
+          <span style={{ fontSize: 9, color: "#6B7280", marginTop: 3, letterSpacing: 0.3 }}>Upload</span>
+        </button>
+
+        {/* Slot 4 — PO Logs */}
+        {pinnedItems[2] && (() => {
+          const item = pinnedItems[2];
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          return (
+            <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+              <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
+                {item.label.split(" ")[0]}
+              </span>
+            </Link>
+          );
+        })()}
+
+        {/* Slot 5 — More */}
         <button
           onClick={() => setMoreOpen(true)}
           style={{
@@ -116,7 +190,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
           <div
             style={{
               position: "fixed",
-              bottom: 56,
+              bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
               left: 0,
               right: 0,
               background: "#13131F",

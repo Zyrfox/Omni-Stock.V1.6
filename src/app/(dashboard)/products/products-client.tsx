@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
@@ -154,6 +154,16 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
   const [dragOverResepId, setDragOverResepId] = useState<string | null>(null);
   const [dragGroupBase, setDragGroupBase] = useState<string | null>(null);
   const [dragOverGroupBase, setDragOverGroupBase] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [bahanViewMode, setBahanViewMode] = useState<"card" | "table">("card");
+  const [menuViewMode, setMenuViewMode] = useState<"card" | "table">("card");
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const tabs = ["1. Master Bahan", "2. Master Resep", "3. Master Menu"];
 
@@ -487,15 +497,67 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       {/* Tab 1 — Master Bahan */}
       {activeTab === 1 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center" }}>
             <input
               value={searchBahan}
               onChange={(e) => { setSearchBahan(e.target.value); setBahanPage(0); }}
               placeholder="Cari nama bahan atau ID..."
-              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+              style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
+            {isMobile && (
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button className={`view-toggle-btn${bahanViewMode === "card" ? " active" : ""}`} onClick={() => setBahanViewMode("card")}>Cards</button>
+                <button className={`view-toggle-btn${bahanViewMode === "table" ? " active" : ""}`} onClick={() => setBahanViewMode("table")}>Tabel</button>
+              </div>
+            )}
           </div>
-          <div style={{ overflowX: "auto" }}>
+          {isMobile && bahanViewMode === "card" ? (
+            <div className="bahan-card-list">
+              {pagedBahans.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  {searchBahan ? `Tidak ada bahan "${searchBahan}"` : `Belum ada bahan. Klik "Tambah Bahan" untuk memulai.`}
+                </div>
+              ) : pagedBahans.map((b) => (
+                <div key={b.id} className="bahan-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{b.namaBahan}</span>
+                    <Badge color={b.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{b.tipeBahan}</Badge>
+                  </div>
+                  <div style={{ fontFamily: "monospace", fontSize: 9, color: "#4B5563", marginBottom: 6 }}>{b.id}</div>
+                  <div className="bahan-card-data-row">
+                    {[
+                      { label: "Kemasan", value: b.satuanBeli },
+                      { label: "Dapur", value: b.satuanDapur },
+                      { label: "Min.Stok", value: String(b.stokMinimum) },
+                      { label: "Harga", value: formatRupiah(parseFloat(b.hargaBeli)) },
+                      { label: "Isi/Yield", value: b.isiSatuan || "—" },
+                    ].map(({ label, value }) => (
+                      <div key={label} style={{ background: "#13131F", borderRadius: 5, padding: "3px 7px", fontSize: 10 }}>
+                        <span style={{ color: "#4B5563" }}>{label}: </span>
+                        <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{value}</span>
+                      </div>
+                    ))}
+                    {b.hargaPerSatuanPorsi && parseFloat(b.hargaPerSatuanPorsi) > 0 && (
+                      <div style={{ background: "rgba(200,241,53,0.08)", borderRadius: 5, padding: "3px 7px", fontSize: 10, border: "1px solid rgba(200,241,53,0.2)" }}>
+                        <span style={{ color: "#4B5563" }}>Harga/Porsi: </span>
+                        <span style={{ color: "#C8F135", fontWeight: 700 }}>{formatRupiah(parseFloat(b.hargaPerSatuanPorsi))}</span>
+                      </div>
+                    )}
+                  </div>
+                  {!isGuest && (
+                    <div className="bahan-card-actions">
+                      {isAdmin && (
+                        <button onClick={() => { setRenameTarget({ id: b.id }); setRenameNewId(b.id); setRenameError(""); }} style={{ fontSize: 10, padding: "4px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer" }}>ID</button>
+                      )}
+                      <button onClick={() => openEdit(b)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                      <button onClick={() => handleDeleteBahan(b.id)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+          <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -555,6 +617,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             </tbody>
           </table>
           </div>
+          )}
           {/* Pagination */}
           {filteredBahans.length > 0 && (
             <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -695,15 +758,105 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
       {/* Tab 3 — Master Menu */}
       {activeTab === 3 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center" }}>
             <input
               value={searchMenu}
               onChange={(e) => { setSearchMenu(e.target.value); setMenuPage(0); }}
               placeholder="Cari nama menu atau ID..."
-              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+              style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
+            {isMobile && (
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button className={`view-toggle-btn${menuViewMode === "card" ? " active" : ""}`} onClick={() => setMenuViewMode("card")}>Cards</button>
+                <button className={`view-toggle-btn${menuViewMode === "table" ? " active" : ""}`} onClick={() => setMenuViewMode("table")}>Tabel</button>
+              </div>
+            )}
           </div>
-          <div style={{ overflowX: "auto" }}>
+          {isMobile && menuViewMode === "card" ? (
+            <div className="menu-group-card-list">
+              {pagedMenuGroups.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  {searchMenu ? `Tidak ada menu "${searchMenu}"` : `Belum ada menu. Klik "+ Tambah Menu" untuk memulai.`}
+                </div>
+              ) : pagedMenuGroups.map(([baseName, variants]) => {
+                const isExpanded = expandedGroups.has(baseName);
+                const toggle = () => setExpandedGroups(prev => {
+                  const next = new Set(prev);
+                  next.has(baseName) ? next.delete(baseName) : next.add(baseName);
+                  return next;
+                });
+                return (
+                  <div key={baseName} className="menu-group-card">
+                    <div className="menu-group-card-header" onClick={toggle}>
+                      <span style={{ color: "#C8F135", fontSize: 12 }}>{isExpanded ? "▾" : "▸"}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1 }}>{baseName}</span>
+                      <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "rgba(200,241,53,0.1)", color: "#C8F135", border: "1px solid rgba(200,241,53,0.2)" }}>
+                        {variants.length} channel
+                      </span>
+                    </div>
+                    {isExpanded && (
+                      <div className="menu-group-card-channels">
+                        {variants.map((m) => {
+                          const cogs = parseFloat(m.totalCogs ?? "0");
+                          const hj = parseFloat(m.hargaJual ?? "0");
+                          const fee = parseFloat(m.platformFeePercent ?? "0");
+                          const feeAmount = hj * fee / 100;
+                          const netRevenue = hj - feeAmount;
+                          const margin = netRevenue > 0 && cogs > 0 ? ((netRevenue - cogs) / netRevenue * 100) : null;
+                          const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
+                          const chType = inferChannelType(m);
+                          return (
+                            <div key={m.id} className="menu-channel-row">
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>
+                                  {getChannelIcon(chType)} {getChannelLabel(chType)}
+                                  {fee > 0 && <span style={{ marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 8, background: "rgba(245,158,11,0.12)", color: "#F59E0B" }}>fee {fee}%</span>}
+                                </span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: marginColor }}>{margin !== null ? `${margin.toFixed(1)}%` : "—"}</span>
+                              </div>
+                              <div className="menu-channel-detail-row" style={{ fontSize: 10, color: "#4B5563", marginTop: 3 }}>
+                                <span>COGS: <span style={{ color: "#C8F135" }}>{formatRupiah(cogs)}</span></span>
+                                <span>Jual: <span style={{ color: "#E2E8F0" }}>{hj > 0 ? formatRupiah(hj) : "—"}</span></span>
+                                {fee > 0 && <span>Fee: <span style={{ color: "#F59E0B" }}>{formatRupiah(feeAmount)}</span></span>}
+                              </div>
+                              <div style={{ marginTop: 6 }}>
+                                <button
+                                  onClick={() => {
+                                    setSelectedMenu(m);
+                                    setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                                    setBomHargaJual(m.hargaJual ?? "");
+                                    setBomSearches([]);
+                                    setBomOpenIdx(null);
+                                    setShowBOMEditor(true);
+                                  }}
+                                  style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                                >
+                                  {m.mappingResep && m.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="menu-group-card-footer">
+                      <button
+                        onClick={() => {
+                          setAddVariantBase(baseName);
+                          setMenuForm(f => ({ ...f, namaMenu: baseName, channelType: "dine_in", platformFeePercent: "0" }));
+                          setShowAddMenu(true);
+                        }}
+                        style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer" }}
+                      >
+                        + Variant
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#14142A" }}>
@@ -884,6 +1037,7 @@ export function ProductsClient({ bahanList, menuList, outletList, vendorList }: 
             </tbody>
           </table>
           </div>
+          )}
           {/* Pagination Menu */}
           {menuGroups.length > 0 && (
             <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

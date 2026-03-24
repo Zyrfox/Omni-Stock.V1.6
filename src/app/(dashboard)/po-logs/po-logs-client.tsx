@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
@@ -37,7 +37,16 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
   const [statusFilter, setStatusFilter] = useState<"" | "draft" | "sent" | "received">("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [isMobile, setIsMobile] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const router = useRouter();
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   async function handleSend(id: string) {
     setActionLoading(id);
@@ -94,8 +103,78 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
               {s === "" ? "Semua" : s.toUpperCase()}
             </button>
           ))}
+          {isMobile && (
+            <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
+              <button className={`view-toggle-btn${viewMode === "card" ? " active" : ""}`} onClick={() => setViewMode("card")}>Cards</button>
+              <button className={`view-toggle-btn${viewMode === "table" ? " active" : ""}`} onClick={() => setViewMode("table")}>Tabel</button>
+            </div>
+          )}
         </div>
-        <div style={{ overflowX: "auto" }}>
+        {isMobile && viewMode === "card" ? (
+          <div className="po-card-list">
+            {paged.length === 0 ? (
+              <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                {search || statusFilter ? "Tidak ada PO yang cocok." : "Belum ada PO."}
+              </div>
+            ) : paged.map((po) => {
+              const currentStep = TIMELINE.indexOf(po.status);
+              return (
+                <div key={po.id} className="po-card" onClick={() => setSelectedPO(po)}>
+                  <div className="po-card-header">
+                    <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: "#C8F135" }}>{po.id}</span>
+                    <Badge color={po.status === "received" ? "green" : po.status === "sent" ? "amber" : "gray"} size="sm">{po.status.toUpperCase()}</Badge>
+                  </div>
+                  <div className="po-card-body">
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{po.bahan?.namaBahan}</div>
+                    <div style={{ fontSize: 10, color: "#6B7280", marginTop: 2 }}>
+                      {po.vendor?.namaVendor} · {po.createdByUser?.nama ?? po.createdBy} · {formatDateTime(po.createdAt)}
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#EF4444", marginTop: 4 }}>{formatRupiah(parseFloat(po.totalHarga))}</div>
+                    {/* Inline status timeline */}
+                    <div className="po-timeline-inline">
+                      {TIMELINE.map((step, i) => {
+                        const done = i <= currentStep;
+                        const color = done ? (step === "received" ? "#22C55E" : step === "sent" ? "#F59E0B" : "#6B7280") : "#2D2D44";
+                        return (
+                          <Fragment key={step}>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: "50%", background: done ? color : "transparent", border: `2px solid ${color}` }} />
+                              <span style={{ fontSize: 8, color: done ? color : "#2D2D44", textTransform: "uppercase", whiteSpace: "nowrap" }}>{step}</span>
+                            </div>
+                            {i < TIMELINE.length - 1 && (
+                              <div style={{ flex: 1, height: 2, background: i < currentStep ? color : "#2D2D44", marginBottom: 12 }} />
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="po-card-actions" onClick={(e) => e.stopPropagation()}>
+                    {po.status === "draft" && (
+                      <button onClick={() => handleSend(po.id)} disabled={actionLoading === po.id}
+                        style={{ fontSize: 10, padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#F59E0B", cursor: "pointer" }}>
+                        📤 Kirim
+                      </button>
+                    )}
+                    {po.status === "sent" && (
+                      <button onClick={() => handleReceive(po.id)} disabled={actionLoading === po.id}
+                        style={{ fontSize: 10, padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.1)", color: "#22C55E", cursor: "pointer" }}>
+                        ✓ Terima
+                      </button>
+                    )}
+                    {po.vendor?.kontakWa && (
+                      <a href={`https://wa.me/${formatWANumber(po.vendor.kontakWa)}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 10, padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none" }}>
+                        📱 WA
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+        <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#14142A" }}>
@@ -155,6 +234,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
           </tbody>
         </table>
         </div>
+        )}
         {/* Pagination */}
         {filtered.length > 0 && (
           <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

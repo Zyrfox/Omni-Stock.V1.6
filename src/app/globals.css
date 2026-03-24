@@ -292,9 +292,15 @@ table td {
     display: none !important;
   }
 
-  /* Reduce main padding + add bottom padding for bottom bar */
+  /* Reduce main padding + add bottom padding for bottom bar (safe area aware) */
   .dashboard-main {
-    padding: 16px 16px 72px !important;
+    padding: 16px 16px calc(72px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Bottom bar: extend into safe area on notched phones */
+  .bottom-bar-mobile {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    height: calc(56px + env(safe-area-inset-bottom)) !important;
   }
 
   /* Touch-friendly tap targets */
@@ -332,5 +338,51 @@ table td {
   }
   .table-row-hover:hover .col-sticky-nama {
     background: #14142A;
+  }
+
+  /* ─── Inventory Card View ─── */
+  .inv-card-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .inv-card { border-radius: 10px; background: #0F0F18; border: 1px solid #1E1E2E; overflow: hidden; }
+  .inv-card-body { padding: 10px 12px; }
+  .inv-card-data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+  .inv-card-cta { padding: 8px 12px; border-top: 1px solid; display: flex; align-items: center; justify-content: space-between; }
+
+  /* ─── Master Bahan Card View ─── */
+  .bahan-card-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .bahan-card { background: #0F0F18; border: 1px solid #1E1E2E; border-radius: 10px; padding: 10px 12px; }
+  .bahan-card-data-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+  .bahan-card-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+  /* ─── Master Menu Group Card View ─── */
+  .menu-group-card-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .menu-group-card { background: #0F0F18; border: 1px solid #1E1E2E; border-radius: 10px; overflow: hidden; }
+  .menu-group-card-header { padding: 10px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; background: #0F0F1A; }
+  .menu-group-card-channels { border-top: 1px solid #1E1E2E; }
+  .menu-channel-row { padding: 8px 12px; border-bottom: 1px solid #131320; display: flex; flex-direction: column; gap: 3px; }
+  .menu-channel-detail-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .menu-group-card-footer { padding: 8px 12px; border-top: 1px solid #1E1E2E; display: flex; gap: 8px; }
+
+  /* ─── PO Card View ─── */
+  .po-card-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .po-card { background: #0F0F18; border: 1px solid #1E1E2E; border-radius: 10px; overflow: hidden; cursor: pointer; }
+  .po-card-header { padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #131320; }
+  .po-card-body { padding: 10px 12px; }
+  .po-timeline-inline { display: flex; align-items: center; gap: 4px; margin: 8px 0; }
+  .po-card-actions { padding: 8px 12px; border-top: 1px solid #1E1E2E; display: flex; gap: 6px; }
+
+  /* ─── View Toggle Buttons ─── */
+  .view-toggle-btn { padding: 5px 10px; border-radius: 6px; border: 1px solid #2D2D44; background: transparent; color: #6B7280; font-size: 11px; cursor: pointer; }
+  .view-toggle-btn.active { border-color: rgba(200,241,53,0.4); background: rgba(200,241,53,0.08); color: #C8F135; }
+
+  /* ─── Modal fullscreen sheet on mobile ─── */
+  .modal-sheet-mobile {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
   }
 }
