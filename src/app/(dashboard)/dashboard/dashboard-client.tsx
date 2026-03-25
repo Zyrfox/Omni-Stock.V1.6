@@ -68,24 +68,34 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
     return () => window.removeEventListener("omni:fab-upload", onFab);
   }, []);
 
-  // Compute stats from stockItems or allBahan fallback
-  const displayItems: UploadedStockItem[] = stockItems.length > 0 ? stockItems : allBahan.map((b) => ({
-    bahanId: b.id,
-    namaBahan: b.namaBahan,
-    kategori: "",
-    tipeBahan: b.tipeBahan,
-    stokAkhir: 0,
-    satuanDapur: b.satuanDapur,
-    stokMinimum: b.stokMinimum,
-    leadTimeDays: b.leadTimeDays,
-    avgDailyConsumption: b.avgDailyConsumption,
-    hargaBeli: b.hargaBeli,
-    satuanBeli: b.satuanBeli,
-    hargaPerSatuanPorsi: b.hargaPerSatuanPorsi,
-    status: "CRITICAL" as const,
-    vendorNama: (b.vendorBahan as any)?.[0]?.vendor?.namaVendor,
-    vendorId: (b.vendorBahan as any)?.[0]?.vendor?.id,
-  }));
+  // Always base from allBahan, overlay matched upload data by bahanId
+  const displayItems: UploadedStockItem[] = (() => {
+    const byBahanId = new Map<string, UploadedStockItem>(
+      stockItems.filter(s => s.bahanId).map(s => [s.bahanId!, s])
+    );
+    return allBahan.map((b) => {
+      const uploaded = byBahanId.get(b.id);
+      const vendorPrimary = (b.vendorBahan as any)?.[0]?.vendor;
+      if (uploaded) return uploaded;
+      return {
+        bahanId: b.id,
+        namaBahan: b.namaBahan,
+        kategori: b.kategoriBahan ?? "",
+        tipeBahan: b.tipeBahan,
+        stokAkhir: 0,
+        satuanDapur: b.satuanDapur,
+        stokMinimum: b.stokMinimum,
+        leadTimeDays: b.leadTimeDays,
+        avgDailyConsumption: b.avgDailyConsumption,
+        hargaBeli: b.hargaBeli,
+        satuanBeli: b.satuanBeli,
+        hargaPerSatuanPorsi: b.hargaPerSatuanPorsi,
+        status: "CRITICAL" as const,
+        vendorNama: vendorPrimary?.namaVendor,
+        vendorId: vendorPrimary?.id,
+      };
+    });
+  })();
 
   const [invSearch, setInvSearch] = useState("");
   const [invStatusFilter, setInvStatusFilter] = useState<"" | "SAFE" | "WARNING" | "CRITICAL">("");
