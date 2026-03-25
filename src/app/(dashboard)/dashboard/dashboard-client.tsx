@@ -90,6 +90,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   const [invSearch, setInvSearch] = useState("");
   const [invStatusFilter, setInvStatusFilter] = useState<"" | "SAFE" | "WARNING" | "CRITICAL">("");
   const [invVendorFilter, setInvVendorFilter] = useState("");
+  const [invTipeBahanFilter, setInvTipeBahanFilter] = useState<"" | "packaged" | "raw_bulk">("");
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const vendorOptions = Array.from(new Set(displayItems.map((i) => i.vendorNama).filter(Boolean))) as string[];
 
@@ -97,6 +99,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
     if (invSearch && !i.namaBahan.toLowerCase().includes(invSearch.toLowerCase())) return false;
     if (invStatusFilter && i.status !== invStatusFilter) return false;
     if (invVendorFilter && i.vendorNama !== invVendorFilter) return false;
+    if (invTipeBahanFilter && i.tipeBahan !== invTipeBahanFilter) return false;
     return true;
   });
 
@@ -437,55 +440,214 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             overflow: "hidden",
           }}
         >
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginRight: 4 }}>Tabel Inventory</span>
-            <input
-              value={invSearch}
-              onChange={(e) => setInvSearch(e.target.value)}
-              placeholder="Cari nama bahan..."
-              style={{ flex: "1 1 160px", minWidth: 120, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
-            />
-            <select
-              value={invStatusFilter}
-              onChange={(e) => setInvStatusFilter(e.target.value as any)}
-              style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invStatusFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
-            >
-              <option value="">Semua Status</option>
-              <option value="SAFE">SAFE</option>
-              <option value="WARNING">WARNING</option>
-              <option value="CRITICAL">CRITICAL</option>
-            </select>
-            <select
-              value={invVendorFilter}
-              onChange={(e) => setInvVendorFilter(e.target.value)}
-              style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
-            >
-              <option value="">Semua Vendor</option>
-              {vendorOptions.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-            {(invSearch || invStatusFilter || invVendorFilter) && (
-              <button onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); }}
-                style={{ background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "#6B7280", cursor: "pointer" }}>
-                ✕ Reset
-              </button>
-            )}
-            {isMobile && (
-              <div style={{ display: "flex", gap: 4 }}>
-                <button className={`view-toggle-btn${invViewMode === "card" ? " active" : ""}`} onClick={() => setInvViewMode("card")}>Cards</button>
-                <button className={`view-toggle-btn${invViewMode === "table" ? " active" : ""}`} onClick={() => setInvViewMode("table")}>Tabel</button>
+          {isMobile ? (
+            /* ─── Mobile Header ─── */
+            <div>
+              {/* Row 1: title + count/filter */}
+              <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#E2E8F0" }}>Tabel inventory</span>
+                {invViewMode === "card" ? (
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: "#4B5563" }}>{filteredItems.length} item</span>
+                    <button
+                      onClick={() => setFilterOpen(prev => !prev)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, border: filterOpen ? "1px solid rgba(200,241,53,0.5)" : "1px solid #2D2D44", background: filterOpen ? "rgba(200,241,53,0.08)" : "transparent", color: filterOpen ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
+                    >
+                      ⊟ Filter
+                    </button>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 11, color: "#4B5563" }}>{filteredItems.length} item · {rowsPerPage} baris</span>
+                )}
               </div>
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-              <span style={{ fontSize: 10, color: "#4B5563" }}>{filteredItems.length} item</span>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(0); }}
-                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "#6B7280", outline: "none" }}
-              >
-                {[20, 30, 40, 50].map((n) => <option key={n} value={n}>{n} baris</option>)}
-              </select>
+              {/* Row 2: search */}
+              <div style={{ padding: "0 12px 10px" }}>
+                <input
+                  value={invSearch}
+                  onChange={(e) => { setInvSearch(e.target.value); setCurrentPage(0); }}
+                  placeholder="Cari nama bahan..."
+                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              {/* Row 3: status quick-filter tabs (card view, filter closed) */}
+              {invViewMode === "card" && !filterOpen && (
+                <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+                  {([
+                    { key: "" as const, label: "Semua", count: displayItems.length, color: "#E2E8F0" },
+                    { key: "CRITICAL" as const, label: "Critical", count: critCount, color: "#EF4444" },
+                    { key: "WARNING" as const, label: "Warning", count: warnCount, color: "#F59E0B" },
+                    { key: "SAFE" as const, label: "Safe", count: safeCount, color: "#22C55E" },
+                  ] as const).map(({ key, label, count, color }) => {
+                    const active = invStatusFilter === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => { setInvStatusFilter(key); setCurrentPage(0); }}
+                        style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${active ? color : "#2D2D44"}`, background: active ? `${color}22` : "transparent", color: active ? color : "#4B5563", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}
+                      >
+                        {label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Row 4: expandable filter panel */}
+              {filterOpen && (
+                <div style={{ padding: "0 12px 14px" }}>
+                  <div style={{ background: "#0F0F18", border: "1px solid #1E1E2E", borderRadius: 10, padding: "14px 14px 12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Filter &amp; sort</span>
+                      <button
+                        onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); setInvTipeBahanFilter(""); setRowsPerPage(20); setCurrentPage(0); }}
+                        style={{ fontSize: 11, color: "#60A5FA", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >Reset</button>
+                    </div>
+                    {/* STATUS */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Status</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {([
+                          { key: "" as const, label: "Semua", count: displayItems.length, color: "#E2E8F0" },
+                          { key: "CRITICAL" as const, label: `Critical (${critCount})`, color: "#EF4444" },
+                          { key: "WARNING" as const, label: `Warning (${warnCount})`, color: "#F59E0B" },
+                          { key: "SAFE" as const, label: `Safe (${safeCount})`, color: "#22C55E" },
+                        ] as const).map(({ key, label, color }) => {
+                          const active = invStatusFilter === key;
+                          return (
+                            <button key={key} onClick={() => setInvStatusFilter(key)}
+                              style={{ padding: "5px 11px", borderRadius: 6, border: `1px solid ${active ? color : "#2D2D44"}`, background: active ? `${color}18` : "transparent", color: active ? color : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* VENDOR */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Vendor</div>
+                      <div style={{ position: "relative" }}>
+                        <select value={invVendorFilter} onChange={(e) => setInvVendorFilter(e.target.value)}
+                          style={{ width: "100%", background: "#13131F", border: "1px solid #2D2D44", borderRadius: 8, padding: "8px 30px 8px 12px", fontSize: 12, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none", appearance: "none", WebkitAppearance: "none" as any }}>
+                          <option value="">Semua Vendor</option>
+                          {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                        <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#4B5563", pointerEvents: "none", fontSize: 10 }}>▼</span>
+                      </div>
+                    </div>
+                    {/* TIPE BAHAN */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tipe Bahan</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {([
+                          { key: "" as const, label: "Semua" },
+                          { key: "packaged" as const, label: "Packaged" },
+                          { key: "raw_bulk" as const, label: "Raw/Bulk" },
+                        ] as const).map(({ key, label }) => {
+                          const active = invTipeBahanFilter === key;
+                          return (
+                            <button key={key} onClick={() => setInvTipeBahanFilter(key)}
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* BARIS PER HALAMAN */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Baris per Halaman</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {[20, 30, 40, 50].map(n => {
+                          const active = rowsPerPage === n;
+                          return (
+                            <button key={n} onClick={() => { setRowsPerPage(n); setCurrentPage(0); }}
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              {n}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* TAMPILAN */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tampilan</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {([{ key: "card" as const, label: "Card" }, { key: "table" as const, label: "Tabel" }] as const).map(({ key, label }) => {
+                          const active = invViewMode === key;
+                          return (
+                            <button key={key} onClick={() => setInvViewMode(key)}
+                              style={{ padding: "5px 20px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* Apply */}
+                    <button onClick={() => setFilterOpen(false)} className="btn-accent"
+                      style={{ width: "100%", padding: "12px", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700, borderRadius: 8 }}>
+                      Terapkan Filter
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div style={{ borderBottom: "1px solid #1E1E2E" }} />
             </div>
-          </div>
+          ) : (
+            /* ─── Desktop Header ─── */
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginRight: 4 }}>Tabel Inventory</span>
+              <input
+                value={invSearch}
+                onChange={(e) => setInvSearch(e.target.value)}
+                placeholder="Cari nama bahan..."
+                style={{ flex: "1 1 160px", minWidth: 120, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+              />
+              <select
+                value={invStatusFilter}
+                onChange={(e) => setInvStatusFilter(e.target.value as any)}
+                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invStatusFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+              >
+                <option value="">Semua Status</option>
+                <option value="SAFE">SAFE</option>
+                <option value="WARNING">WARNING</option>
+                <option value="CRITICAL">CRITICAL</option>
+              </select>
+              <select
+                value={invVendorFilter}
+                onChange={(e) => setInvVendorFilter(e.target.value)}
+                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+              >
+                <option value="">Semua Vendor</option>
+                {vendorOptions.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <select
+                value={invTipeBahanFilter}
+                onChange={(e) => setInvTipeBahanFilter(e.target.value as any)}
+                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invTipeBahanFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+              >
+                <option value="">Semua Tipe</option>
+                <option value="packaged">Packaged</option>
+                <option value="raw_bulk">Raw/Bulk</option>
+              </select>
+              {(invSearch || invStatusFilter || invVendorFilter || invTipeBahanFilter) && (
+                <button onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); setInvTipeBahanFilter(""); }}
+                  style={{ background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "#6B7280", cursor: "pointer" }}>
+                  ✕ Reset
+                </button>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+                <span style={{ fontSize: 10, color: "#4B5563" }}>{filteredItems.length} item</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(0); }}
+                  style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "#6B7280", outline: "none" }}
+                >
+                  {[20, 30, 40, 50].map((n) => <option key={n} value={n}>{n} baris</option>)}
+                </select>
+              </div>
+            </div>
+          )}
           {isMobile && invViewMode === "card" ? (
             <div className="inv-card-list">
               {pagedItems.length === 0 ? (
@@ -643,35 +805,71 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 )}
               </tbody>
             </table>
+            {isMobile && (
+              <div style={{ textAlign: "center", padding: "8px 0 6px", color: "#374151", fontSize: 10 }}>— Scroll horizontal —</div>
+            )}
           </div>
           )}
           {/* Pagination controls */}
           {totalPages > 1 && (
-            <div style={{ padding: "10px 16px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 11, color: "#4B5563" }}>
-                Halaman {safePage + 1} dari {totalPages} ({filteredItems.length} item)
-              </span>
-              <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={() => setCurrentPage(0)} disabled={safePage === 0}
-                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>«</button>
-                <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
-                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹ Prev</button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
-                  const p = start + i;
-                  return (
-                    <button key={p} onClick={() => setCurrentPage(p)}
-                      style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
-                      {p + 1}
-                    </button>
-                  );
-                })}
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
-                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>Next ›</button>
-                <button onClick={() => setCurrentPage(totalPages - 1)} disabled={safePage >= totalPages - 1}
-                  style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>»</button>
+            isMobile ? (
+              <div style={{ padding: "10px 12px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#4B5563", flexShrink: 0 }}>
+                  {safePage * rowsPerPage + 1}–{Math.min((safePage + 1) * rowsPerPage, filteredItems.length)} dari {filteredItems.length}
+                </span>
+                <div style={{ display: "flex", gap: 3, overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+                  <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
+                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹</button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
+                    const p = start + i;
+                    return (
+                      <button key={p} onClick={() => setCurrentPage(p)}
+                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        {p + 1}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 5 && safePage < totalPages - 3 && (
+                    <>
+                      <span style={{ padding: "4px 4px", color: "#4B5563", fontSize: 11 }}>…</span>
+                      <button onClick={() => setCurrentPage(totalPages - 1)}
+                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", fontSize: 11, cursor: "pointer" }}>
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
+                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>›</button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ padding: "10px 16px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, color: "#4B5563" }}>
+                  Halaman {safePage + 1} dari {totalPages} ({filteredItems.length} item)
+                </span>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => setCurrentPage(0)} disabled={safePage === 0}
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>«</button>
+                  <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹ Prev</button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
+                    const p = start + i;
+                    return (
+                      <button key={p} onClick={() => setCurrentPage(p)}
+                        style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        {p + 1}
+                      </button>
+                    );
+                  })}
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>Next ›</button>
+                  <button onClick={() => setCurrentPage(totalPages - 1)} disabled={safePage >= totalPages - 1}
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>»</button>
+                </div>
+              </div>
+            )
           )}
         </div>
 

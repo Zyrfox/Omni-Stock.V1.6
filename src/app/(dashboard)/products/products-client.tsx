@@ -176,6 +176,8 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [dragOverGroupBase, setDragOverGroupBase] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [bahanViewMode, setBahanViewMode] = useState<"card" | "table">("card");
+  const [sfgViewMode, setSfgViewMode] = useState<"card" | "table">("card");
+  const [resepViewMode, setResepViewMode] = useState<"card" | "table">("card");
   const [menuViewMode, setMenuViewMode] = useState<"card" | "table">("card");
 
   // Min stok mode toggle (for add/edit bahan forms)
@@ -811,14 +813,74 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
         const pagedSFG = filteredSFG.slice(safeSfgPage * sfgRowsPerPage, (safeSfgPage + 1) * sfgRowsPerPage);
         return (
           <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center" }}>
               <input
                 value={searchSFG}
                 onChange={(e) => { setSearchSFG(e.target.value); setSfgPage(0); }}
                 placeholder="Cari nama raw menu atau ID..."
-                style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
               />
+              {isMobile && (
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <button className={`view-toggle-btn${sfgViewMode === "card" ? " active" : ""}`} onClick={() => setSfgViewMode("card")}>Cards</button>
+                  <button className={`view-toggle-btn${sfgViewMode === "table" ? " active" : ""}`} onClick={() => setSfgViewMode("table")}>Tabel</button>
+                </div>
+              )}
             </div>
+            {isMobile && sfgViewMode === "card" ? (
+              <div className="sfg-card-list">
+                {pagedSFG.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                    {searchSFG ? `Tidak ada raw menu "${searchSFG}"` : `Belum ada raw menu. Klik "+ Tambah Raw Menu".`}
+                  </div>
+                ) : pagedSFG.map(s => (
+                  <div key={s.id} className="sfg-card">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1, marginRight: 8 }}>{s.namaSemiFinished}</span>
+                      {parseFloat(s.totalCogs) > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#C8F135", flexShrink: 0 }}>{formatRupiah(parseFloat(s.totalCogs))}</span>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: "monospace", fontSize: 9, color: "#4B5563", marginBottom: 6 }}>{s.id}</div>
+                    <div className="sfg-card-data-row">
+                      {[
+                        { label: "Satuan Hasil", value: s.satuanHasil || s.satuan },
+                        { label: "Jumlah Hasil", value: parseFloat(s.jumlahHasil).toLocaleString("id-ID") },
+                        { label: "COGS/Unit", value: parseFloat(s.cogsPerUnit) > 0 ? `${formatRupiah(parseFloat(s.cogsPerUnit))}/${s.satuanHasil || s.satuan}` : "—" },
+                      ].map(({ label, value }) => (
+                        <div key={label} style={{ background: "#13131F", borderRadius: 5, padding: "3px 7px", fontSize: 10 }}>
+                          <span style={{ color: "#4B5563" }}>{label}: </span>
+                          <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {s.mappingResep && s.mappingResep.length > 0 && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, margin: "6px 0" }}>
+                        {s.mappingResep.slice(0, 3).map((r, i) => (
+                          <span key={i} style={{ fontSize: 9, padding: "2px 5px", background: "#14142A", borderRadius: 4, color: "#9CA3AF" }}>
+                            {r.bahan?.namaBahan || r.itemId} {r.qty}{r.bahan?.satuanDapur || ""}
+                          </span>
+                        ))}
+                        {s.mappingResep.length > 3 && <span style={{ fontSize: 9, color: "#4B5563" }}>+{s.mappingResep.length - 3}</span>}
+                      </div>
+                    )}
+                    {!isGuest && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                        <button
+                          onClick={() => { setSelectedSFG(s); setSfgBomLines(s.mappingResep?.map(r => ({ itemType: r.itemType, itemId: r.itemId, qty: parseFloat(r.qty) })) ?? []); setSfgBomSearches([]); setSfgBomOpenIdx(null); setShowSFGEditor(true); }}
+                          style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}>
+                          {s.mappingResep && s.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                        </button>
+                        <button onClick={() => { setEditSFG(s); setEditSFGForm({ namaSemiFinished: s.namaSemiFinished, satuanHasil: s.satuanHasil || s.satuan, jumlahHasil: s.jumlahHasil }); }}
+                          style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                        <button onClick={() => handleDeleteSFG(s.id)}
+                          style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -882,6 +944,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                 </tbody>
               </table>
             </div>
+            )}
             {filteredSFG.length > 0 && (
               <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -911,14 +974,58 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* Tab 3 — Master Resep */}
       {activeTab === 3 && (
         <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center" }}>
             <input
               value={searchResep}
               onChange={(e) => { setSearchResep(e.target.value); setResepPage(0); }}
               placeholder="Cari nama menu atau ID..."
-              style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+              style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
+            {isMobile && (
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button className={`view-toggle-btn${resepViewMode === "card" ? " active" : ""}`} onClick={() => setResepViewMode("card")}>Cards</button>
+                <button className={`view-toggle-btn${resepViewMode === "table" ? " active" : ""}`} onClick={() => setResepViewMode("table")}>Tabel</button>
+              </div>
+            )}
           </div>
+          {isMobile && resepViewMode === "card" ? (
+            <div className="resep-card-list">
+              {pagedResep.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  {searchResep ? `Tidak ada menu "${searchResep}"` : `Belum ada menu. Tambahkan dari tab Master Menu.`}
+                </div>
+              ) : pagedResep.map((m) => (
+                <div key={m.id} className="resep-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1, marginRight: 8 }}>{m.namaMenu}</span>
+                    {parseFloat(m.totalCogs ?? "0") > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#C8F135", flexShrink: 0 }}>{formatRupiah(parseFloat(m.totalCogs ?? "0"))}</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: "monospace", fontSize: 9, color: "#4B5563" }}>{m.id}</span>
+                    {m.outletId && <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: "#14142A", color: "#6B7280" }}>{m.outletId}</span>}
+                  </div>
+                  {m.mappingResep && m.mappingResep.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+                      {m.mappingResep.map((r) => (
+                        <span key={r.id} style={{ fontSize: 9, padding: "2px 6px", background: "#14142A", borderRadius: 4, color: "#E2E8F0" }}>
+                          {r.bahan?.namaBahan} {r.qty}{r.bahan?.satuanDapur}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    <button
+                      onClick={() => { setSelectedMenu(m); setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []); setBomHargaJual(m.hargaJual ?? ""); setBomSearches([]); setBomOpenIdx(null); setShowBOMEditor(true); }}
+                      style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}>
+                      {m.mappingResep && m.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -989,6 +1096,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
             </tbody>
           </table>
           </div>
+          )}
           {/* Pagination Resep */}
           {filteredResep.length > 0 && (
             <div style={{ padding: "10px 14px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
