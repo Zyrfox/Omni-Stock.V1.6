@@ -3,35 +3,63 @@
  * Navigation items, color tokens, etc.
  */
 
-export const NAV_ITEMS = [
+import {
+  LayoutDashboard,
+  Store,
+  Package,
+  Layers,
+  Truck,
+  CreditCard,
+  Upload,
+  ClipboardList,
+  PackageCheck,
+  BarChart2,
+  Users,
+  Settings2,
+  type LucideIcon,
+} from "lucide-react";
+
+export interface NavItem {
+  label: string;
+  icon: LucideIcon;
+  href: string;
+  adminOnly: boolean;
+}
+
+export interface NavSection {
+  section: string;
+  items: NavItem[];
+}
+
+export const NAV_ITEMS: NavSection[] = [
   {
     section: "DISCOVER",
     items: [
-      { label: "Dashboard", icon: "⊞", href: "/dashboard", adminOnly: false },
-      { label: "Stores", icon: "🏪", href: "/stores", adminOnly: false },
+      { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", adminOnly: false },
+      { label: "Stores", icon: Store, href: "/stores", adminOnly: false },
     ],
   },
   {
     section: "INVENTORY",
     items: [
-      { label: "Products & Recipes", icon: "📦", href: "/products", adminOnly: false },
-      { label: "Assets & Inv.", icon: "🗂", href: "/category", adminOnly: false },
-      { label: "Suppliers", icon: "🚚", href: "/suppliers", adminOnly: false },
-      { label: "Billing", icon: "💳", href: "/billing", adminOnly: false },
-      { label: "Upload History", icon: "⬆", href: "/upload-history", adminOnly: false },
-      { label: "PO Logs", icon: "📋", href: "/po-logs", adminOnly: false },
-      { label: "Delivery", icon: "🚛", href: "/delivery", adminOnly: false },
-      { label: "Report", icon: "📊", href: "/report", adminOnly: false },
+      { label: "Products & Recipes", icon: Package, href: "/products", adminOnly: false },
+      { label: "Assets & Inv.", icon: Layers, href: "/category", adminOnly: false },
+      { label: "Suppliers", icon: Truck, href: "/suppliers", adminOnly: false },
+      { label: "Billing", icon: CreditCard, href: "/billing", adminOnly: false },
+      { label: "Upload History", icon: Upload, href: "/upload-history", adminOnly: false },
+      { label: "PO Logs", icon: ClipboardList, href: "/po-logs", adminOnly: false },
+      { label: "Delivery", icon: PackageCheck, href: "/delivery", adminOnly: false },
+      { label: "Report", icon: BarChart2, href: "/report", adminOnly: false },
     ],
   },
   {
     section: "SETTINGS",
     items: [
-      { label: "Users", icon: "👥", href: "/users", adminOnly: true },
-      { label: "Settings", icon: "⚙", href: "/settings", adminOnly: true },
+      { label: "Users", icon: Users, href: "/users", adminOnly: true },
+      { label: "Settings", icon: Settings2, href: "/settings", adminOnly: true },
     ],
   },
-] as const;
+];
 
 export const COLORS = {
   bg: "#0A0A0F",

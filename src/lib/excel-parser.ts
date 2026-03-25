@@ -72,7 +72,22 @@ export function parseKartuStok(buffer: Buffer | ArrayBuffer): ParsedKartuStok {
     const addr = XLSX.utils.encode_cell({ r, c });
     const cell = sheet[addr];
     if (!cell) return 0;
-    const v = parseFloat(String(cell.v ?? "0").replace(/,/g, ""));
+    // Numeric cells: use raw JS value directly — avoids locale ambiguity
+    if (cell.t === "n") return typeof cell.v === "number" && !isNaN(cell.v) ? cell.v : 0;
+    // Text/string cells: handle Indonesian locale (comma = decimal, dot = thousands)
+    // e.g. "10,00" → 10, "10.000" → 10000, "1.234,56" → 1234.56
+    let s = String(cell.v ?? "0").trim();
+    const hasComma = s.includes(",");
+    const hasDot = s.includes(".");
+    if (hasComma && hasDot) {
+      // Mixed: e.g. "1.234,56" — dot is thousands, comma is decimal
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else if (hasComma) {
+      // Comma only: treat as decimal separator (Indonesian format "10,00" → 10)
+      s = s.replace(",", ".");
+    }
+    // If dot only, it's either a decimal or thousands — parseFloat handles it correctly
+    const v = parseFloat(s);
     return isNaN(v) ? 0 : v;
   }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/constants";
 import { authClient } from "@/lib/auth-client";
+import { ThemeSwitcher } from "@/components/shared/theme-switcher";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -70,8 +71,8 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
       style={{
         width: collapsed ? 58 : 220,
         minWidth: collapsed ? 58 : 220,
-        backgroundColor: "#0F0F18",
-        borderRight: "1px solid #1E1E2E",
+        backgroundColor: "var(--color-os-surface)",
+        borderRight: "1px solid var(--color-os-border)",
         transition: "width 0.2s ease, min-width 0.2s ease",
         display: "flex",
         flexDirection: "column",
@@ -85,7 +86,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
       <div
         style={{
           padding: "18px 14px 14px",
-          borderBottom: "1px solid #1E1E2E",
+          borderBottom: "1px solid var(--color-os-border)",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -111,10 +112,10 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
         </div>
         {!collapsed && (
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", letterSpacing: 0.5 }}>
               OMNI-STOCK
             </div>
-            <div style={{ fontSize: 9, color: "#4B5563" }}>Easy Going Group</div>
+            <div style={{ fontSize: 9, color: "var(--color-os-muted)" }}>Easy Going Group</div>
           </div>
         )}
       </div>
@@ -130,7 +131,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                   fontSize: 9,
                   fontWeight: 600,
                   letterSpacing: 2,
-                  color: "#374151",
+                  color: "var(--color-os-muted)",
                   textTransform: "uppercase",
                 }}
               >
@@ -153,9 +154,9 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                     gap: 10,
                     padding: collapsed ? "10px 0" : "8px 14px",
                     justifyContent: collapsed ? "center" : "flex-start",
-                    backgroundColor: isActive ? "rgba(200,241,53,0.07)" : "transparent",
-                    borderLeft: isActive ? "3px solid #C8F135" : "3px solid transparent",
-                    color: isActive ? "#C8F135" : "#6B7280",
+                    backgroundColor: isActive ? "var(--sidebar-accent)" : "transparent",
+                    borderLeft: isActive ? `3px solid var(--color-os-accent)` : "3px solid transparent",
+                    color: isActive ? "var(--color-os-accent)" : "var(--color-os-sub)",
                     fontSize: 12,
                     fontWeight: isActive ? 600 : 400,
                     textDecoration: "none",
@@ -163,7 +164,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                     position: "relative",
                   }}
                 >
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>{item.icon}</span>
+                  <item.icon size={15} style={{ flexShrink: 0 }} />
                   {!collapsed && (
                     <span style={{ flex: 1, whiteSpace: "nowrap" }}>{item.label}</span>
                   )}
@@ -188,6 +189,11 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
           </div>
         ))}
       </nav>
+
+      {/* Theme Switcher */}
+      <div style={{ borderTop: "1px solid #1E1E2E" }}>
+        <ThemeSwitcher collapsed={collapsed} />
+      </div>
 
       {/* User Pill */}
       <div ref={menuRef} style={{ position: "relative" }}>

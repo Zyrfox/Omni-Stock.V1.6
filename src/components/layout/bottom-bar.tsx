@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS, type NavItem } from "@/lib/constants";
 import { authClient } from "@/lib/auth-client";
+import { Upload, Menu, LogOut } from "lucide-react";
 
 // 3 pinned items — FAB occupies the center slot
 const PINNED_HREFS = ["/dashboard", "/products", "/po-logs"];
-const ALL_FLAT = NAV_ITEMS.flatMap((s) => s.items as unknown as Array<{ label: string; icon: string; href: string; adminOnly: boolean }>);
+const ALL_FLAT: NavItem[] = NAV_ITEMS.flatMap((s) => s.items);
 
 interface BottomBarProps {
   userRole: string;
@@ -77,7 +78,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+              <item.icon size={18} />
               <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                 {item.label.split(" ")[0]}
               </span>
@@ -91,7 +92,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+              <item.icon size={18} />
               <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                 {item.label.split(" ")[0]}
               </span>
@@ -124,14 +125,12 @@ export function BottomBar({ userRole }: BottomBarProps) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 18,
               color: "#0A0A0F",
-              fontWeight: 800,
               marginTop: -14,
               boxShadow: "0 4px 14px rgba(200,241,53,0.4)",
             }}
           >
-            ⬆
+            <Upload size={18} strokeWidth={2.5} />
           </div>
           <span style={{ fontSize: 9, color: "#6B7280", marginTop: 3, letterSpacing: 0.3 }}>Upload</span>
         </button>
@@ -142,7 +141,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link key={item.href} href={item.href} style={slotStyle(isActive)}>
-              <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+              <item.icon size={18} />
               <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400, letterSpacing: 0.3, whiteSpace: "nowrap" }}>
                 {item.label.split(" ")[0]}
               </span>
@@ -167,7 +166,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
             borderTop: "2px solid transparent",
           }}
         >
-          <span style={{ fontSize: 18, lineHeight: 1 }}>☰</span>
+          <Menu size={18} />
           <span style={{ fontSize: 9, fontWeight: 400, letterSpacing: 0.3 }}>More</span>
         </button>
       </nav>
@@ -227,7 +226,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
                       borderLeft: isActive ? "3px solid #C8F135" : "3px solid transparent",
                     }}
                   >
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+                    <item.icon size={16} style={{ flexShrink: 0 }} />
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -254,7 +253,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
                 marginBottom: 4,
               }}
             >
-              <span style={{ fontSize: 16 }}>🚪</span>
+              <LogOut size={16} />
               <span>Keluar</span>
             </button>
           </div>

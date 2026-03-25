@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { masterBahan, uploadBatches } from "@/db/schema";
+import { masterBahan, uploadBatches, outlets } from "@/db/schema";
 import { eq, sql, or, isNull } from "drizzle-orm";
 import { parseKartuStok } from "@/lib/excel-parser";
 import { calculateStockStatus } from "@/lib/stock-status";
 import { generateId } from "@/lib/id-generator";
+import { revalidatePath } from "next/cache";
 
 export interface UploadedStockItem {
   bahanId: string | null;
@@ -29,12 +30,32 @@ export interface UploadResult {
   success: boolean;
   batchId: string;
   outletName: string;
+  detectedOutletId: string | null;
   tanggalKartuStok: string;
   itemsParsed: number;
   matchedBahan: number;
   errors: string[];
   stockItems: UploadedStockItem[];
   message: string;
+}
+
+/** Resolve outlet ID from Excel header name via fuzzy DB lookup */
+async function resolveOutletFromName(parsedName: string, fallbackId: string): Promise<string> {
+  if (!parsedName.trim()) return fallbackId;
+  const allOutlets = await db.query.outlets.findMany();
+  const norm = parsedName.toLowerCase().trim();
+  const match = allOutlets.find((o) => {
+    const oName = o.namaOutlet.toLowerCase().trim();
+    const oId = o.id.toLowerCase().trim();
+    return (
+      oName === norm ||
+      oName.includes(norm) ||
+      norm.includes(oName) ||
+      oId === norm ||
+      norm.includes(oId)
+    );
+  });
+  return match?.id ?? fallbackId;
 }
 
 export async function processUpload(
@@ -45,7 +66,7 @@ export async function processUpload(
   const file = formData.get("file") as File;
   if (!file) {
     return {
-      success: false, batchId: "", outletName: "", tanggalKartuStok: "",
+      success: false, batchId: "", outletName: "", detectedOutletId: null, tanggalKartuStok: "",
       itemsParsed: 0, matchedBahan: 0,
       errors: ["File tidak ditemukan."], stockItems: [], message: "Gagal: file tidak ada.",
     };
@@ -57,7 +78,7 @@ export async function processUpload(
 
   if (parsed.rows.length === 0) {
     return {
-      success: false, batchId: "", outletName: parsed.outletName,
+      success: false, batchId: "", outletName: parsed.outletName, detectedOutletId: null,
       tanggalKartuStok: parsed.tanggal,
       itemsParsed: 0, matchedBahan: 0,
       errors: parsed.errors,
@@ -66,9 +87,15 @@ export async function processUpload(
     };
   }
 
+  // Resolve outlet from Excel header — override session outletId if found
+  const resolvedOutletId = await resolveOutletFromName(parsed.outletName, outletId);
+  if (resolvedOutletId !== outletId) {
+    parsed.errors.unshift(`Outlet terdeteksi dari kartu stok: "${parsed.outletName}" → ${resolvedOutletId}`);
+  }
+
   // Fetch all bahan — include outlet-specific AND null-outlet items
   const allBahan = await db.query.masterBahan.findMany({
-    where: or(eq(masterBahan.outletId, outletId), isNull(masterBahan.outletId)),
+    where: or(eq(masterBahan.outletId, resolvedOutletId), isNull(masterBahan.outletId)),
     with: {
       vendorBahan: {
         with: { vendor: true },
@@ -200,7 +227,7 @@ export async function processUpload(
   const batchId = await generateId("upload_batches");
   await db.insert(uploadBatches).values({
     id: batchId,
-    outletId,
+    outletId: resolvedOutletId,
     tanggalKartuStok: parsed.tanggal,
     outletNameRaw: parsed.outletName || null,
     totalProduk: parsed.totalRows,
@@ -208,10 +235,14 @@ export async function processUpload(
     uploadedBy: uploadedBy || null,
   });
 
+  revalidatePath("/upload-history");
+  revalidatePath("/dashboard");
+
   return {
     success: true,
     batchId,
     outletName: parsed.outletName,
+    detectedOutletId: resolvedOutletId,
     tanggalKartuStok: parsed.tanggal,
     itemsParsed: parsed.totalRows,
     matchedBahan: matchedCount,
@@ -219,4 +250,20 @@ export async function processUpload(
     stockItems,
     message: `${matchedCount} dari ${parsed.totalRows} produk berhasil di-match ke master bahan.`,
   };
+}
+
+export async function deleteUploadBatch(batchId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    await db.delete(uploadBatches).where(eq(uploadBatches.id, batchId));
+    revalidatePath("/upload-history");
+    revalidatePath("/dashboard");
+    return { success: true, message: "Batch berhasil dihapus." };
+  } catch {
+    return { success: false, message: "Gagal menghapus batch." };
+  }
+}
+
+export async function refreshUploadCache(): Promise<void> {
+  revalidatePath("/upload-history");
+  revalidatePath("/dashboard");
 }

@@ -12,6 +12,13 @@ import { useAppContext } from "@/contexts/app-context";
 import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
 import { formatMinStok } from "@/lib/stock-status";
 
+function formatYield(v: string | number | null | undefined): string {
+  if (!v) return "—";
+  const n = parseFloat(String(v));
+  if (isNaN(n)) return "—";
+  return parseFloat(n.toFixed(4)).toString();
+}
+
 interface BahanItem {
   id: string; namaBahan: string; tipeBahan: "packaged" | "raw_bulk";
   satuanBeli: string; satuanDapur: string; stokMinimum: number;
@@ -683,7 +690,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                       { label: "Dapur", value: b.satuanDapur },
                       { label: "Min.Stok", value: (() => { const f = formatMinStok(b.stokMinimum, parseFloat(b.isiSatuan), b.satuanDapur, b.satuanBeli); return f.secondary ? `${f.primary} (${f.secondary})` : f.primary; })() },
                       { label: "Harga", value: formatRupiah(parseFloat(b.hargaBeli)) },
-                      { label: "Isi/Yield", value: b.isiSatuan || "—" },
+                      { label: "Isi/Yield", value: formatYield(b.isiSatuan) },
                     ].map(({ label, value }) => (
                       <div key={label} style={{ background: "#13131F", borderRadius: 5, padding: "3px 7px", fontSize: 10 }}>
                         <span style={{ color: "#4B5563" }}>{label}: </span>
@@ -752,7 +759,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                       })()}
                     </td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>{formatRupiah(parseFloat(b.hargaBeli))}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{b.isiSatuan}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{formatYield(b.isiSatuan)}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, color: "#C8F135", fontWeight: 700 }}>
                       {b.hargaPerSatuanPorsi ? formatRupiah(parseFloat(b.hargaPerSatuanPorsi)) : "—"}
                     </td>

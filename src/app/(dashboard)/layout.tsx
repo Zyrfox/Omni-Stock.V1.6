@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <AppProvider isGuest={isGuest} userRole={userRole}>
-      <div style={{ display: "flex", minHeight: "100vh", background: "#0A0A0F" }}>
+      <div style={{ display: "flex", minHeight: "100vh", background: "var(--color-os-bg)" }}>
         <Sidebar
           collapsed={collapsed}
           userNama={isGuest ? "Tamu" : (user?.nama ?? user?.email ?? "")}
