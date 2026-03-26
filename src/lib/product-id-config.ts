@@ -9,6 +9,9 @@ export const KATEGORI_ABBR: Record<string, string> = {
   "Kemasan & Alat Makan": "PACK",
   "Raw Materials": "RM",
   "Bahan Produksi": "BP",
+  "Garnish": "GRN",
+  "Dimsum": "DMS",
+  "Topping": "TOP",
 };
 
 /** All category names in display order */
