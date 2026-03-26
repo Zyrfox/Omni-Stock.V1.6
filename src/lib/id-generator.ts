@@ -5,6 +5,7 @@
 
 import { db } from "@/db";
 import { sql } from "drizzle-orm";
+import { KATEGORI_ABBR } from "./product-id-config";
 
 type TableName =
   | "outlets"
@@ -61,32 +62,24 @@ function formatId(prefix: string, num: number): string {
   return `${prefix}-${String(num).padStart(3, "0")}`;
 }
 
-/** Category → ID prefix mapping for master_bahan */
-export const KATEGORI_PREFIX: Record<string, string> = {
-  "Main Course": "MCR",
-  "Snack": "SNK",
-  "Dessert": "DST",
-  "Ice Cream": "ICE",
-  "Noodles": "NDL",
-  "Beverage": "BEV",
-  "Kemasan & Alat Makan": "KMS",
-};
-
-export const PRODUCT_CATEGORIES = Object.keys(KATEGORI_PREFIX);
+/** Re-export for backwards compat */
+export const KATEGORI_PREFIX = KATEGORI_ABBR;
+export const PRODUCT_CATEGORIES = Object.keys(KATEGORI_ABBR);
 
 /**
- * Generate bahan ID using category-based prefix (ICE-001, BEV-002, etc.)
- * Falls back to BHN prefix if category is not mapped.
+ * Generate bahan ID: KATEGORI-OUTLET-NNN format.
+ * Falls back to BHN if no category, GEN if no outletAbbr.
  */
-export async function generateBahanId(kategori?: string): Promise<string> {
-  const prefix = (kategori && KATEGORI_PREFIX[kategori]) ? KATEGORI_PREFIX[kategori] : "BHN";
+export async function generateBahanId(kategori?: string, outletAbbr?: string): Promise<string> {
+  const katAbbr = (kategori && KATEGORI_ABBR[kategori]) ? KATEGORI_ABBR[kategori] : "BHN";
+  const prefix = outletAbbr ? `${katAbbr}-${outletAbbr}` : katAbbr;
   const result = await db.execute(
     sql`SELECT id FROM master_bahan WHERE id LIKE ${prefix + "-%"} ORDER BY id DESC LIMIT 1`
   );
   const rows = result as unknown as Array<{ id: string }>;
-  if (!rows || rows.length === 0) return formatId(prefix, 1);
+  if (!rows || rows.length === 0) return `${prefix}-001`;
   const lastNum = parseInt(rows[0].id.split("-").pop() ?? "0", 10);
-  return formatId(prefix, lastNum + 1);
+  return formatId(prefix, isNaN(lastNum) ? 1 : lastNum + 1);
 }
 
 /** Generate a batch upload ID */

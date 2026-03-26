@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { masterBahan, vendorBahan } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { generateId, generateBahanId } from "@/lib/id-generator";
+import { getOutletAbbr } from "@/lib/product-id-config";
+import { outlets } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 
 export async function getMasterBahan(outletId?: string) {
@@ -36,7 +38,13 @@ export async function createBahan(data: {
   vendorId?: string;
 }) {
   const { vendorId, ...bahanData } = data;
-  const id = await generateBahanId(bahanData.kategoriBahan);
+  // Resolve outlet abbreviation for ID generation
+  let outletAbbr: string | undefined;
+  if (bahanData.outletId) {
+    const outlet = await db.query.outlets.findFirst({ where: eq(outlets.id, bahanData.outletId) });
+    if (outlet) outletAbbr = getOutletAbbr(outlet.namaOutlet);
+  }
+  const id = await generateBahanId(bahanData.kategoriBahan, outletAbbr);
   const hargaPerSatuanPorsi =
     bahanData.isiSatuan > 0 ? (bahanData.hargaBeli / bahanData.isiSatuan).toFixed(6) : "0";
 
@@ -158,4 +166,22 @@ export async function renameBahanId(oldId: string, newId: string) {
   revalidatePath("/products");
   revalidatePath("/dashboard");
   return { newId: trimmedNew };
+}
+
+/**
+ * Get the next available bahan ID for a given kategori+outlet combination.
+ * Format: KATEGORI_ABBR-OUTLET_ABBR-NNN
+ * Used to preview the next ID in the add/edit form.
+ */
+export async function getNextBahanId(kategoriAbbr: string, outletAbbr: string): Promise<string> {
+  const prefix = `${kategoriAbbr}-${outletAbbr}`;
+  const result = await db.execute(
+    sql`SELECT id FROM master_bahan WHERE id LIKE ${prefix + "-%"} ORDER BY id DESC LIMIT 1`
+  );
+  const rows = result as unknown as Array<{ id: string }>;
+  if (!rows || rows.length === 0) return `${prefix}-001`;
+  const lastPart = rows[0].id.split("-").pop() ?? "0";
+  const lastNum = parseInt(lastPart, 10);
+  const nextNum = isNaN(lastNum) ? 1 : lastNum + 1;
+  return `${prefix}-${String(nextNum).padStart(3, "0")}`;
 }

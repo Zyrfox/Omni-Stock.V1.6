@@ -6,7 +6,8 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Package, FlaskConical, ClipboardList, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
-import { createBahan, updateBahan, deleteBahan, renameBahanId } from "@/actions/bahan";
+import { createBahan, updateBahan, deleteBahan, renameBahanId, getNextBahanId } from "@/actions/bahan";
+import { KATEGORI_ABBR, ALL_KATEGORI, getKategoriAbbr, getOutletAbbr } from "@/lib/product-id-config";
 import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
 import { createSemiFinished, updateSemiFinished, deleteSemiFinished, saveSFGBOM } from "@/actions/semi-finished";
 import { useAppContext } from "@/contexts/app-context";
@@ -166,6 +167,8 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [editPorsiLoading, setEditPorsiLoading] = useState(false);
   const [editPorsiNarasi, setEditPorsiNarasi] = useState("");
   const [editVendorId, setEditVendorId] = useState("");
+  const [editNextIdPreview, setEditNextIdPreview] = useState<string | null>(null);
+  const [addNextIdPreview, setAddNextIdPreview] = useState<string | null>(null);
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
   const [bahanPage, setBahanPage] = useState(0);
   const [bahanRowsPerPage, setBahanRowsPerPage] = useState(20);
@@ -174,6 +177,8 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [menuPage, setMenuPage] = useState(0);
   const [menuRowsPerPage, setMenuRowsPerPage] = useState(20);
   const [searchBahan, setSearchBahan] = useState("");
+  const [filterKategori, setFilterKategori] = useState("ALL");
+  const [filterOutletId, setFilterOutletId] = useState("ALL");
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
   const [dragMenuId, setDragMenuId] = useState<string | null>(null);
@@ -219,12 +224,44 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Fetch next available ID preview for the EDIT form
+  useEffect(() => {
+    if (!editTarget) return;
+    const kategoriAbbr = getKategoriAbbr(editForm.kategoriBahan);
+    const outlet = outletList.find(o => o.id === editForm.outletId);
+    const outletAbbr = getOutletAbbr(outlet?.namaOutlet);
+    setEditNextIdPreview(null);
+    getNextBahanId(kategoriAbbr, outletAbbr).then(setEditNextIdPreview).catch(() => {});
+  }, [editForm.kategoriBahan, editForm.outletId, editTarget]);
+
+  // Fetch next available ID preview for the ADD form
+  useEffect(() => {
+    if (!showAddBahan) return;
+    const kategoriAbbr = getKategoriAbbr(form.kategoriBahan);
+    const outlet = outletList.find(o => o.id === form.outletId);
+    const outletAbbr = getOutletAbbr(outlet?.namaOutlet);
+    setAddNextIdPreview(null);
+    getNextBahanId(kategoriAbbr, outletAbbr).then(setAddNextIdPreview).catch(() => {});
+  }, [form.kategoriBahan, form.outletId, showAddBahan]);
+
   const tabs = ["1. Master Bahan", "2. Raw Menu", "3. Master Resep", "4. Master Menu"];
 
   const q1 = searchBahan.toLowerCase();
   const q2 = searchResep.toLowerCase();
   const q3 = searchMenu.toLowerCase();
-  const filteredBahans = q1 ? bahans.filter((b) => b.namaBahan.toLowerCase().includes(q1) || b.id.toLowerCase().includes(q1)) : bahans;
+  const filteredBahans = bahans.filter((b) => {
+    if (q1 && !b.namaBahan.toLowerCase().includes(q1) && !b.id.toLowerCase().includes(q1)) return false;
+    if (filterKategori !== "ALL") {
+      if (filterKategori === "BHN") {
+        if (b.kategoriBahan && KATEGORI_ABBR[b.kategoriBahan]) return false;
+      } else {
+        const abbr = b.kategoriBahan ? KATEGORI_ABBR[b.kategoriBahan] : undefined;
+        if (abbr !== filterKategori) return false;
+      }
+    }
+    if (filterOutletId !== "ALL" && b.outletId !== filterOutletId) return false;
+    return true;
+  });
   const safeBahanPage = Math.min(bahanPage, Math.max(0, Math.ceil(filteredBahans.length / bahanRowsPerPage) - 1));
   const pagedBahans = filteredBahans.slice(safeBahanPage * bahanRowsPerPage, (safeBahanPage + 1) * bahanRowsPerPage);
   const filteredResep = q2 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q2) || m.id.toLowerCase().includes(q2)) : menus;
@@ -675,6 +712,37 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                 <button className={`view-toggle-btn${bahanViewMode === "table" ? " active" : ""}`} onClick={() => setBahanViewMode("table")}>Tabel</button>
               </div>
             )}
+          </div>
+          {/* Filter chips — Kategori & Outlet */}
+          <div style={{ padding: "8px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {/* Kategori chips */}
+            {[{ label: "Semua", value: "ALL" }, { label: "BHN", value: "BHN" }, ...ALL_KATEGORI.map(k => ({ label: KATEGORI_ABBR[k], value: KATEGORI_ABBR[k] }))].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => { setFilterKategori(value); setBahanPage(0); }}
+                style={{
+                  padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: "pointer", border: "1px solid",
+                  background: filterKategori === value ? "rgba(200,241,53,0.15)" : "transparent",
+                  borderColor: filterKategori === value ? "#C8F135" : "var(--color-os-border2)",
+                  color: filterKategori === value ? "#C8F135" : "#6B7280",
+                }}
+              >{label}</button>
+            ))}
+            {/* Separator dot */}
+            <span style={{ color: "#374151", alignSelf: "center", fontSize: 14 }}>·</span>
+            {/* Outlet chips */}
+            {[{ label: "Semua Outlet", value: "ALL" }, ...outletList.map(o => ({ label: getOutletAbbr(o.namaOutlet), value: o.id }))].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => { setFilterOutletId(value); setBahanPage(0); }}
+                style={{
+                  padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: "pointer", border: "1px solid",
+                  background: filterOutletId === value ? "rgba(96,165,250,0.15)" : "transparent",
+                  borderColor: filterOutletId === value ? "#60A5FA" : "var(--color-os-border2)",
+                  color: filterOutletId === value ? "#60A5FA" : "#6B7280",
+                }}
+              >{label}</button>
+            ))}
           </div>
           {isMobile && bahanViewMode === "card" ? (
             <div className="bahan-card-list">
@@ -1752,11 +1820,13 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     <select value={form.kategoriBahan} onChange={e => setForm(f => ({ ...f, kategoriBahan: e.target.value }))}
                       style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: form.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}>
                       <option value="">— Pilih Kategori —</option>
-                      {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => <option key={k} value={k}>{k}</option>)}
+                      {ALL_KATEGORI.map(k => <option key={k} value={k}>{k}</option>)}
                     </select>
-                    {form.kategoriBahan && (
-                      <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>{({"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"} as Record<string,string>)[form.kategoriBahan] ?? "BHN"}-XXX</span></div>
-                    )}
+                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                      ID berikutnya: <span style={{ color: "#C8F135", fontWeight: 700, fontFamily: "monospace" }}>
+                        {addNextIdPreview ?? `${getKategoriAbbr(form.kategoriBahan)}-…`}
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
@@ -2219,17 +2289,15 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: editForm.kategoriBahan ? "#E2E8F0" : "#4B5563", outline: "none" }}
                   >
                     <option value="">— Pilih Kategori —</option>
-                    {["Main Course","Snack","Dessert","Ice Cream","Noodles","Beverage","Kemasan & Alat Makan"].map(k => (
+                    {ALL_KATEGORI.map(k => (
                       <option key={k} value={k}>{k}</option>
                     ))}
                   </select>
-                  {editForm.kategoriBahan && (
-                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
-                      ID prefix: <span style={{ color: "#C8F135", fontWeight: 700 }}>
-                        {{"Main Course":"MCR","Snack":"SNK","Dessert":"DST","Ice Cream":"ICE","Noodles":"NDL","Beverage":"BEV","Kemasan & Alat Makan":"KMS"}[editForm.kategoriBahan] ?? "BHN"}-XXX
-                      </span>
-                    </div>
-                  )}
+                  <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                    ID berikutnya: <span style={{ color: "#C8F135", fontWeight: 700, fontFamily: "monospace" }}>
+                      {editNextIdPreview ?? `${getKategoriAbbr(editForm.kategoriBahan)}-…`}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Outlet */}
@@ -2974,7 +3042,8 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     setRenameLoading(true);
                     setRenameError("");
                     try {
-                      await renameBahanId(renameTarget.id, renameNewId);
+                      const result = await renameBahanId(renameTarget.id, renameNewId);
+                      setBahans(prev => prev.map(b => b.id === renameTarget.id ? { ...b, id: result.newId } : b));
                       setRenameTarget(null);
                     } catch (e: unknown) {
                       setRenameError(e instanceof Error ? e.message : "Gagal rename ID");
