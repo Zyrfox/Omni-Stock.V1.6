@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { purchaseOrders } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { StatCard } from "@/components/shared/stat-card";
+import { Truck, Clock, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime, calculateETA } from "@/lib/formatters";
 import { DeliveryActions } from "./delivery-actions";
@@ -31,9 +32,9 @@ export default async function DeliveryPage() {
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="In Transit" value={parseInt(statsResult?.in_transit ?? "0")} icon="🚚" color="#60A5FA" />
-        <StatCard label="Pending" value={parseInt(statsResult?.pending ?? "0")} icon="⏳" color="#F59E0B" />
-        <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon="✅" color="#22C55E" />
+        <StatCard label="In Transit" value={parseInt(statsResult?.in_transit ?? "0")} icon={Truck} color="#60A5FA" />
+        <StatCard label="Pending" value={parseInt(statsResult?.pending ?? "0")} icon={Clock} color="#F59E0B" />
+        <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon={CheckCircle2} color="#22C55E" />
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatCard } from "@/components/shared/stat-card";
+import { Truck, Package, Smartphone } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createVendor, updateVendor, getVendorPOs } from "@/actions/vendor";
@@ -286,9 +287,9 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Vendor" value={stats.totalVendor} icon="🚚" color="#60A5FA" />
-        <StatCard label="Total Bahan" value={stats.totalBahan} icon="📦" color="#22C55E" />
-        <StatCard label="Vendor dengan WA" value={stats.vendorDenganWa} icon="📱" color="#C8F135" />
+        <StatCard label="Total Vendor" value={stats.totalVendor} icon={Truck} color="#60A5FA" />
+        <StatCard label="Total Bahan" value={stats.totalBahan} icon={Package} color="#22C55E" />
+        <StatCard label="Vendor dengan WA" value={stats.vendorDenganWa} icon={Smartphone} color="#C8F135" />
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>

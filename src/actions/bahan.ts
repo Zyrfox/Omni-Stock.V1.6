@@ -82,16 +82,36 @@ export async function updateBahan(
     leadTimeDays: number;
     avgDailyConsumption: number;
     outletId: string;
+    vendorId: string;
   }>
 ) {
-  const updates: Record<string, unknown> = { ...data, updatedAt: new Date() };
-  if (data.hargaBeli !== undefined) updates.hargaBeli = String(data.hargaBeli);
-  if (data.isiSatuan !== undefined) updates.isiSatuan = String(data.isiSatuan);
-  if (data.hargaBeli !== undefined && data.isiSatuan !== undefined) {
-    updates.hargaPerSatuanPorsi = (data.hargaBeli / data.isiSatuan).toFixed(6);
+  const { vendorId, ...bahanData } = data;
+  const updates: Record<string, unknown> = { ...bahanData, updatedAt: new Date() };
+  if (bahanData.hargaBeli !== undefined) updates.hargaBeli = String(bahanData.hargaBeli);
+  if (bahanData.isiSatuan !== undefined) updates.isiSatuan = String(bahanData.isiSatuan);
+  if (bahanData.hargaBeli !== undefined && bahanData.isiSatuan !== undefined) {
+    updates.hargaPerSatuanPorsi = (bahanData.hargaBeli / bahanData.isiSatuan).toFixed(6);
   }
 
   await db.update(masterBahan).set(updates).where(eq(masterBahan.id, id));
+
+  // Upsert primary vendor link
+  if (vendorId !== undefined) {
+    // Remove existing primary link
+    await db.delete(vendorBahan).where(eq(vendorBahan.bahanId, id));
+    if (vendorId) {
+      const vbId = await generateId("vendor_bahan");
+      await db.insert(vendorBahan).values({
+        id: vbId,
+        vendorId,
+        bahanId: id,
+        hargaPerSatuan: bahanData.hargaBeli ? String(bahanData.hargaBeli) : "0",
+        isPrimary: true,
+      });
+      revalidatePath("/suppliers");
+    }
+  }
+
   revalidatePath("/products");
   revalidatePath("/dashboard");
 }

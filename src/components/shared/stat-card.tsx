@@ -1,43 +1,45 @@
+import { type LucideIcon } from "lucide-react";
+
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: string;
+  icon?: LucideIcon;
   color?: string;
   sub?: string;
 }
 
-export function StatCard({ label, value, icon, color = "#E2E8F0", sub }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, color = "#E2E8F0", sub }: StatCardProps) {
   return (
     <div
       style={{
-        background: "#13131F",
-        border: "1px solid #1E1E2E",
+        background: "var(--color-os-card)",
+        border: "1px solid var(--color-os-border)",
         borderRadius: 12,
         padding: 18,
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {icon && (
+      {Icon && (
         <div
           className="stat-card-icon"
           style={{
             position: "absolute",
-            top: 12,
+            top: 14,
             right: 14,
-            fontSize: 22,
             opacity: 0.15,
             userSelect: "none",
+            color,
           }}
         >
-          {icon}
+          <Icon size={22} />
         </div>
       )}
       <div
         style={{
           fontSize: 10,
           fontWeight: 600,
-          color: "#4B5563",
+          color: "var(--color-os-muted)",
           textTransform: "uppercase",
           letterSpacing: 0.5,
           marginBottom: 8,
@@ -57,7 +59,7 @@ export function StatCard({ label, value, icon, color = "#E2E8F0", sub }: StatCar
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: 11, color: "#4B5563", marginTop: 4 }}>{sub}</div>
+        <div style={{ fontSize: 11, color: "var(--color-os-muted)", marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );

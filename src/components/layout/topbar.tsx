@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getCriticalBahan, globalSearch, type SearchResult, type CriticalAlert } from "@/actions/search";
+import { Bell, Menu, Package, UtensilsCrossed, Store } from "lucide-react";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -61,7 +62,11 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
     debounceRef.current = setTimeout(() => doSearch(val), 300);
   }
 
-  const typeIcon: Record<string, string> = { bahan: "📦", menu: "🍽", vendor: "🏪" };
+  const typeIconMap: Record<string, React.ReactNode> = {
+    bahan: <Package size={14} style={{ color: "#C8F135" }} />,
+    menu: <UtensilsCrossed size={14} style={{ color: "#60A5FA" }} />,
+    vendor: <Store size={14} style={{ color: "#F59E0B" }} />,
+  };
   const typeLabel: Record<string, string> = { bahan: "Bahan Baku", menu: "Menu", vendor: "Supplier" };
 
   async function handleSignOut() {
@@ -73,8 +78,8 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
     <header
       style={{
         height: 52,
-        backgroundColor: "#0F0F18",
-        borderBottom: "1px solid #1E1E2E",
+        backgroundColor: "var(--color-os-surface)",
+        borderBottom: "1px solid var(--color-os-border)",
         padding: "0 20px",
         display: "flex",
         alignItems: "center",
@@ -88,33 +93,33 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       <button
         onClick={onToggleSidebar}
         className="topbar-hamburger"
-        style={{ background: "none", border: "none", color: "#6B7280", fontSize: 18, cursor: "pointer", padding: "4px 6px", borderRadius: 6, lineHeight: 1 }}
+        style={{ background: "none", border: "none", color: "var(--color-os-sub)", cursor: "pointer", padding: "4px 6px", borderRadius: 6, lineHeight: 1, display: "flex", alignItems: "center" }}
         title="Toggle Sidebar"
       >
-        ☰
+        <Menu size={18} />
       </button>
 
       {/* Search Bar */}
       <div ref={searchRef} className="topbar-search" style={{ position: "relative", flex: 1, maxWidth: 400 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#14142A", border: "1px solid #2D2D44", borderRadius: 8, padding: "6px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 8, padding: "6px 12px" }}>
           <span style={{ color: "#C8F135", fontSize: 13 }}>✦</span>
           <input
             value={searchQuery}
             onChange={handleSearchChange}
             onFocus={() => searchQuery.length >= 2 && setShowSearch(true)}
             placeholder="Cari bahan, menu, supplier..."
-            style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 12, color: "#E2E8F0", minWidth: 0 }}
+            style={{ flex: 1, background: "none", border: "none", outline: "none", fontSize: 12, color: "var(--color-os-text)", minWidth: 0 }}
           />
-          {searching && <span style={{ fontSize: 10, color: "#4B5563" }}>...</span>}
+          {searching && <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>...</span>}
           {!searching && !searchQuery && (
-            <kbd style={{ fontSize: 10, color: "#4B5563", background: "#1E1E2E", border: "1px solid #2D2D44", borderRadius: 4, padding: "1px 5px" }}>⌘K</kbd>
+            <kbd style={{ fontSize: 10, color: "var(--color-os-muted)", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 4, padding: "1px 5px" }}>⌘K</kbd>
           )}
         </div>
 
         {showSearch && searchQuery.length >= 2 && (
-          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#13131F", border: "1px solid #2D2D44", borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 50, overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 50, overflow: "hidden" }}>
             {searchResults.length === 0 ? (
-              <div style={{ padding: "16px 14px", fontSize: 11, color: "#4B5563", textAlign: "center" }}>
+              <div style={{ padding: "16px 14px", fontSize: 11, color: "var(--color-os-muted)", textAlign: "center" }}>
                 {searching ? "Mencari..." : "Tidak ada hasil"}
               </div>
             ) : (
@@ -124,7 +129,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                   if (!group.length) return null;
                   return (
                     <div key={type}>
-                      <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                         {typeLabel[type]}
                       </div>
                       {group.map((r) => (
@@ -134,10 +139,10 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                           style={{ width: "100%", padding: "8px 14px", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
                           className="table-row-hover"
                         >
-                          <span style={{ fontSize: 14 }}>{typeIcon[r.type]}</span>
+                          <span style={{ display: "flex", alignItems: "center" }}>{typeIconMap[r.type]}</span>
                           <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{r.label}</div>
-                            <div style={{ fontSize: 10, color: "#6B7280" }}>{r.id} · {r.sub}</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{r.label}</div>
+                            <div style={{ fontSize: 10, color: "var(--color-os-sub)" }}>{r.id} · {r.sub}</div>
                           </div>
                         </button>
                       ))}
@@ -156,9 +161,9 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       <div ref={notifRef} style={{ position: "relative" }}>
         <button
           onClick={() => setShowNotif(!showNotif)}
-          style={{ background: "none", border: "none", color: "#6B7280", fontSize: 16, cursor: "pointer", padding: "4px 6px", position: "relative" }}
+          style={{ background: "none", border: "none", color: "var(--color-os-sub)", cursor: "pointer", padding: "4px 6px", position: "relative", display: "flex", alignItems: "center" }}
         >
-          🔔
+          <Bell size={18} />
           {criticalCount > 0 && (
             <span style={{
               position: "absolute", top: 2, right: 2,
@@ -174,31 +179,41 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
         {showNotif && (
           <div style={{
             position: "absolute", top: "calc(100% + 8px)", right: 0,
-            width: 280, background: "#13131F", border: "1px solid #2D2D44",
+            width: 280, background: "var(--color-os-card)", border: "1px solid var(--color-os-border)",
             borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", zIndex: 50,
           }}>
-            <div style={{ padding: "12px 14px", borderBottom: "1px solid #1E1E2E", fontSize: 12, fontWeight: 700, color: "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--color-os-border)", fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span>Notifikasi</span>
-              {criticalCount > 0 && (
-                <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}>
-                  {criticalCount} item
-                </span>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {criticalItems.length > 0 && (
+                  <button
+                    onClick={() => { setCriticalItems([]); setCriticalCount(0); }}
+                    style={{ fontSize: 9, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "transparent", color: "var(--color-os-sub)", border: "1px solid var(--color-os-border)", cursor: "pointer" }}
+                  >
+                    Tandai Dibaca
+                  </button>
+                )}
+                {criticalCount > 0 && (
+                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}>
+                    {criticalCount} item
+                  </span>
+                )}
+              </div>
             </div>
             {criticalItems.length === 0 ? (
-              <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "#4B5563" }}>
+              <div style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "var(--color-os-muted)" }}>
                 Tidak ada notifikasi
               </div>
             ) : (
               <div style={{ maxHeight: 280, overflowY: "auto" }}>
-                <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                <div style={{ padding: "8px 14px 4px", fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                   Pantau Stok (Min. Stok Aktif)
                 </div>
                 {criticalItems.map((item) => (
-                  <div key={item.bahanId} style={{ padding: "8px 14px", borderBottom: "1px solid #131320", display: "flex", alignItems: "center", gap: 10 }}>
+                  <div key={item.bahanId} style={{ padding: "8px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0" }}>{item.namaBahan}</div>
-                      <div style={{ fontSize: 10, color: "#6B7280" }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-os-text)" }}>{item.namaBahan}</div>
+                      <div style={{ fontSize: 10, color: "var(--color-os-sub)" }}>
                         Min: {item.stokMinimum}{item.vendorNama ? ` · ${item.vendorNama}` : ""}
                       </div>
                     </div>
@@ -210,7 +225,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                     </button>
                   </div>
                 ))}
-                <div style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563", textAlign: "center" }}>
+                <div style={{ padding: "10px 14px", fontSize: 10, color: "var(--color-os-muted)", textAlign: "center" }}>
                   Upload Kartu Stok untuk data stok real-time
                 </div>
               </div>
@@ -223,7 +238,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       <button
         onClick={handleSignOut}
         className="topbar-keluar"
-        style={{ fontSize: 11, color: "#6B7280", background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}
+        style={{ fontSize: 11, color: "var(--color-os-sub)", background: "none", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}
       >
         Keluar
       </button>

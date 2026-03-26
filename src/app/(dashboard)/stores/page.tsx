@@ -3,6 +3,7 @@ export const revalidate = 60;
 import { db } from "@/db";
 import { sql } from "drizzle-orm";
 import { StatCard } from "@/components/shared/stat-card";
+import { Store, DollarSign, BarChart2, AlertTriangle } from "lucide-react";
 import { StoresClient } from "./stores-client";
 
 export default async function StoresPage() {
@@ -47,10 +48,10 @@ export default async function StoresPage() {
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Outlet" value={parseInt(statsResult?.total ?? "0")} icon="🏪" color="#60A5FA" sub="Aktif" />
-        <StatCard label="Inventory Net Worth" value="Rp 0" icon="💰" color="#22C55E" sub="Total semua cabang" />
-        <StatCard label="Avg Upload Compliance" value="0%" icon="📊" color="#F59E0B" sub="Target: 80%" />
-        <StatCard label="Butuh Perhatian" value="0" icon="⚠" color="#EF4444" sub="Compliance rendah" />
+        <StatCard label="Total Outlet" value={parseInt(statsResult?.total ?? "0")} icon={Store} color="#60A5FA" sub="Aktif" />
+        <StatCard label="Inventory Net Worth" value="Rp 0" icon={DollarSign} color="#22C55E" sub="Total semua cabang" />
+        <StatCard label="Avg Upload Compliance" value="0%" icon={BarChart2} color="#F59E0B" sub="Target: 80%" />
+        <StatCard label="Butuh Perhatian" value="0" icon={AlertTriangle} color="#EF4444" sub="Compliance rendah" />
       </div>
 
       <StoresClient

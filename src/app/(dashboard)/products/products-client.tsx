@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { StatCard } from "@/components/shared/stat-card";
+import { Package, FlaskConical, ClipboardList, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan, renameBahanId } from "@/actions/bahan";
@@ -24,6 +25,7 @@ interface BahanItem {
   satuanBeli: string; satuanDapur: string; stokMinimum: number;
   hargaBeli: string; isiSatuan: string; hargaPerSatuanPorsi: string | null;
   outletId: string | null; kategoriBahan?: string | null;
+  vendorBahan?: Array<{ vendorId: string; vendor: { id: string; namaVendor: string } }>;
 }
 interface MenuItem {
   id: string; namaMenu: string; kategori: "food" | "beverage" | null;
@@ -163,6 +165,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [editPorsiEstimasi, setEditPorsiEstimasi] = useState("");
   const [editPorsiLoading, setEditPorsiLoading] = useState(false);
   const [editPorsiNarasi, setEditPorsiNarasi] = useState("");
+  const [editVendorId, setEditVendorId] = useState("");
   const [bahans, setBahans] = useState<BahanItem[]>(bahanList);
   const [bahanPage, setBahanPage] = useState(0);
   const [bahanRowsPerPage, setBahanRowsPerPage] = useState(20);
@@ -410,6 +413,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
     setEditTarget(b);
     setEditStokMinimumMode("satuanDapur");
     setEditForm({ namaBahan: b.namaBahan, tipeBahan: b.tipeBahan, kategoriBahan: b.kategoriBahan ?? "", hargaBeli: b.hargaBeli, satuanBeli: b.satuanBeli, satuanDapur: b.satuanDapur, stokMinimum: String(b.stokMinimum), isiSatuan: b.isiSatuan, leadTimeDays: "1", outletId: b.outletId ?? "" });
+    setEditVendorId(b.vendorBahan?.[0]?.vendorId ?? "");
     setEditAiEstimation(null);
     setEditAiStep("idle");
     setEditAiContext({ penggunaan: "", skalaPorsi: "" });
@@ -441,6 +445,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
         isiSatuan: parseFloat(editForm.isiSatuan),
         leadTimeDays: parseInt(editForm.leadTimeDays),
         outletId: editForm.outletId || undefined,
+        vendorId: editVendorId,
       });
       const resolvedEditStokMin = editStokMinimumMode === "kemasan"
         ? Math.round(parseInt(editForm.stokMinimum) * parseFloat(editForm.isiSatuan || "1"))
@@ -616,10 +621,10 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
 
       {/* Stat Bar */}
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Master Bahan Baku" value={bahans.length} icon="📦" color="#60A5FA" />
-        <StatCard label="Raw Menu" value={sfgList.length} icon="🧪" color="#F59E0B" />
-        <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon="📋" color="#A78BFA" />
-        <StatCard label="Master Menu Final" value={menuList.length} icon="🍽" color="#C8F135" />
+        <StatCard label="Master Bahan Baku" value={bahans.length} icon={Package} color="#60A5FA" />
+        <StatCard label="Raw Menu" value={sfgList.length} icon={FlaskConical} color="#F59E0B" />
+        <StatCard label="Bill of Materials" value={menuList.filter((m) => m.mappingResep && m.mappingResep.length > 0).length} icon={ClipboardList} color="#A78BFA" />
+        <StatCard label="Master Menu Final" value={menuList.length} icon={UtensilsCrossed} color="#C8F135" />
       </div>
 
       {/* Tab Selector */}
@@ -2238,6 +2243,20 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     <option value="">— Semua Outlet —</option>
                     {outletList.map(o => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
                   </select>
+                </div>
+
+                {/* Vendor/Supplier */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Supplier (Vendor)</label>
+                  <select
+                    value={editVendorId}
+                    onChange={(e) => setEditVendorId(e.target.value)}
+                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: editVendorId ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                  >
+                    <option value="">— Tidak ada supplier —</option>
+                    {vendorList.map((v: any) => <option key={v.id} value={v.id}>{v.namaVendor}</option>)}
+                  </select>
+                  {editVendorId && <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>Bahan akan ter-sync ke halaman Suppliers</div>}
                 </div>
               </div>
 

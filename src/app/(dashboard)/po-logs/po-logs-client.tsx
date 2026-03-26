@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { StatCard } from "@/components/shared/stat-card";
+import { ClipboardList, FileText, Send, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { sendPO, receivePO } from "@/actions/purchase-order";
@@ -82,10 +83,10 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total PO" value={stats.total} icon="📋" color="#60A5FA" />
-        <StatCard label="Draft" value={stats.draft} icon="📝" color="#6B7280" />
-        <StatCard label="Sent" value={stats.sent} icon="📤" color="#F59E0B" />
-        <StatCard label="Received" value={stats.received} icon="✅" color="#22C55E" />
+        <StatCard label="Total PO" value={stats.total} icon={ClipboardList} color="#60A5FA" />
+        <StatCard label="Draft" value={stats.draft} icon={FileText} color="#6B7280" />
+        <StatCard label="Sent" value={stats.sent} icon={Send} color="#F59E0B" />
+        <StatCard label="Received" value={stats.received} icon={CheckCircle2} color="#22C55E" />
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>

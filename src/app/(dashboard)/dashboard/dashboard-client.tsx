@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { StatCard } from "@/components/shared/stat-card";
+import { Package, CheckCircle2, AlertTriangle, XCircle, Users, CreditCard, Sparkles } from "lucide-react";
 import { BadgeStatus, Badge } from "@/components/shared/badge-status";
 import { estimasiHariHabis } from "@/lib/stock-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
@@ -209,8 +210,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       {/* Page Title */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Dashboard</h1>
-        <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Dashboard</h1>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>
           Overview persediaan & prediksi restock
         </p>
       </div>
@@ -218,15 +219,15 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       {/* Smart Batch Uploader */}
       <div
         style={{
-          background: "#13131F",
-          border: "1px solid #1E1E2E",
+          background: "var(--color-os-card)",
+          border: "1px solid var(--color-os-border)",
           borderRadius: 12,
           padding: "18px 20px",
           marginBottom: 20,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Smart Batch Uploader</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Smart Batch Uploader</div>
           {lastUpload && lastUploadInfo && (
             <span
               style={{
@@ -247,7 +248,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         <div
           onClick={() => fileRef.current?.click()}
           style={{
-            border: `2px dashed ${uploading ? "#C8F135" : "#2D2D44"}`,
+            border: `2px dashed ${uploading ? "#C8F135" : "var(--color-os-border)"}`,
             borderRadius: 8,
             padding: "20px",
             textAlign: "center",
@@ -255,13 +256,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             transition: "border-color 0.2s",
           }}
           onMouseEnter={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "#C8F135"; }}
-          onMouseLeave={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "#2D2D44"; }}
+          onMouseLeave={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-os-border)"; }}
         >
           <div style={{ fontSize: 20, marginBottom: 8 }}>⬆</div>
-          <div style={{ fontSize: 12, color: "#E2E8F0", fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: "var(--color-os-text)", fontWeight: 600 }}>
             {uploading ? "Memproses..." : "Click to upload or drag and drop"}
           </div>
-          <div style={{ fontSize: 11, color: "#4B5563", marginTop: 4 }}>.xls and .xlsx supported</div>
+          <div style={{ fontSize: 11, color: "var(--color-os-muted)", marginTop: 4 }}>.xls and .xlsx supported</div>
         </div>
         <input
           ref={fileRef}
@@ -277,33 +278,33 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
 
       {/* Stat Cards */}
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Products" value={totalBahan} icon="📦" color="#60A5FA" />
-        <StatCard label="Available Stocks" value={safeCount} icon="✅" color="#22C55E" sub="Status SAFE" />
-        <StatCard label="Warning + Critical" value={warnCount + critCount} icon="⚠" color="#F59E0B" sub="Butuh perhatian" />
-        <StatCard label="Out of Stocks" value={critCount} icon="🚫" color="#EF4444" sub="Status CRITICAL" />
+        <StatCard label="Total Products" value={totalBahan} icon={Package} color="#60A5FA" />
+        <StatCard label="Available Stocks" value={safeCount} icon={CheckCircle2} color="#22C55E" sub="Status SAFE" />
+        <StatCard label="Warning + Critical" value={warnCount + critCount} icon={AlertTriangle} color="#F59E0B" sub="Butuh perhatian" />
+        <StatCard label="Out of Stocks" value={critCount} icon={XCircle} color="#EF4444" sub="Status CRITICAL" />
       </div>
 
       {/* Widget Row 2×2 */}
       <div className="panel-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
         {/* Widget 1 — Top Contributors */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>👥 Top Contributors</div>
+        <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Users size={13} style={{ color: "#60A5FA" }} /> Top Contributors</div>
           {topContributors.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "16px 0", color: "#4B5563", fontSize: 12 }}>Belum ada aktivitas.</div>
+            <div style={{ textAlign: "center", padding: "16px 0", color: "var(--color-os-muted)", fontSize: 12 }}>Belum ada aktivitas.</div>
           ) : (
             topContributors.map((u, idx) => {
               const initial = (u.nama || u.email).charAt(0).toUpperCase();
               const total = parseInt(u.po_count ?? "0");
               return (
-                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: idx < topContributors.length - 1 ? "1px solid #1E1E2E" : "none" }}>
+                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: idx < topContributors.length - 1 ? "1px solid var(--color-os-border)" : "none" }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0A0A0F", flexShrink: 0 }}>
                     {initial}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nama || u.email}</div>
-                    <div style={{ fontSize: 10, color: "#4B5563" }}>{total} POs dibuat</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nama || u.email}</div>
+                    <div style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{total} POs dibuat</div>
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: total > 0 ? "rgba(200,241,53,0.1)" : "rgba(75,85,99,0.2)", border: `1px solid ${total > 0 ? "rgba(200,241,53,0.3)" : "rgba(75,85,99,0.3)"}`, color: total > 0 ? "#C8F135" : "#4B5563" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: total > 0 ? "rgba(200,241,53,0.1)" : "rgba(75,85,99,0.2)", border: `1px solid ${total > 0 ? "rgba(200,241,53,0.3)" : "rgba(75,85,99,0.3)"}`, color: total > 0 ? "#C8F135" : "var(--color-os-muted)" }}>
                     {total}
                   </span>
                 </div>
@@ -313,19 +314,19 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         </div>
 
         {/* Widget 2 — Audit Pengeluaran */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>💳 Audit Pengeluaran</div>
+        <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><CreditCard size={13} style={{ color: "#60A5FA" }} /> Audit Pengeluaran</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div style={{ background: "#0F0F18", borderRadius: 8, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>OUTSTANDING</div>
+            <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>OUTSTANDING</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#F59E0B" }}>
                 {auditData.outstanding >= 1_000_000
                   ? `Rp ${(auditData.outstanding / 1_000_000).toFixed(1)}jt`
                   : formatRupiah(auditData.outstanding)}
               </div>
             </div>
-            <div style={{ background: "#0F0F18", borderRadius: 8, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>LUNAS</div>
+            <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>LUNAS</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#22C55E" }}>
                 {auditData.paid >= 1_000_000
                   ? `Rp ${(auditData.paid / 1_000_000).toFixed(1)}jt`
@@ -334,7 +335,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             </div>
           </div>
           {auditData.topVendors.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada transaksi vendor.</div>
+            <div style={{ fontSize: 11, color: "var(--color-os-muted)" }}>Belum ada transaksi vendor.</div>
           ) : (
             auditData.topVendors.map((v) => {
               const maxTotal = parseFloat(auditData.topVendors[0]?.total ?? "1");
@@ -343,12 +344,12 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               return (
                 <div key={v.nama_vendor} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: 11, color: "#E2E8F0" }}>{v.nama_vendor}</span>
+                    <span style={{ fontSize: 11, color: "var(--color-os-text)" }}>{v.nama_vendor}</span>
                     <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 700 }}>
                       {val >= 1_000_000 ? `Rp ${(val / 1_000_000).toFixed(1)}jt` : formatRupiah(val)}
                     </span>
                   </div>
-                  <div style={{ height: 4, background: "#1E1E2E", borderRadius: 2 }}>
+                  <div style={{ height: 4, background: "var(--color-os-border)", borderRadius: 2 }}>
                     <div style={{ width: `${pct}%`, height: "100%", background: "#EF4444", borderRadius: 2, opacity: 0.7 }} />
                   </div>
                 </div>
@@ -358,10 +359,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         </div>
 
         {/* Widget 3 — Smart Stock Warning */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>⚠ Smart Stock Warning</div>
+        <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={13} style={{ color: "#F59E0B" }} /> Smart Stock Warning</div>
           {critWarning.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "#4B5563", fontSize: 12 }}>
+            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--color-os-muted)", fontSize: 12 }}>
               🔥 Semua stok aman
             </div>
           ) : (
@@ -373,12 +374,12 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "8px 0",
-                  borderBottom: "1px solid #1E1E2E",
+                  borderBottom: "1px solid var(--color-os-border)",
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{item.namaBahan}</div>
-                  <div style={{ fontSize: 10, color: "#4B5563" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{item.namaBahan}</div>
+                  <div style={{ fontSize: 10, color: "var(--color-os-muted)" }}>
                     Stok: {item.stokAkhir} {item.satuanDapur} ·{" "}
                     {estimasiHariHabis(item.stokAkhir, item.avgDailyConsumption)} hari lagi
                   </div>
@@ -392,8 +393,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         {/* Widget 4 — AI Predictive Restock */}
         <div
           style={{
-            background: "#13131F",
-            border: "1px solid #1E1E2E",
+            background: "var(--color-os-card)",
+            border: "1px solid var(--color-os-border)",
             borderRadius: 12,
             padding: 18,
             position: "relative",
@@ -413,12 +414,12 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             ✦
           </div>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#C8F135", marginBottom: 12 }}>
-            ✦ AI Predictive Restock (Gemini)
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Sparkles size={13} style={{ color: "#C8F135" }} /> AI Predictive Restock (Gemini)</span>
           </div>
           {stockItems.length === 0 ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div style={{ fontSize: 28, opacity: 0.3, marginBottom: 8 }}>✦</div>
-              <div style={{ fontSize: 11, color: "#4B5563" }}>
+              <div style={{ fontSize: 11, color: "var(--color-os-muted)" }}>
                 Upload kartu stok untuk mengaktifkan AI
               </div>
             </div>
@@ -426,10 +427,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             displayItems.filter((i) => i.status === "CRITICAL").slice(0, 2).map((item) => (
               <div
                 key={item.bahanId}
-                style={{ padding: "8px 0", borderBottom: "1px solid #1E1E2E" }}
+                style={{ padding: "8px 0", borderBottom: "1px solid var(--color-os-border)" }}
               >
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{item.namaBahan}</div>
-                <div style={{ fontSize: 10, color: "#4B5563", marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{item.namaBahan}</div>
+                <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginTop: 2 }}>
                   Habis dalam {estimasiHariHabis(item.stokAkhir, item.avgDailyConsumption)} hari ·{" "}
                   <Badge color="blue" size="sm">{item.tipeBahan}</Badge>
                 </div>
@@ -444,8 +445,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         {/* Table */}
         <div
           style={{
-            background: "#13131F",
-            border: "1px solid #1E1E2E",
+            background: "var(--color-os-card)",
+            border: "1px solid var(--color-os-border)",
             borderRadius: 12,
             overflow: "hidden",
           }}
@@ -455,19 +456,19 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             <div>
               {/* Row 1: title + count/filter */}
               <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: "#E2E8F0" }}>Tabel inventory</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "var(--color-os-text)" }}>Tabel inventory</span>
                 {invViewMode === "card" ? (
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: "#4B5563" }}>{filteredItems.length} item</span>
+                    <span style={{ fontSize: 11, color: "var(--color-os-muted)" }}>{filteredItems.length} item</span>
                     <button
                       onClick={() => setFilterOpen(prev => !prev)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, border: filterOpen ? "1px solid rgba(200,241,53,0.5)" : "1px solid #2D2D44", background: filterOpen ? "rgba(200,241,53,0.08)" : "transparent", color: filterOpen ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, border: filterOpen ? "1px solid rgba(200,241,53,0.5)" : "1px solid var(--color-os-border)", background: filterOpen ? "rgba(200,241,53,0.08)" : "transparent", color: filterOpen ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
                     >
                       ⊟ Filter
                     </button>
                   </div>
                 ) : (
-                  <span style={{ fontSize: 11, color: "#4B5563" }}>{filteredItems.length} item · {rowsPerPage} baris</span>
+                  <span style={{ fontSize: 11, color: "var(--color-os-muted)" }}>{filteredItems.length} item · {rowsPerPage} baris</span>
                 )}
               </div>
               {/* Row 2: search */}
@@ -476,14 +477,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   value={invSearch}
                   onChange={(e) => { setInvSearch(e.target.value); setCurrentPage(0); }}
                   placeholder="Cari nama bahan..."
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
               {/* Row 3: status quick-filter tabs (card view, filter closed) */}
               {invViewMode === "card" && !filterOpen && (
                 <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
                   {([
-                    { key: "" as const, label: "Semua", count: displayItems.length, color: "#E2E8F0" },
+                    { key: "" as const, label: "Semua", count: displayItems.length, color: "var(--color-os-text)" },
                     { key: "CRITICAL" as const, label: "Critical", count: critCount, color: "#EF4444" },
                     { key: "WARNING" as const, label: "Warning", count: warnCount, color: "#F59E0B" },
                     { key: "SAFE" as const, label: "Safe", count: safeCount, color: "#22C55E" },
@@ -493,7 +494,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       <button
                         key={key}
                         onClick={() => { setInvStatusFilter(key); setCurrentPage(0); }}
-                        style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${active ? color : "#2D2D44"}`, background: active ? `${color}22` : "transparent", color: active ? color : "#4B5563", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}
+                        style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 20, border: `1px solid ${active ? color : "var(--color-os-border)"}`, background: active ? `${color}22` : "transparent", color: active ? color : "var(--color-os-muted)", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}
                       >
                         {label} ({count})
                       </button>
@@ -504,9 +505,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               {/* Row 4: expandable filter panel */}
               {filterOpen && (
                 <div style={{ padding: "0 12px 14px" }}>
-                  <div style={{ background: "#0F0F18", border: "1px solid #1E1E2E", borderRadius: 10, padding: "14px 14px 12px" }}>
+                  <div style={{ background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 10, padding: "14px 14px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Filter &amp; sort</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Filter &amp; sort</span>
                       <button
                         onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); setInvTipeBahanFilter(""); setRowsPerPage(20); setCurrentPage(0); }}
                         style={{ fontSize: 11, color: "#60A5FA", background: "none", border: "none", cursor: "pointer", padding: 0 }}
@@ -514,10 +515,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </div>
                     {/* STATUS */}
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Status</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Status</div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {([
-                          { key: "" as const, label: "Semua", count: displayItems.length, color: "#E2E8F0" },
+                          { key: "" as const, label: "Semua", count: displayItems.length, color: "var(--color-os-text)" },
                           { key: "CRITICAL" as const, label: `Critical (${critCount})`, color: "#EF4444" },
                           { key: "WARNING" as const, label: `Warning (${warnCount})`, color: "#F59E0B" },
                           { key: "SAFE" as const, label: `Safe (${safeCount})`, color: "#22C55E" },
@@ -525,7 +526,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           const active = invStatusFilter === key;
                           return (
                             <button key={key} onClick={() => setInvStatusFilter(key)}
-                              style={{ padding: "5px 11px", borderRadius: 6, border: `1px solid ${active ? color : "#2D2D44"}`, background: active ? `${color}18` : "transparent", color: active ? color : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 11px", borderRadius: 6, border: `1px solid ${active ? color : "var(--color-os-border)"}`, background: active ? `${color}18` : "transparent", color: active ? color : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {label}
                             </button>
                           );
@@ -534,19 +535,19 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </div>
                     {/* VENDOR */}
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Vendor</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Vendor</div>
                       <div style={{ position: "relative" }}>
                         <select value={invVendorFilter} onChange={(e) => setInvVendorFilter(e.target.value)}
-                          style={{ width: "100%", background: "#13131F", border: "1px solid #2D2D44", borderRadius: 8, padding: "8px 30px 8px 12px", fontSize: 12, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none", appearance: "none", WebkitAppearance: "none" as any }}>
+                          style={{ width: "100%", background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 8, padding: "8px 30px 8px 12px", fontSize: 12, color: invVendorFilter ? "var(--color-os-text)" : "var(--color-os-muted)", outline: "none", appearance: "none", WebkitAppearance: "none" as any }}>
                           <option value="">Semua Vendor</option>
                           {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
-                        <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#4B5563", pointerEvents: "none", fontSize: 10 }}>▼</span>
+                        <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "var(--color-os-muted)", pointerEvents: "none", fontSize: 10 }}>▼</span>
                       </div>
                     </div>
                     {/* TIPE BAHAN */}
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tipe Bahan</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tipe Bahan</div>
                       <div style={{ display: "flex", gap: 6 }}>
                         {([
                           { key: "" as const, label: "Semua" },
@@ -556,7 +557,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           const active = invTipeBahanFilter === key;
                           return (
                             <button key={key} onClick={() => setInvTipeBahanFilter(key)}
-                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {label}
                             </button>
                           );
@@ -565,13 +566,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </div>
                     {/* BARIS PER HALAMAN */}
                     <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Baris per Halaman</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Baris per Halaman</div>
                       <div style={{ display: "flex", gap: 6 }}>
                         {[20, 30, 40, 50].map(n => {
                           const active = rowsPerPage === n;
                           return (
                             <button key={n} onClick={() => { setRowsPerPage(n); setCurrentPage(0); }}
-                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {n}
                             </button>
                           );
@@ -580,13 +581,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </div>
                     {/* TAMPILAN */}
                     <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tampilan</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "var(--color-os-muted)", letterSpacing: 1, marginBottom: 7, textTransform: "uppercase" }}>Tampilan</div>
                       <div style={{ display: "flex", gap: 6 }}>
                         {([{ key: "card" as const, label: "Card" }, { key: "table" as const, label: "Tabel" }] as const).map(({ key, label }) => {
                           const active = invViewMode === key;
                           return (
                             <button key={key} onClick={() => setInvViewMode(key)}
-                              style={{ padding: "5px 20px", borderRadius: 6, border: `1px solid ${active ? "#E2E8F0" : "#2D2D44"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "#E2E8F0" : "#6B7280", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 20px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {label}
                             </button>
                           );
@@ -601,22 +602,32 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   </div>
                 </div>
               )}
-              <div style={{ borderBottom: "1px solid #1E1E2E" }} />
+              <div style={{ borderBottom: "1px solid var(--color-os-border)" }} />
             </div>
           ) : (
             /* ─── Desktop Header ─── */
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid #1E1E2E", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginRight: 4 }}>Tabel Inventory</span>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-os-border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", marginRight: 4 }}>Tabel Inventory</span>
+              {stockItems.length > 0 && (
+                <button
+                  onClick={() => { setStockItems([]); setLastUpload(null); setLastUploadInfo(null); }}
+                  title="Hapus data kartu stok dari tampilan"
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 5, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                  Clear Dashboard
+                </button>
+              )}
               <input
                 value={invSearch}
                 onChange={(e) => setInvSearch(e.target.value)}
                 placeholder="Cari nama bahan..."
-                style={{ flex: "1 1 160px", minWidth: 120, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                style={{ flex: "1 1 160px", minWidth: 120, background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
               />
               <select
                 value={invStatusFilter}
                 onChange={(e) => setInvStatusFilter(e.target.value as any)}
-                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invStatusFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                style={{ background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invStatusFilter ? "var(--color-os-text)" : "var(--color-os-muted)", outline: "none" }}
               >
                 <option value="">Semua Status</option>
                 <option value="SAFE">SAFE</option>
@@ -626,7 +637,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               <select
                 value={invVendorFilter}
                 onChange={(e) => setInvVendorFilter(e.target.value)}
-                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invVendorFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                style={{ background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invVendorFilter ? "var(--color-os-text)" : "var(--color-os-muted)", outline: "none" }}
               >
                 <option value="">Semua Vendor</option>
                 {vendorOptions.map((v) => <option key={v} value={v}>{v}</option>)}
@@ -634,7 +645,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               <select
                 value={invTipeBahanFilter}
                 onChange={(e) => setInvTipeBahanFilter(e.target.value as any)}
-                style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invTipeBahanFilter ? "#E2E8F0" : "#4B5563", outline: "none" }}
+                style={{ background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: invTipeBahanFilter ? "var(--color-os-text)" : "var(--color-os-muted)", outline: "none" }}
               >
                 <option value="">Semua Tipe</option>
                 <option value="packaged">Packaged</option>
@@ -642,16 +653,16 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </select>
               {(invSearch || invStatusFilter || invVendorFilter || invTipeBahanFilter) && (
                 <button onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); setInvTipeBahanFilter(""); }}
-                  style={{ background: "none", border: "1px solid #2D2D44", borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "#6B7280", cursor: "pointer" }}>
+                  style={{ background: "none", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 10, color: "var(--color-os-sub)", cursor: "pointer" }}>
                   ✕ Reset
                 </button>
               )}
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-                <span style={{ fontSize: 10, color: "#4B5563" }}>{filteredItems.length} item</span>
+                <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{filteredItems.length} item</span>
                 <select
                   value={rowsPerPage}
                   onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(0); }}
-                  style={{ background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "#6B7280", outline: "none" }}
+                  style={{ background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "var(--color-os-sub)", outline: "none" }}
                 >
                   {[20, 30, 40, 50].map((n) => <option key={n} value={n}>{n} baris</option>)}
                 </select>
@@ -661,7 +672,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           {isMobile && invViewMode === "card" ? (
             <div className="inv-card-list">
               {pagedItems.length === 0 ? (
-                <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                <div style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>
                   {displayItems.length === 0 ? "Upload kartu stok untuk melihat inventory." : "Tidak ada item yang cocok."}
                 </div>
               ) : pagedItems.map((item) => {
@@ -671,25 +682,25 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   <div key={item.bahanId ?? item.namaBahan} className="inv-card" style={{ borderLeft: `3px solid ${statusColor}` }}>
                     <div className="inv-card-body">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{item.namaBahan}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{item.namaBahan}</span>
                         <BadgeStatus status={item.status} size="sm" />
                       </div>
-                      <div style={{ fontFamily: "monospace", fontSize: 9, color: "#4B5563", marginTop: 2 }}>{item.bahanId ?? "—"}</div>
+                      <div style={{ fontFamily: "monospace", fontSize: 9, color: "var(--color-os-muted)", marginTop: 2 }}>{item.bahanId ?? "—"}</div>
                       <div className="inv-card-data-grid">
                         {[
                           { label: "Stok Akhir", value: `${item.stokAkhir} ${item.satuanDapur}` },
                           { label: "Min. Stok", value: String(item.stokMinimum) },
                           { label: "Harga Beli", value: formatRupiah(parseFloat(item.hargaBeli)) },
                         ].map(({ label, value }) => (
-                          <div key={label} style={{ background: "#13131F", borderRadius: 6, padding: "5px 7px" }}>
-                            <div style={{ fontSize: 8, color: "#4B5563", textTransform: "uppercase" }}>{label}</div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: "#E2E8F0", marginTop: 2 }}>{value}</div>
+                          <div key={label} style={{ background: "var(--color-os-card)", borderRadius: 6, padding: "5px 7px" }}>
+                            <div style={{ fontSize: 8, color: "var(--color-os-muted)", textTransform: "uppercase" }}>{label}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-text)", marginTop: 2 }}>{value}</div>
                           </div>
                         ))}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         {item.tipeBahan && <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">{item.tipeBahan}</Badge>}
-                        {item.vendorNama && <span style={{ fontSize: 9, color: "#4B5563" }}>{item.vendorNama}</span>}
+                        {item.vendorNama && <span style={{ fontSize: 9, color: "var(--color-os-muted)" }}>{item.vendorNama}</span>}
                       </div>
                     </div>
                     {item.status !== "SAFE" && item.bahanId && (
@@ -711,7 +722,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#14142A" }}>
+                <tr style={{ background: "var(--color-os-surface)" }}>
                   {["#", "ID Bahan", "Nama Bahan", "Tipe", "Stok Akhir", "Min. Stok", "Status", "Vendor", "Harga Beli", "Aksi"].map(
                     (h) => (
                       <th
@@ -721,11 +732,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           padding: "10px 14px",
                           fontSize: 10,
                           fontWeight: 700,
-                          color: "#4B5563",
+                          color: "var(--color-os-muted)",
                           textTransform: "uppercase",
                           letterSpacing: 0.5,
                           textAlign: "left",
-                          borderBottom: "1px solid #1E1E2E",
+                          borderBottom: "1px solid var(--color-os-border)",
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -738,7 +749,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                    <td colSpan={10} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>
                       {displayItems.length === 0 ? "Belum ada data. Upload kartu stok untuk melihat inventory." : "Tidak ada item yang cocok dengan filter."}
                     </td>
                   </tr>
@@ -752,11 +763,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         className="table-row-hover"
                         style={{ borderBottom: "1px solid #131320", transition: "background 0.1s" }}
                       >
-                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "#4B5563" }}>{globalIdx + 1}</td>
-                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "var(--color-os-muted)" }}>{globalIdx + 1}</td>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-muted)" }}>
                           {item.bahanId ?? <span style={{ color: "#EF4444", fontSize: 10 }}>unmatched</span>}
                         </td>
-                        <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>
+                        <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>
                           {item.namaBahan}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
@@ -764,22 +775,22 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                             <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
                               {item.tipeBahan === "packaged" ? "📦 packaged" : "🌿 raw_bulk"}
                             </Badge>
-                          ) : <span style={{ fontSize: 10, color: "#4B5563" }}>—</span>}
+                          ) : <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>—</span>}
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>
                           <span style={{ fontWeight: 600 }}>{item.stokAkhir}</span>{" "}
-                          <span style={{ fontSize: 9, color: "#4B5563" }}>{item.satuanDapur}</span>
+                          <span style={{ fontSize: 9, color: "var(--color-os-muted)" }}>{item.satuanDapur}</span>
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#4B5563" }}>{item.stokMinimum}</td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-muted)" }}>{item.stokMinimum}</td>
                         <td style={{ padding: "10px 14px" }}>
                           <BadgeStatus status={item.status} size="sm" />
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>
                           {item.vendorNama ?? "—"}
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)", whiteSpace: "nowrap" }}>
                           {formatRupiah(parseFloat(item.hargaBeli))}
-                          {item.satuanBeli && <span style={{ fontSize: 9, color: "#4B5563", marginLeft: 4 }}>/{item.satuanBeli}</span>}
+                          {item.satuanBeli && <span style={{ fontSize: 9, color: "var(--color-os-muted)", marginLeft: 4 }}>/{item.satuanBeli}</span>}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
                           {item.status !== "SAFE" && item.bahanId ? (
@@ -804,7 +815,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                               </button>
                             )
                           ) : (
-                            <span style={{ fontSize: 10, color: "#4B5563" }}>
+                            <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>
                               {item.status === "SAFE" ? "—" : "No master"}
                             </span>
                           )}
@@ -823,60 +834,60 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           {/* Pagination controls */}
           {totalPages > 1 && (
             isMobile ? (
-              <div style={{ padding: "10px 12px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "#4B5563", flexShrink: 0 }}>
+              <div style={{ padding: "10px 12px", borderTop: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--color-os-muted)", flexShrink: 0 }}>
                   {safePage * rowsPerPage + 1}–{Math.min((safePage + 1) * rowsPerPage, filteredItems.length)} dari {filteredItems.length}
                 </span>
                 <div style={{ display: "flex", gap: 3, overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
                   <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
-                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹</button>
+                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage === 0 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹</button>
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
                     const p = start + i;
                     return (
                       <button key={p} onClick={() => setCurrentPage(p)}
-                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "var(--color-os-border)"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
                         {p + 1}
                       </button>
                     );
                   })}
                   {totalPages > 5 && safePage < totalPages - 3 && (
                     <>
-                      <span style={{ padding: "4px 4px", color: "#4B5563", fontSize: 11 }}>…</span>
+                      <span style={{ padding: "4px 4px", color: "var(--color-os-muted)", fontSize: 11 }}>…</span>
                       <button onClick={() => setCurrentPage(totalPages - 1)}
-                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", fontSize: 11, cursor: "pointer" }}>
+                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: "var(--color-os-sub)", fontSize: 11, cursor: "pointer" }}>
                         {totalPages}
                       </button>
                     </>
                   )}
                   <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
-                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#374151" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>›</button>
+                    style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage >= totalPages - 1 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>›</button>
                 </div>
               </div>
             ) : (
-              <div style={{ padding: "10px 16px", borderTop: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, color: "#4B5563" }}>
+              <div style={{ padding: "10px 16px", borderTop: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, color: "var(--color-os-muted)" }}>
                   Halaman {safePage + 1} dari {totalPages} ({filteredItems.length} item)
                 </span>
                 <div style={{ display: "flex", gap: 4 }}>
                   <button onClick={() => setCurrentPage(0)} disabled={safePage === 0}
-                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>«</button>
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage === 0 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>«</button>
                   <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={safePage === 0}
-                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage === 0 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹ Prev</button>
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage === 0 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage === 0 ? "default" : "pointer" }}>‹ Prev</button>
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const start = Math.max(0, Math.min(safePage - 2, totalPages - 5));
                     const p = start + i;
                     return (
                       <button key={p} onClick={() => setCurrentPage(p)}
-                        style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "#2D2D44"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "#6B7280", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "var(--color-os-border)"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
                         {p + 1}
                       </button>
                     );
                   })}
                   <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}
-                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>Next ›</button>
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage >= totalPages - 1 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>Next ›</button>
                   <button onClick={() => setCurrentPage(totalPages - 1)} disabled={safePage >= totalPages - 1}
-                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid #2D2D44", background: "transparent", color: safePage >= totalPages - 1 ? "#2D2D44" : "#6B7280", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>»</button>
+                    style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid var(--color-os-border)", background: "transparent", color: safePage >= totalPages - 1 ? "var(--color-os-border)" : "var(--color-os-sub)", fontSize: 11, cursor: safePage >= totalPages - 1 ? "default" : "pointer" }}>»</button>
                 </div>
               </div>
             )
@@ -887,8 +898,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         {(cartOpen || poCart.length > 0) && (
           <div
             style={{
-              background: "#13131F",
-              border: "1px solid #1E1E2E",
+              background: "var(--color-os-card)",
+              border: "1px solid var(--color-os-border)",
               borderRadius: 12,
               overflow: "hidden",
             }}
@@ -896,13 +907,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             <div
               style={{
                 padding: "14px 16px",
-                borderBottom: "1px solid #1E1E2E",
+                borderBottom: "1px solid var(--color-os-border)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Keranjang PO</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Keranjang PO</span>
               <span
                 style={{
                   width: 20,
@@ -923,7 +934,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
 
             <div style={{ padding: 12 }}>
               {poCart.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "16px 0", color: "#4B5563", fontSize: 12 }}>
+                <div style={{ textAlign: "center", padding: "16px 0", color: "var(--color-os-muted)", fontSize: 12 }}>
                   🛒 Tambahkan bahan dari tabel untuk membuat PO
                 </div>
               ) : (
@@ -933,14 +944,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     key={item.bahanId}
                     style={{
                       padding: "10px 12px",
-                      border: "1px solid #1E1E2E",
+                      border: "1px solid var(--color-os-border)",
                       borderRadius: 8,
-                      background: "#0F0F18",
+                      background: "var(--color-os-bg)",
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", marginBottom: 3 }}>{item.namaBahan}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-os-text)", marginBottom: 3 }}>{item.namaBahan}</div>
                         {item.allVendors.length > 1 ? (
                           <select
                             value={item.vendorId}
@@ -950,14 +961,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                                 ? { ...c, vendorId: sel?.id ?? "", vendorNama: sel?.nama ?? "—", kontakWa: sel?.kontakWa ?? null }
                                 : c));
                             }}
-                            style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 5, padding: "3px 6px", fontSize: 10, color: "#E2E8F0", outline: "none", marginBottom: 3 }}
+                            style={{ width: "100%", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 5, padding: "3px 6px", fontSize: 10, color: "var(--color-os-text)", outline: "none", marginBottom: 3 }}
                           >
                             {item.allVendors.map((v) => (
                               <option key={v.id} value={v.id}>{v.nama}</option>
                             ))}
                           </select>
                         ) : (
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", marginBottom: 2 }}>{item.vendorNama}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-os-text)", marginBottom: 2 }}>{item.vendorNama}</div>
                         )}
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                           <Badge color={item.tipeBahan === "packaged" ? "blue" : "green"} size="sm">
@@ -965,7 +976,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           </Badge>
                           {item.kontakWa && (
                             <>
-                              <span style={{ fontSize: 10, color: "#4B5563" }}>{item.kontakWa}</span>
+                              <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{item.kontakWa}</span>
                               <a
                                 href={`https://wa.me/${formatWANumber(item.kontakWa)}`}
                                 target="_blank"
@@ -985,9 +996,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         ✕
                       </button>
                     </div>
-                    <div style={{ marginTop: 8, padding: "8px 10px", background: "#131320", borderRadius: 6, border: "1px solid #1E1E2E" }}>
+                    <div style={{ marginTop: 8, padding: "8px 10px", background: "var(--color-os-bg)", borderRadius: 6, border: "1px solid var(--color-os-border)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 10, color: "#4B5563", flexShrink: 0 }}>Harga satuan:</span>
+                        <span style={{ fontSize: 10, color: "var(--color-os-muted)", flexShrink: 0 }}>Harga satuan:</span>
                         <input
                           type="number"
                           value={item.hargaSatuan}
@@ -1001,11 +1012,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                               )
                             )
                           }
-                          style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                          style={{ flex: 1, background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
                         />
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 10, color: "#4B5563", flexShrink: 0 }}>Qty:</span>
+                        <span style={{ fontSize: 10, color: "var(--color-os-muted)", flexShrink: 0 }}>Qty:</span>
                         <input
                           type="number"
                           value={item.qty}
@@ -1019,7 +1030,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                               )
                             )
                           }
-                          style={{ width: 70, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                          style={{ width: 70, background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
                         />
                         {item.hargaSatuan > 0 && (
                           <span style={{ fontSize: 11, fontWeight: 700, color: "#C8F135", marginLeft: "auto" }}>
@@ -1063,26 +1074,26 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 return lines.join("\n");
               }
               return (
-                <div style={{ padding: 12, borderTop: "1px solid #1E1E2E" }}>
+                <div style={{ padding: 12, borderTop: "1px solid var(--color-os-border)" }}>
                   {/* Totals */}
-                  <div style={{ marginBottom: 12, padding: "10px 14px", background: "#0F0F18", borderRadius: 8, border: "1px solid #1E1E2E" }}>
+                  <div style={{ marginBottom: 12, padding: "10px 14px", background: "var(--color-os-bg)", borderRadius: 8, border: "1px solid var(--color-os-border)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: "#4B5563" }}>Subtotal ({poCart.length} item)</span>
-                      <span style={{ fontSize: 11, color: "#E2E8F0", fontWeight: 600 }}>Rp {subtotal.toLocaleString("id-ID")}</span>
+                      <span style={{ fontSize: 11, color: "var(--color-os-muted)" }}>Subtotal ({poCart.length} item)</span>
+                      <span style={{ fontSize: 11, color: "var(--color-os-text)", fontWeight: 600 }}>Rp {subtotal.toLocaleString("id-ID")}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 10 }}>
-                      <span style={{ fontSize: 11, color: "#4B5563", flexShrink: 0 }}>Ongkir (Rp)</span>
+                      <span style={{ fontSize: 11, color: "var(--color-os-muted)", flexShrink: 0 }}>Ongkir (Rp)</span>
                       <input
                         type="number"
                         value={ongkir || ""}
                         min={0}
                         placeholder="0"
                         onChange={(e) => setOngkir(parseFloat(e.target.value) || 0)}
-                        style={{ width: 120, background: "#131320", border: "1px solid #2D2D44", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", textAlign: "right" }}
+                        style={{ width: 120, background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none", textAlign: "right" }}
                       />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #1E1E2E" }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Grand Total</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--color-os-border)" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Grand Total</span>
                       <span style={{ fontSize: 13, fontWeight: 800, color: "#C8F135" }}>Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                   </div>
@@ -1116,19 +1127,19 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       <div
         style={{
           marginTop: 20,
-          background: "#13131F",
-          border: "1px solid #1E1E2E",
+          background: "var(--color-os-card)",
+          border: "1px solid var(--color-os-border)",
           borderRadius: 12,
           overflow: "hidden",
         }}
       >
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #1E1E2E" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>PO Logs Terbaru</span>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--color-os-border)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>PO Logs Terbaru</span>
         </div>
         <div className="table-scroll-wrapper">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#14142A" }}>
+            <tr style={{ background: "var(--color-os-surface)" }}>
               {["PO ID", "Tanggal", "Vendor", "Total Item", "Total Biaya", "Status", "Action"].map((h) => (
                 <th
                   key={h}
@@ -1136,11 +1147,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     padding: "10px 14px",
                     fontSize: 10,
                     fontWeight: 700,
-                    color: "#4B5563",
+                    color: "var(--color-os-muted)",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     textAlign: "left",
-                    borderBottom: "1px solid #1E1E2E",
+                    borderBottom: "1px solid var(--color-os-border)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1152,7 +1163,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           <tbody>
             {recentPOs.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                <td colSpan={7} style={{ padding: 24, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>
                   Belum ada PO
                 </td>
               </tr>
@@ -1162,13 +1173,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>
                     {po.id}
                   </td>
-                  <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>
+                  <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>
                     {formatDateTime(po.createdAt)}
                   </td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>
                     {(po as any).vendor?.namaVendor ?? "—"}
                   </td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>1</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>1</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "#EF4444", fontWeight: 700 }}>
                     {formatRupiah(parseFloat(po.totalHarga))}
                   </td>
@@ -1200,9 +1211,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         fontSize: 10,
                         padding: "3px 8px",
                         borderRadius: 4,
-                        border: "1px solid #2D2D44",
+                        border: "1px solid var(--color-os-border)",
                         background: "transparent",
-                        color: "#6B7280",
+                        color: "var(--color-os-sub)",
                         cursor: "pointer",
                       }}
                     >

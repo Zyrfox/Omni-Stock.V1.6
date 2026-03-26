@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { purchaseOrders } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { StatCard } from "@/components/shared/stat-card";
+import { FileText, Clock, CheckCircle2, BarChart2 } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { BillingActions } from "./billing-actions";
@@ -39,10 +40,10 @@ export default async function BillingPage() {
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Invoice" value={parseInt(stats?.total ?? "0")} icon="📄" color="#60A5FA" />
-        <StatCard label="Outstanding" value={formatRupiah(parseFloat(stats?.outstanding ?? "0"))} icon="⏳" color="#F59E0B" sub={`${stats?.outstanding_count ?? 0} invoice`} />
-        <StatCard label="Lunas" value={formatRupiah(parseFloat(stats?.lunas ?? "0"))} icon="✅" color="#22C55E" sub={`${stats?.lunas_count ?? 0} invoice`} />
-        <StatCard label="Bulan Ini" value={formatRupiah(parseFloat(stats?.bulan_ini ?? "0"))} icon="📊" color="#C8F135" />
+        <StatCard label="Total Invoice" value={parseInt(stats?.total ?? "0")} icon={FileText} color="#60A5FA" />
+        <StatCard label="Outstanding" value={formatRupiah(parseFloat(stats?.outstanding ?? "0"))} icon={Clock} color="#F59E0B" sub={`${stats?.outstanding_count ?? 0} invoice`} />
+        <StatCard label="Lunas" value={formatRupiah(parseFloat(stats?.lunas ?? "0"))} icon={CheckCircle2} color="#22C55E" sub={`${stats?.lunas_count ?? 0} invoice`} />
+        <StatCard label="Bulan Ini" value={formatRupiah(parseFloat(stats?.bulan_ini ?? "0"))} icon={BarChart2} color="#C8F135" />
       </div>
 
       <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
