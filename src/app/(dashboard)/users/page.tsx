@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { users, outlets } from "@/db/schema";
 import { getUserStats } from "@/actions/users";
 import { StatCard } from "@/components/shared/stat-card";
-import { Users, Shield, User } from "lucide-react";
+import { Users, Shield, User, UserCheck, UserCog } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatDate } from "@/lib/formatters";
 import { UsersClient } from "./users-client";
@@ -32,10 +32,12 @@ export default async function UsersPage() {
         <span style={{ fontSize: 12, color: "#C8F135" }}>Halaman ini hanya dapat diakses oleh Admin. Data pengguna bersifat sensitif.</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Pengguna" value={stats.total} icon={Users} color="#60A5FA" />
         <StatCard label="Admin" value={stats.admin} icon={Shield} color="#C8F135" />
         <StatCard label="Manager" value={stats.manager} icon={User} color="#22C55E" />
+        <StatCard label="Supervisor" value={stats.supervisor} icon={UserCheck} color="#F59E0B" />
+        <StatCard label="Staff" value={stats.staff} icon={UserCog} color="#A78BFA" />
       </div>
 
       <UsersClient userList={userList as any} outletList={outletList} />

@@ -18,7 +18,7 @@ export async function getUsers() {
 export async function createUser(data: {
   nama: string;
   email: string;
-  role: "admin" | "manager";
+  role: "admin" | "manager" | "supervisor" | "staff";
   outletId?: string;
   password: string;
 }): Promise<{ id: string; password: string }> {
@@ -68,7 +68,7 @@ export async function deleteUser(id: string) {
 
 export async function updateUser(
   id: string,
-  data: Partial<{ nama: string; name: string; role: "admin" | "manager"; outletId: string | null }>
+  data: Partial<{ nama: string; name: string; role: "admin" | "manager" | "supervisor" | "staff"; outletId: string | null }>
 ) {
   await db.update(users).set(data).where(eq(users.id, id));
   revalidatePath("/users");
@@ -80,5 +80,7 @@ export async function getUserStats() {
     total: all.length,
     admin: all.filter((u) => u.role === "admin").length,
     manager: all.filter((u) => u.role === "manager").length,
+    supervisor: all.filter((u) => u.role === "supervisor").length,
+    staff: all.filter((u) => u.role === "staff").length,
   };
 }

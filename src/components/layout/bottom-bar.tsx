@@ -5,7 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { NAV_ITEMS, type NavItem } from "@/lib/constants";
 import { authClient } from "@/lib/auth-client";
-import { Upload, Menu, LogOut } from "lucide-react";
+import { Upload, Menu, LogOut, Palette } from "lucide-react";
+import { useTheme, THEMES, type Theme } from "@/components/providers/theme-provider";
+
+const THEME_DOTS: Record<Theme, string> = {
+  dark: "#C8F135",
+  light: "#16A34A",
+  tokyo: "#7AA2F7",
+  catppuccin: "#CBA6F7",
+  solarized: "#B58900",
+};
 
 // 3 pinned items — FAB occupies the center slot
 const PINNED_HREFS = ["/dashboard", "/products", "/po-logs"];
@@ -19,6 +28,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const isAdmin = userRole === "admin";
 
   const pinnedItems = ALL_FLAT.filter((item) => PINNED_HREFS.includes(item.href));
@@ -234,6 +244,40 @@ export function BottomBar({ userRole }: BottomBarProps) {
             </div>
 
             <div style={{ height: 1, background: "#1E1E2E", margin: "0 16px" }} />
+
+            {/* Theme picker */}
+            <div style={{ padding: "10px 20px 6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <Palette size={14} style={{ color: "#6B7280", flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: 1 }}>Theme</span>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {THEMES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 10px",
+                      borderRadius: 7,
+                      border: theme === t.id ? "1px solid rgba(200,241,53,0.5)" : "1px solid #2D2D44",
+                      background: theme === t.id ? "rgba(200,241,53,0.08)" : "#0F0F18",
+                      color: theme === t.id ? "#C8F135" : "#9CA3AF",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontWeight: theme === t.id ? 700 : 400,
+                    }}
+                  >
+                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: THEME_DOTS[t.id], flexShrink: 0 }} />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ height: 1, background: "#1E1E2E", margin: "8px 16px" }} />
 
             {/* Sign out */}
             <button

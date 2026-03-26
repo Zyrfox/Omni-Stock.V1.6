@@ -13,7 +13,7 @@ import {
 import { relations } from "drizzle-orm";
 
 // ─── Enums ───────────────────────────────────────────────
-export const roleEnum = pgEnum("role", ["admin", "manager"]);
+export const roleEnum = pgEnum("role", ["admin", "manager", "supervisor", "staff"]);
 export const tipeBahanEnum = pgEnum("tipe_bahan", ["packaged", "raw_bulk"]);
 export const consumptionSourceEnum = pgEnum("consumption_source", ["manual", "auto"]);
 export const kategoriMenuEnum = pgEnum("kategori_menu", ["food", "beverage"]);

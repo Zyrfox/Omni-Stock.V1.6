@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatDate } from "@/lib/formatters";
 import { createUser, deleteUser, updateUser } from "@/actions/users";
@@ -8,8 +8,17 @@ import { generatePassword } from "@/lib/password-utils";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
+type UserRole = "admin" | "manager" | "supervisor" | "staff";
+
+const ROLE_COLOR: Record<UserRole, string> = {
+  admin: "#C8F135",
+  manager: "#60A5FA",
+  supervisor: "#F59E0B",
+  staff: "#A78BFA",
+};
+
 interface UserItem {
-  id: string; nama: string; email: string; role: "admin" | "manager";
+  id: string; nama: string; email: string; role: UserRole;
   outletId: string | null; createdAt: Date | null; mustChangePassword: boolean | null;
   outlet: { namaOutlet: string } | null;
 }
@@ -19,15 +28,23 @@ interface OutletOption { id: string; namaOutlet: string; }
 export function UsersClient({ userList, outletList }: { userList: UserItem[]; outletList: OutletOption[] }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
   const [showAddUser, setShowAddUser] = useState(false);
+
+  useEffect(() => {
+    function check() { setIsMobile(window.innerWidth < 768); }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const [credentials, setCredentials] = useState<{ nama: string; email: string; password: string; role: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
   const [editTarget, setEditTarget] = useState<UserItem | null>(null);
-  const [editForm, setEditForm] = useState({ nama: "", role: "manager" as "admin" | "manager", outletId: "" });
+  const [editForm, setEditForm] = useState({ nama: "", role: "manager" as UserRole, outletId: "" });
   const [saving, setSaving] = useState(false);
   const [generatedPwd, setGeneratedPwd] = useState(generatePassword());
   const [copied, setCopied] = useState<string | null>(null);
-  const [form, setForm] = useState({ nama: "", email: "", role: "manager" as "admin" | "manager", outletId: "" });
+  const [form, setForm] = useState({ nama: "", email: "", role: "manager" as UserRole, outletId: "" });
 
   async function handleCreateUser() {
     setSaving(true);
@@ -102,71 +119,136 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
         </button>
       </div>
 
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#14142A" }}>
-              {["Username / Email", "Role", "Outlet", "Terdaftar Sejak", "Status", "Aksi"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {userList.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada pengguna.</td></tr>
-            ) : (
-              userList.map((u) => {
-                const isSelf = u.id === currentUserId;
-                const initials = u.nama.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-                return (
-                  <tr key={u.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
-                    <td style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0A0A0F", flexShrink: 0 }}>
-                          {initials}
-                        </div>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0" }}>{u.nama}</span>
-                            {isSelf && <Badge color="accent" size="sm">ANDA</Badge>}
+      {isMobile ? (
+        /* ── Mobile: card list ── */
+        <div className="user-card-list">
+          {userList.length === 0 ? (
+            <div style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada pengguna.</div>
+          ) : userList.map((u) => {
+            const isSelf = u.id === currentUserId;
+            const initials = u.nama.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+            return (
+              <div key={u.id} className="user-card">
+                {/* Card header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderBottom: "1px solid #1E1E2E" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#0A0A0F", flexShrink: 0 }}>
+                    {initials}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{u.nama}</span>
+                      {isSelf && <Badge color="accent" size="sm">ANDA</Badge>}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#4B5563", marginTop: 1 }}>{u.email}</div>
+                  </div>
+                  {/* Role pill */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: ROLE_COLOR[u.role], display: "inline-block" }} />
+                    <span style={{ fontSize: 11, color: ROLE_COLOR[u.role], fontWeight: 700, textTransform: "uppercase" }}>{u.role}</span>
+                  </div>
+                </div>
+                {/* Card body */}
+                <div style={{ padding: "10px 14px", display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {[
+                    { label: "Outlet", value: u.outlet?.namaOutlet ?? "Semua" },
+                    { label: "Terdaftar", value: formatDate(u.createdAt) },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ background: "#13131F", borderRadius: 5, padding: "3px 8px", fontSize: 10 }}>
+                      <span style={{ color: "#4B5563" }}>{label}: </span>
+                      <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{value}</span>
+                    </div>
+                  ))}
+                  {u.mustChangePassword ? (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 5, padding: "3px 8px" }}>Ganti PW</div>
+                  ) : (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#22C55E", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 5, padding: "3px 8px" }}>Aktif</div>
+                  )}
+                </div>
+                {/* Card actions */}
+                {!isSelf && (
+                  <div style={{ padding: "8px 14px", borderTop: "1px solid #1E1E2E", display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => { setEditTarget(u); setEditForm({ nama: u.nama, role: u.role, outletId: u.outletId ?? "" }); }}
+                      style={{ flex: 1, fontSize: 12, padding: "7px 0", borderRadius: 6, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer", fontWeight: 600 }}
+                    >Edit</button>
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      style={{ flex: 1, fontSize: 12, padding: "7px 0", borderRadius: 6, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer", fontWeight: 600 }}
+                    >Hapus</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Desktop: table ── */
+        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#14142A" }}>
+                {["Username / Email", "Role", "Outlet", "Terdaftar Sejak", "Status", "Aksi"].map((h) => (
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {userList.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada pengguna.</td></tr>
+              ) : (
+                userList.map((u) => {
+                  const isSelf = u.id === currentUserId;
+                  const initials = u.nama.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+                  return (
+                    <tr key={u.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                      <td style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0A0A0F", flexShrink: 0 }}>
+                            {initials}
                           </div>
-                          <div style={{ fontSize: 11, color: "#4B5563" }}>{u.email}</div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: "#E2E8F0" }}>{u.nama}</span>
+                              {isSelf && <Badge color="accent" size="sm">ANDA</Badge>}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#4B5563" }}>{u.email}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: u.role === "admin" ? "#C8F135" : "#60A5FA", display: "inline-block" }} />
-                        <span style={{ fontSize: 11, color: u.role === "admin" ? "#C8F135" : "#60A5FA", fontWeight: 600, textTransform: "uppercase" }}>{u.role}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{u.outlet?.namaOutlet ?? "Semua"}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{formatDate(u.createdAt)}</td>
-                    <td style={{ padding: "10px 14px" }}>
-                      {u.mustChangePassword ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 4, padding: "2px 7px" }}>🔑 Ganti PW</span>
-                      ) : (
-                        <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● Aktif</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      {!isSelf && (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            onClick={() => { setEditTarget(u); setEditForm({ nama: u.nama, role: u.role, outletId: u.outletId ?? "" }); }}
-                            style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}
-                          >Edit</button>
-                          <button onClick={() => setDeleteTarget(u)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>🗑</button>
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: ROLE_COLOR[u.role], display: "inline-block" }} />
+                          <span style={{ fontSize: 11, color: ROLE_COLOR[u.role], fontWeight: 600, textTransform: "uppercase" }}>{u.role}</span>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{u.outlet?.namaOutlet ?? "Semua"}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{formatDate(u.createdAt)}</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {u.mustChangePassword ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "#F59E0B", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 4, padding: "2px 7px" }}>🔑 Ganti PW</span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>● Aktif</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        {!isSelf && (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              onClick={() => { setEditTarget(u); setEditForm({ nama: u.nama, role: u.role, outletId: u.outletId ?? "" }); }}
+                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}
+                            >Edit</button>
+                            <button onClick={() => setDeleteTarget(u)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>🗑</button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal Tambah User */}
       {showAddUser && (
@@ -187,8 +269,10 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
               ))}
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Role</label>
-                <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as any }))}
+                <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
                   style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  <option value="staff">Staff</option>
+                  <option value="supervisor">Supervisor</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
@@ -269,8 +353,10 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
 
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Role</label>
-                <select value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as "admin" | "manager" }))}
+                <select value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as UserRole }))}
                   style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  <option value="staff">Staff</option>
+                  <option value="supervisor">Supervisor</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>

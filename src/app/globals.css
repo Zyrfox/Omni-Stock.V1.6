@@ -568,6 +568,10 @@ table td {
   .po-timeline-inline { display: flex; align-items: center; gap: 4px; margin: 8px 0; }
   .po-card-actions { padding: 8px 12px; border-top: 1px solid #1E1E2E; display: flex; gap: 6px; }
 
+  /* ─── Users Card View ─── */
+  .user-card-list { display: flex; flex-direction: column; gap: 8px; }
+  .user-card { background: #0F0F18; border: 1px solid #1E1E2E; border-radius: 10px; overflow: hidden; }
+
   /* ─── View Toggle Buttons ─── */
   .view-toggle-btn { padding: 5px 10px; border-radius: 6px; border: 1px solid #2D2D44; background: transparent; color: #6B7280; font-size: 11px; cursor: pointer; }
   .view-toggle-btn.active { border-color: rgba(200,241,53,0.4); background: rgba(200,241,53,0.08); color: #C8F135; }
