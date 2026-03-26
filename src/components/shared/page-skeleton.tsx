@@ -15,16 +15,16 @@ export function PageSkeleton({ rows = 6, cards = 0 }: { rows?: number; cards?: n
       )}
 
       {/* Table skeleton */}
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden", marginTop: 8 }}>
+      <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden", marginTop: 8 }}>
         {/* header row */}
-        <div style={{ background: "#14142A", padding: "10px 16px", display: "flex", gap: 16 }}>
+        <div style={{ background: "var(--color-os-row-hover)", padding: "10px 16px", display: "flex", gap: 16 }}>
           {[80, 200, 100, 100, 80].map((w, i) => (
             <div key={i} className="skeleton" style={{ width: w, height: 12 }} />
           ))}
         </div>
         {/* data rows */}
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} style={{ padding: "12px 16px", borderBottom: "1px solid #131320", display: "flex", gap: 16, alignItems: "center", opacity: 1 - i * (0.12 / rows) }}>
+          <div key={i} style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-os-border)", display: "flex", gap: 16, alignItems: "center", opacity: 1 - i * (0.12 / rows) }}>
             {[80, 200, 100, 100, 80].map((w, j) => (
               <div key={j} className="skeleton" style={{ width: w, height: 12 }} />
             ))}

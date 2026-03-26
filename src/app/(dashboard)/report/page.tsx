@@ -72,7 +72,7 @@ export default async function ReportPage() {
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Report</h1>
           <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Analitik pengeluaran & performa</p>
         </div>
-        <button style={{ fontSize: 12, padding: "8px 14px", borderRadius: 7, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+        <button style={{ fontSize: 12, padding: "8px 14px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: "transparent", color: "#6B7280", cursor: "pointer" }}>
           Export Excel
         </button>
       </div>
@@ -85,7 +85,7 @@ export default async function ReportPage() {
       </div>
 
       {/* Bar Chart */}
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+      <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>Tren Pengeluaran (Tahun Ini)</div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140 }}>
           {chartData.map((d) => {
@@ -120,7 +120,7 @@ export default async function ReportPage() {
       {/* Grid 2 kolom */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {/* Top 5 Bahan */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>Top 5 Bahan by Pengeluaran</div>
           {topBahan.length === 0 ? (
             <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada data.</div>
@@ -133,7 +133,7 @@ export default async function ReportPage() {
                     <span style={{ fontSize: 12, color: "#E2E8F0" }}>{b.nama_bahan}</span>
                     <span style={{ fontSize: 12, color: "#EF4444", fontWeight: 700 }}>{formatRupiah(parseFloat(b.total))}</span>
                   </div>
-                  <div style={{ height: 4, background: "#1E1E2E", borderRadius: 2 }}>
+                  <div style={{ height: 4, background: `var(--color-os-border)`, borderRadius: 2 }}>
                     <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #C8F135, #86EF3C)", borderRadius: 2 }} />
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default async function ReportPage() {
         </div>
 
         {/* Performa Vendor */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 18 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>Performa Vendor</div>
           {vendorPerforma.length === 0 ? (
             <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada data pengiriman selesai.</div>
@@ -160,7 +160,7 @@ export default async function ReportPage() {
                 {vendorPerforma.map((v) => {
                   const onTime = parseFloat(v.lead_time_aktual ?? "0") <= parseFloat(v.lead_time_estimasi);
                   return (
-                    <tr key={v.nama_vendor} style={{ borderTop: "1px solid #1E1E2E" }}>
+                    <tr key={v.nama_vendor} style={{ borderTop: "1px solid var(--color-os-border)" }}>
                       <td style={{ padding: "8px 0", fontSize: 12, color: "#E2E8F0" }}>{v.nama_vendor}</td>
                       <td style={{ padding: "8px 4px", fontSize: 11, color: "#6B7280" }}>{v.lead_time_estimasi}h</td>
                       <td style={{ padding: "8px 4px", fontSize: 11, color: "#6B7280" }}>{Math.round(parseFloat(v.lead_time_aktual ?? "0"))}h</td>

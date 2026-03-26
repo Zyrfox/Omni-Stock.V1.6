@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isPending) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0A0A0F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--color-os-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "#C8F135", fontSize: 24 }}>⊚</div>
       </div>
     );

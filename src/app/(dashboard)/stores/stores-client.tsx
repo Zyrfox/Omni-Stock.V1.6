@@ -30,7 +30,7 @@ const MODAL_OVERLAY: React.CSSProperties = {
   display: "flex", alignItems: "center", justifyContent: "center",
 };
 const MODAL_BOX: React.CSSProperties = {
-  background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 14,
+  background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 14,
   padding: 28, width: 420, maxWidth: "90vw",
 };
 
@@ -73,7 +73,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "9px 12px", background: "#0D0D1A",
-    border: "1px solid #1E1E2E", borderRadius: 8, color: "#E2E8F0",
+    border: "1px solid var(--color-os-border)", borderRadius: 8, color: "#E2E8F0",
     fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
@@ -81,7 +81,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       {/* Header row with tabs + Tambah Outlet */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
-        <div style={{ background: "#14142A", padding: 4, borderRadius: 8, display: "inline-flex", gap: 2 }}>
+        <div style={{ background: `var(--color-os-row-hover)`, padding: 4, borderRadius: 8, display: "inline-flex", gap: 2 }}>
           {tabs.map((t, i) => (
             <button
               key={t}
@@ -115,13 +115,13 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
 
       {/* Tab 1 — Upload Compliance per Outlet */}
       {activeTab === 1 && (
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
           <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#14142A" }}>
+              <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Outlet ID", "Nama Outlet", "Upload Compliance", "Inventory Net Worth", "Critical", "Warning", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -130,12 +130,12 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
                 <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada outlet terdaftar.</td></tr>
               ) : (
                 outlets.map((o) => (
-                  <tr key={o.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                  <tr key={o.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                     <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{o.id}</td>
                     <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{o.namaOutlet}</td>
                     <td style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 80, height: 4, background: "#1E1E2E", borderRadius: 2 }}>
+                        <div style={{ width: 80, height: 4, background: `var(--color-os-border)`, borderRadius: 2 }}>
                           <div style={{ width: "0%", height: "100%", background: "#EF4444", borderRadius: 2 }} />
                         </div>
                         <span style={{ fontSize: 11, color: "#EF4444" }}>0%</span>
@@ -163,13 +163,13 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
 
       {/* Tab 2 — Menu Profitability Matrix */}
       {activeTab === 2 && (
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
           <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#14142A" }}>
+              <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Nama Menu", "COGS", "Harga Jual", "Margin", "Terjual/Bulan", "Kontribusi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -191,7 +191,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
                   const marginColor = margin >= 65 ? "#22C55E" : "#F59E0B";
 
                   return (
-                    <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                       <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
                       <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
                         {cogs > 0 ? formatRupiah(cogs) : <span style={{ color: "#4B5563" }}>—</span>}
@@ -211,7 +211,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
                       </td>
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 60, height: 4, background: "#1E1E2E", borderRadius: 2, flexShrink: 0 }}>
+                          <div style={{ width: 60, height: 4, background: `var(--color-os-border)`, borderRadius: 2, flexShrink: 0 }}>
                             <div style={{ width: `${kontribusiPct}%`, height: "100%", background: "linear-gradient(90deg, #C8F135, #86EF3C)", borderRadius: 2 }} />
                           </div>
                           <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -260,7 +260,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowAddOutlet(false)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #1E1E2E", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
               >
                 Batal
               </button>
@@ -321,7 +321,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
               <button
                 onClick={() => setDetailOutlet(null)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #1E1E2E", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
               >
                 Tutup
               </button>

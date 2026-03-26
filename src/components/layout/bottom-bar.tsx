@@ -76,8 +76,8 @@ export function BottomBar({ userRole }: BottomBarProps) {
           left: 0,
           right: 0,
           height: 56,
-          background: "#0F0F18",
-          borderTop: "1px solid #1E1E2E",
+          background: "var(--color-os-surface)",
+          borderTop: "1px solid var(--color-os-border)",
           alignItems: "stretch",
           zIndex: 60,
         }}
@@ -202,8 +202,8 @@ export function BottomBar({ userRole }: BottomBarProps) {
               bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
               left: 0,
               right: 0,
-              background: "#13131F",
-              borderTop: "1px solid #2D2D44",
+              background: "var(--color-os-card)",
+              borderTop: "1px solid var(--color-os-border2)",
               borderRadius: "16px 16px 0 0",
               zIndex: 71,
               maxHeight: "65vh",
@@ -212,7 +212,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
           >
             {/* Drag handle */}
             <div style={{ textAlign: "center", padding: "12px 0 6px" }}>
-              <div style={{ width: 36, height: 3, background: "#2D2D44", borderRadius: 2, display: "inline-block" }} />
+              <div style={{ width: 36, height: 3, background: "var(--color-os-border2)", borderRadius: 2, display: "inline-block" }} />
             </div>
 
             <div style={{ padding: "4px 0 8px" }}>
@@ -243,7 +243,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
               })}
             </div>
 
-            <div style={{ height: 1, background: "#1E1E2E", margin: "0 16px" }} />
+            <div style={{ height: 1, background: "var(--color-os-border)", margin: "0 16px" }} />
 
             {/* Theme picker */}
             <div style={{ padding: "10px 20px 6px" }}>
@@ -262,8 +262,8 @@ export function BottomBar({ userRole }: BottomBarProps) {
                       gap: 6,
                       padding: "6px 10px",
                       borderRadius: 7,
-                      border: theme === t.id ? "1px solid rgba(200,241,53,0.5)" : "1px solid #2D2D44",
-                      background: theme === t.id ? "rgba(200,241,53,0.08)" : "#0F0F18",
+                      border: theme === t.id ? "1px solid rgba(200,241,53,0.5)" : "1px solid var(--color-os-border2)",
+                      background: theme === t.id ? "rgba(200,241,53,0.08)" : "var(--color-os-surface)",
                       color: theme === t.id ? "#C8F135" : "#9CA3AF",
                       fontSize: 12,
                       cursor: "pointer",
@@ -277,7 +277,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
               </div>
             </div>
 
-            <div style={{ height: 1, background: "#1E1E2E", margin: "8px 16px" }} />
+            <div style={{ height: 1, background: "var(--color-os-border)", margin: "8px 16px" }} />
 
             {/* Sign out */}
             <button

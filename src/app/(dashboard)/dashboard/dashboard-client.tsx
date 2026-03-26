@@ -297,7 +297,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               const total = parseInt(u.po_count ?? "0");
               return (
                 <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: idx < topContributors.length - 1 ? "1px solid var(--color-os-border)" : "none" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#0A0A0F", flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: `var(--color-os-bg)`, flexShrink: 0 }}>
                     {initial}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -761,7 +761,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       <tr
                         key={item.bahanId ?? item.namaBahan}
                         className="table-row-hover"
-                        style={{ borderBottom: "1px solid #131320", transition: "background 0.1s" }}
+                        style={{ borderBottom: "1px solid var(--color-os-border)", transition: "background 0.1s" }}
                       >
                         <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "var(--color-os-muted)" }}>{globalIdx + 1}</td>
                         <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-muted)" }}>
@@ -920,7 +920,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   height: 20,
                   borderRadius: "50%",
                   background: "#C8F135",
-                  color: "#0A0A0F",
+                  color: `var(--color-os-bg)`,
                   fontSize: 10,
                   fontWeight: 800,
                   display: "flex",
@@ -1169,7 +1169,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </tr>
             ) : (
               recentPOs.map((po) => (
-                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                   <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>
                     {po.id}
                   </td>

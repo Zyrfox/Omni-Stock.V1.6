@@ -95,7 +95,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", background: "#0F0F18", border: "1px solid #2D2D44",
+    width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)",
     borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0",
     outline: "none", boxSizing: "border-box",
   };
@@ -128,7 +128,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
     onSave: () => void; onCancel: () => void; saveLabel: string; extraLeft?: React.ReactNode;
   }) => (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-      <div className="modal-fadein" style={{ width: 480, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+      <div className="modal-fadein" style={{ width: 480, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
         <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
         <div style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>{title}</h2>
@@ -162,7 +162,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
           <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "space-between" }}>
             <div>{extraLeft}</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={onCancel} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+              <button onClick={onCancel} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
               <button onClick={onSave} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                 {saving ? "Menyimpan..." : saveLabel}
               </button>
@@ -190,7 +190,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ background: "#14142A", padding: 4, borderRadius: 8, display: "inline-flex", gap: 2, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ background: `var(--color-os-row-hover)`, padding: 4, borderRadius: 8, display: "inline-flex", gap: 2, marginBottom: 16, flexWrap: "wrap" }}>
         {KATEGORI_TABS.map((t) => {
           const count = items.filter((b) => b.kategoriBahan === t.key).length;
           const isActive = !showMutasi && activeTab === t.key;
@@ -214,7 +214,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
 
       {/* Mutasi placeholder */}
       {showMutasi && (
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 32, textAlign: "center" }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 24, marginBottom: 8 }}>↔</div>
           <div style={{ fontSize: 12, color: "#4B5563" }}>Belum ada data mutasi antar cabang.</div>
         </div>
@@ -222,17 +222,17 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
 
       {/* Table */}
       {!showMutasi && (
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "8px 16px", background: "#14142A", borderBottom: "1px solid #1E1E2E", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "8px 16px", background: `var(--color-os-row-hover)`, borderBottom: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "#C8F135" }}>{activeTab}</span>
             <span style={{ fontSize: 10, color: "#4B5563" }}>— {activeTabMeta?.desc}</span>
           </div>
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#14142A" }}>
+              <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["ID", "Nama Barang", "Outlet", "Satuan", "Min. Stok", "Harga Beli", "Aksi"].map((h) => (
-                  <th key={h} className={h === "Nama Barang" ? "col-sticky-nama" : h === "ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                  <th key={h} className={h === "Nama Barang" ? "col-sticky-nama" : h === "ID" ? "col-hide-mobile" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -243,7 +243,7 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
                 </td></tr>
               ) : (
                 filtered.map((b, idx) => (
-                  <tr key={b.id + idx} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                  <tr key={b.id + idx} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                     <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{b.id}</td>
                     <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{b.namaBahan}</td>
                     <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{b.outletId ?? "—"}</td>
@@ -296,11 +296,11 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
       {/* Konfirmasi Hapus */}
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div className="modal-fadein" style={{ width: 340, background: "#13131F", borderRadius: 14, border: "1px solid rgba(239,68,68,0.3)", padding: 24 }}>
+          <div className="modal-fadein" style={{ width: 340, background: `var(--color-os-card)`, borderRadius: 14, border: "1px solid rgba(239,68,68,0.3)", padding: 24 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "#EF4444", margin: "0 0 8px" }}>Hapus Item?</h3>
             <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 20px" }}>Data tidak bisa dikembalikan setelah dihapus.</p>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setConfirmDelete(null)} style={{ padding: "7px 14px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+              <button onClick={() => setConfirmDelete(null)} style={{ padding: "7px 14px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
               <button onClick={() => handleDelete(confirmDelete)} disabled={saving}
                 style={{ padding: "7px 14px", background: "#EF4444", border: "none", borderRadius: 7, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 {saving ? "Menghapus..." : "Ya, Hapus"}

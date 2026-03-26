@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0A0A0F",
+        background: `var(--color-os-bg)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -80,7 +80,7 @@ export default function LoginPage() {
       <div
         style={{
           width: 420,
-          background: "#13131F",
+          background: `var(--color-os-card)`,
           borderRadius: 18,
           boxShadow: "0 32px 80px rgba(0,0,0,0.6)",
           overflow: "hidden",
@@ -136,7 +136,7 @@ export default function LoginPage() {
             style={{
               display: "flex",
               marginBottom: 24,
-              borderBottom: "1px solid #1E1E2E",
+              borderBottom: "1px solid var(--color-os-border)",
             }}
           >
             {tabs.map((t) => (
@@ -187,7 +187,7 @@ export default function LoginPage() {
                 placeholder="nama@easygoing.id"
                 style={{
                   width: "100%",
-                  background: "#0F0F18",
+                  background: `var(--color-os-surface)`,
                   border: `1px solid ${error ? "rgba(239,68,68,0.4)" : "#2D2D44"}`,
                   borderRadius: 8,
                   padding: "10px 14px",
@@ -230,7 +230,7 @@ export default function LoginPage() {
                   placeholder="••••••••••••"
                   style={{
                     width: "100%",
-                    background: "#0F0F18",
+                    background: `var(--color-os-surface)`,
                     border: `1px solid ${error ? "rgba(239,68,68,0.4)" : "#2D2D44"}`,
                     borderRadius: 8,
                     padding: "10px 40px 10px 14px",
@@ -297,7 +297,7 @@ export default function LoginPage() {
                 borderRadius: 8,
                 border: "none",
                 background: loading ? "#1E2A06" : "linear-gradient(135deg, #C8F135, #86EF3C)",
-                color: loading ? "#4B5563" : "#0A0A0F",
+                color: loading ? "#4B5563" : `var(--color-os-bg)`,
                 fontSize: 13,
                 fontWeight: 800,
                 cursor: loading ? "not-allowed" : "pointer",

@@ -37,13 +37,13 @@ export default async function DeliveryPage() {
         <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon={CheckCircle2} color="#22C55E" />
       </div>
 
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
         <div className="table-scroll-wrapper">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#14142A" }}>
+            <tr style={{ background: `var(--color-os-row-hover)` }}>
               {["DEL ID", "PO ID", "Vendor", "Bahan", "Qty", "ETA", "Status", "Aksi"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -52,7 +52,7 @@ export default async function DeliveryPage() {
               <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada pengiriman aktif.</td></tr>
             ) : (
               orders.map((po, idx) => (
-                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                   <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>DEL-{String(idx + 1).padStart(3, "0")}</td>
                   <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135" }}>{po.id}</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{(po as any).vendor?.namaVendor}</td>

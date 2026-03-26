@@ -130,8 +130,8 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
             return (
               <div key={u.id} className="user-card">
                 {/* Card header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderBottom: "1px solid #1E1E2E" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#0A0A0F", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderBottom: "1px solid var(--color-os-border)" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: `var(--color-os-bg)`, flexShrink: 0 }}>
                     {initials}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -153,7 +153,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                     { label: "Outlet", value: u.outlet?.namaOutlet ?? "Semua" },
                     { label: "Terdaftar", value: formatDate(u.createdAt) },
                   ].map(({ label, value }) => (
-                    <div key={label} style={{ background: "#13131F", borderRadius: 5, padding: "3px 8px", fontSize: 10 }}>
+                    <div key={label} style={{ background: "var(--color-os-card)", borderRadius: 5, padding: "3px 8px", fontSize: 10 }}>
                       <span style={{ color: "#4B5563" }}>{label}: </span>
                       <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{value}</span>
                     </div>
@@ -166,7 +166,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                 </div>
                 {/* Card actions */}
                 {!isSelf && (
-                  <div style={{ padding: "8px 14px", borderTop: "1px solid #1E1E2E", display: "flex", gap: 8 }}>
+                  <div style={{ padding: "8px 14px", borderTop: "1px solid var(--color-os-border)", display: "flex", gap: 8 }}>
                     <button
                       onClick={() => { setEditTarget(u); setEditForm({ nama: u.nama, role: u.role, outletId: u.outletId ?? "" }); }}
                       style={{ flex: 1, fontSize: 12, padding: "7px 0", borderRadius: 6, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer", fontWeight: 600 }}
@@ -183,12 +183,12 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
         </div>
       ) : (
         /* ── Desktop: table ── */
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#14142A" }}>
+              <tr style={{ background: "var(--color-os-row-hover)" }}>
                 {["Username / Email", "Role", "Outlet", "Terdaftar Sejak", "Status", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -200,10 +200,10 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                   const isSelf = u.id === currentUserId;
                   const initials = u.nama.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
                   return (
-                    <tr key={u.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <tr key={u.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0A0A0F", flexShrink: 0 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: `var(--color-os-bg)`, flexShrink: 0 }}>
                             {initials}
                           </div>
                           <div>
@@ -253,7 +253,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
       {/* Modal Tambah User */}
       {showAddUser && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 480, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 480, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Pengguna</h2>
@@ -264,13 +264,13 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                 <div key={key} style={{ marginBottom: 14 }}>
                   <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                   <input type={type ?? "text"} value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} placeholder={placeholder}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+                    style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }} />
                 </div>
               ))}
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Role</label>
                 <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)" }}>
                   <option value="staff">Staff</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="manager">Manager</option>
@@ -282,13 +282,13 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Password (Auto-generated)</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input readOnly value={generatedPwd}
-                    style={{ flex: 1, background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#F59E0B", outline: "none" }} />
+                    style={{ flex: 1, background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-amber)", outline: "none" }} />
                   <button onClick={() => setGeneratedPwd(generatePassword())}
-                    style={{ padding: "8px 12px", background: "#1E1E2E", border: "1px solid #2D2D44", borderRadius: 7, color: "#E2E8F0", cursor: "pointer", fontSize: 12 }}>↻</button>
+                    style={{ padding: "8px 12px", background: "var(--color-os-border)", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-text)", cursor: "pointer", fontSize: 12 }}>↻</button>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowAddUser(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => setShowAddUser(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-sub)", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleCreateUser} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Membuat..." : "✓ Buat Akun & Tampilkan Kredensial"}
                 </button>
@@ -301,7 +301,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
       {/* Credential Card */}
       {credentials && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110 }}>
-          <div className="modal-fadein" style={{ width: 480, background: "#13131F", borderRadius: 16, border: "1px solid rgba(200,241,53,0.3)", boxShadow: "0 0 40px rgba(200,241,53,0.1)", overflow: "hidden" }}>
+          <div className="modal-fadein" style={{ width: 480, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid rgba(200,241,53,0.3)", boxShadow: "0 0 40px rgba(200,241,53,0.1)", overflow: "hidden" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "8px 12px", marginBottom: 20, fontSize: 11, color: "#F59E0B" }}>
@@ -311,17 +311,17 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                 { label: "Email", value: credentials.email, key: "email" },
                 { label: "Password", value: credentials.password, key: "password", sensitive: true },
               ].map(({ label, value, key, sensitive }) => (
-                <div key={key} style={{ marginBottom: 14, background: "#0F0F18", borderRadius: 8, padding: "10px 14px" }}>
+                <div key={key} style={{ marginBottom: 14, background: "var(--color-os-surface)", borderRadius: 8, padding: "10px 14px" }}>
                   <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>{label}</div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontFamily: "monospace", fontSize: 13, color: sensitive ? "#F59E0B" : "#C8F135" }}>{value}</span>
-                    <button onClick={() => copyText(value, key)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid #2D2D44", background: "#1E1E2E", color: copied === key ? "#22C55E" : "#6B7280", cursor: "pointer" }}>
+                    <button onClick={() => copyText(value, key)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid var(--color-os-border2)", background: "var(--color-os-border)", color: copied === key ? "var(--color-os-green)" : "var(--color-os-sub)", cursor: "pointer" }}>
                       {copied === key ? "✓ Copied" : "Copy"}
                     </button>
                   </div>
                 </div>
               ))}
-              <button onClick={copyAll} style={{ width: "100%", padding: "10px", borderRadius: 7, border: "1px solid #2D2D44", background: "#1E1E2E", color: copied === "all" ? "#22C55E" : "#E2E8F0", cursor: "pointer", fontSize: 12, marginBottom: 12 }}>
+              <button onClick={copyAll} style={{ width: "100%", padding: "10px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: "var(--color-os-border)", color: copied === "all" ? "var(--color-os-green)" : "var(--color-os-text)", cursor: "pointer", fontSize: 12, marginBottom: 12 }}>
                 {copied === "all" ? "✓ Disalin!" : "📋 Copy Semua Kredensial (Siap Kirim)"}
               </button>
               <p style={{ fontSize: 10, color: "#4B5563", textAlign: "center", margin: "0 0 16px" }}>User wajib ganti password setelah login pertama kali.</p>
@@ -336,7 +336,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
       {/* Edit User Modal */}
       {editTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 420, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 420, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Pengguna</h2>
@@ -347,14 +347,14 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
                 <input
                   value={editForm.nama}
                   onChange={(e) => setEditForm((f) => ({ ...f, nama: e.target.value }))}
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
 
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Role</label>
                 <select value={editForm.role} onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as UserRole }))}
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)" }}>
                   <option value="staff">Staff</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="manager">Manager</option>
@@ -365,7 +365,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
                 <select value={editForm.outletId} onChange={(e) => setEditForm((f) => ({ ...f, outletId: e.target.value }))}
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0" }}>
+                  style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)" }}>
                   <option value="">— Semua Outlet —</option>
                   {outletList.map((o) => (
                     <option key={o.id} value={o.id}>{o.namaOutlet} ({o.id})</option>
@@ -374,7 +374,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
               </div>
 
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => setEditTarget(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-sub)", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleEditUser} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: 12, borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
                   {saving ? "Menyimpan..." : "✓ Simpan Perubahan"}
                 </button>
@@ -387,7 +387,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
       {/* Delete Confirm */}
       {deleteTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 380, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", padding: 24, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 380, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid var(--color-os-border2)", padding: 24, boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ textAlign: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>⚠</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0" }}>Hapus Pengguna?</div>
@@ -396,7 +396,7 @@ Login: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;
               </div>
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 24px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+              <button onClick={() => setDeleteTarget(null)} style={{ padding: "8px 24px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-sub)", fontSize: 12, cursor: "pointer" }}>Batal</button>
               <button onClick={handleDelete} disabled={saving} style={{ padding: "8px 24px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 7, color: "#EF4444", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                 {saving ? "..." : "Ya, Hapus"}
               </button>

@@ -64,7 +64,7 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
             display: "flex", alignItems: "center", gap: 6,
             padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
             cursor: isRefreshing ? "not-allowed" : "pointer",
-            border: "1px solid #2D2D44", background: "#13131F", color: "#E2E8F0",
+            border: "1px solid var(--color-os-border2)", background: `var(--color-os-card)`, color: "#E2E8F0",
             opacity: isRefreshing ? 0.6 : 1,
           }}
         >
@@ -84,13 +84,13 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
         <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#14142A" }}>
+              <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Batch ID", "Outlet", "Tgl Kartu Stok", "Total Produk", "Matched Bahan", "Upload Oleh", "Status", "Tanggal Upload", ...(isAdmin ? ["Aksi"] : [])].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -106,7 +106,7 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
                   const matchPct = b.totalProduk > 0
                     ? Math.round((b.matchedBahan / b.totalProduk) * 100) : 0;
                   return (
-                    <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                       <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>
                         {b.id}
                       </td>

@@ -135,13 +135,13 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>{selectedVendor.namaVendor}</h1>
           {!isGuest && (
             <button onClick={openEditVendor}
-              style={{ fontSize: 11, padding: "6px 14px", borderRadius: 7, border: "1px solid #2D2D44", background: "#1E1E2E", color: "#E2E8F0", cursor: "pointer", fontWeight: 600 }}>
+              style={{ fontSize: 11, padding: "6px 14px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: `var(--color-os-border)`, color: "#E2E8F0", cursor: "pointer", fontWeight: 600 }}>
               ✏ Edit Vendor
             </button>
           )}
         </div>
         <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-          <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>📞 Kontak WA</div>
             {selectedVendor.kontakWa ? (
               <a href={`https://wa.me/${formatWANumber(selectedVendor.kontakWa)}`} target="_blank" rel="noopener noreferrer"
@@ -152,21 +152,21 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
               <div style={{ fontSize: 13, color: "#4B5563" }}>—</div>
             )}
           </div>
-          <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>💳 Info Pembayaran</div>
             <div style={{ fontSize: 12, color: "#E2E8F0" }}>{selectedVendor.noRekening ?? "—"}</div>
           </div>
-          <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>⏱ Lead Time</div>
             <Badge color="blue">{selectedVendor.estimasiPengiriman} hari</Badge>
           </div>
-          <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 6 }}>📈 Total Pengeluaran</div>
             <div style={{ fontSize: 13, color: "#C8F135", fontWeight: 700 }}>{formatRupiah(selectedVendor.totalPengeluaran)}</div>
           </div>
         </div>
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", borderBottom: "1px solid #1E1E2E", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>Riwayat PO</div>
             <div style={{ fontSize: 11, color: "#4B5563" }}>{vendorPOs.length} transaksi</div>
           </div>
@@ -178,15 +178,15 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#14142A" }}>
+                  <tr style={{ background: `var(--color-os-row-hover)` }}>
                     {["PO ID", "Bahan", "Outlet", "Qty", "Harga Satuan", "Total", "Status", "Tanggal"].map((h) => (
-                      <th key={h} style={{ padding: "9px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                      <th key={h} style={{ padding: "9px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {vendorPOs.map((po) => (
-                    <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                    <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                       <td style={{ padding: "9px 14px", fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>{po.id}</td>
                       <td style={{ padding: "9px 14px", fontSize: 12, color: "#E2E8F0" }}>{po.bahan?.namaBahan ?? "—"}</td>
                       <td style={{ padding: "9px 14px", fontSize: 11, color: "#6B7280" }}>{po.outlet?.namaOutlet ?? "—"}</td>
@@ -210,7 +210,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
         {/* Modal Edit Vendor */}
         {showEditVendor && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-            <div className="modal-fadein" style={{ width: 440, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div className="modal-fadein" style={{ width: 440, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
               <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
               <div style={{ padding: 24 }}>
                 <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Edit Vendor</h2>
@@ -227,7 +227,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                       value={(editForm as any)[key]}
                       onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
                       placeholder={placeholder}
-                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
                   </div>
                 ))}
@@ -236,7 +236,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                   <select
                     value={editForm.vendorPlatform}
                     onChange={(e) => setEditForm((f) => ({ ...f, vendorPlatform: e.target.value, linkToko: "" }))}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
                   >
                     <option value="offline">🏪 Toko Fisik / Offline</option>
                     <option value="whatsapp">📱 WhatsApp</option>
@@ -253,12 +253,12 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                       value={editForm.linkToko}
                       onChange={(e) => setEditForm((f) => ({ ...f, linkToko: e.target.value }))}
                       placeholder="https://shopee.co.id/namaToko"
-                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                     />
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowEditVendor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                  <button onClick={() => setShowEditVendor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                   <button onClick={handleEditVendor} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                     {saving ? "Menyimpan..." : "Simpan Perubahan"}
                   </button>
@@ -292,13 +292,13 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
         <StatCard label="Vendor dengan WA" value={stats.vendorDenganWa} icon={Smartphone} color="#C8F135" />
       </div>
 
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#14142A" }}>
+            <tr style={{ background: `var(--color-os-row-hover)` }}>
               {["Nama Vendor", "Platform", "WhatsApp", "Info Pembayaran", "Lead Time", "Item", "Pengeluaran", "Aksi"].map((h) => (
-                <th key={h} className={h === "Nama Vendor" ? "col-sticky-nama" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} className={h === "Nama Vendor" ? "col-sticky-nama" : undefined} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -312,7 +312,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                 };
                 const platform = v.vendorPlatform ?? "offline";
                 return (
-                <tr key={v.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320", cursor: "pointer" }} onClick={() => openVendorDetail(v)}>
+                <tr key={v.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)", cursor: "pointer" }} onClick={() => openVendorDetail(v)}>
                   <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{v.namaVendor}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -352,7 +352,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
       {/* Modal Tambah Vendor */}
       {showAddVendor && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 440, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 440, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Vendor</h2>
@@ -369,7 +369,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                     value={(form as any)[key]}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                     placeholder={placeholder}
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                   />
                 </div>
               ))}
@@ -378,7 +378,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                 <select
                   value={form.vendorPlatform}
                   onChange={(e) => setForm((f) => ({ ...f, vendorPlatform: e.target.value, linkToko: "" }))}
-                  style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
                 >
                   <option value="offline">🏪 Toko Fisik / Offline</option>
                   <option value="whatsapp">📱 WhatsApp</option>
@@ -395,12 +395,12 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
                     value={form.linkToko}
                     onChange={(e) => setForm((f) => ({ ...f, linkToko: e.target.value }))}
                     placeholder="https://shopee.co.id/namaToko"
-                    style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
                   />
                 </div>
               )}
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowAddVendor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => setShowAddVendor(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleSaveVendor} disabled={saving} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
                   {saving ? "Menyimpan..." : "Simpan Vendor"}
                 </button>

@@ -284,7 +284,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
       {/* Modal Ganti Password */}
       {showChangePw && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ width: 380, background: "#13131F", borderRadius: 16, border: "1px solid #2D2D44", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div style={{ width: 380, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Ganti Password</h2>
@@ -300,14 +300,14 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                       type="password"
                       value={pwForm[key]}
                       onChange={(e) => setPwForm((f) => ({ ...f, [key]: e.target.value }))}
-                      style={{ width: "100%", background: "#0F0F18", border: "1px solid #2D2D44", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", background: "var(--color-os-surface)", border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
                     />
                   </div>
                 ))}
               </div>
               {pwError && <p style={{ fontSize: 11, color: "#EF4444", margin: "10px 0 0" }}>{pwError}</p>}
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowChangePw(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid #2D2D44", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button onClick={() => setShowChangePw(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-sub)", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleChangePassword} disabled={pwSaving} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #C8F135, #86EF3C)", border: "none", borderRadius: 8, color: "#0D1117", fontSize: 12, fontWeight: 700, cursor: pwSaving ? "not-allowed" : "pointer", opacity: pwSaving ? 0.7 : 1 }}>
                   {pwSaving ? "Menyimpan..." : "Simpan"}
                 </button>

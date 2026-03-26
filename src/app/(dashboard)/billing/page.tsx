@@ -46,12 +46,12 @@ export default async function BillingPage() {
         <StatCard label="Bulan Ini" value={formatRupiah(parseFloat(stats?.bulan_ini ?? "0"))} icon={BarChart2} color="#C8F135" />
       </div>
 
-      <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#14142A" }}>
+            <tr style={{ background: `var(--color-os-row-hover)` }}>
               {["Invoice ID", "Tanggal", "Vendor", "Total Item", "Total Biaya", "Status", "Action"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid #1E1E2E", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -60,7 +60,7 @@ export default async function BillingPage() {
               <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada invoice.</td></tr>
             ) : (
               orders.map((po) => (
-                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid #131320" }}>
+                <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
                   <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>{po.id}</td>
                   <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{formatDateTime(po.createdAt)}</td>
                   <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{(po as any).vendor?.namaVendor}</td>
@@ -74,7 +74,7 @@ export default async function BillingPage() {
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Detail</button>
-                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid #2D2D44", background: "transparent", color: "#6B7280", cursor: "pointer" }}>PDF</button>
+                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid var(--color-os-border2)", background: "transparent", color: "#6B7280", cursor: "pointer" }}>PDF</button>
                       {po.status !== "received" && <BillingActions poId={po.id} />}
                     </div>
                   </td>

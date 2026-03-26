@@ -24,7 +24,7 @@ export default async function SettingsPage() {
         <SettingsClient isMigrated={isMigrated} />
 
         {/* Card 2 — Supabase PITR */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 20 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>Supabase PITR Backup</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
@@ -35,7 +35,7 @@ export default async function SettingsPage() {
             { label: "Region", value: "ap-southeast-1" },
             { label: "Storage", value: "Configured in Supabase Dashboard" },
           ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #1E1E2E" }}>
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-os-border)" }}>
               <span style={{ fontSize: 11, color: "#4B5563" }}>{label}</span>
               <span style={{ fontSize: 11, color: "#E2E8F0" }}>{value}</span>
             </div>
@@ -43,7 +43,7 @@ export default async function SettingsPage() {
         </div>
 
         {/* Card 3 — Auth Info */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 20 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>Auth (Better Auth)</div>
           {[
             { label: "Provider", value: "Email + Password" },
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
             { label: "Session", value: "JWT · 7 hari" },
             { label: "Allowed Domain", value: process.env.NEXT_PUBLIC_APP_URL ?? "localhost:3000" },
           ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #1E1E2E" }}>
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-os-border)" }}>
               <span style={{ fontSize: 11, color: "#4B5563" }}>{label}</span>
               <span style={{ fontSize: 11, color: "#E2E8F0" }}>{value}</span>
             </div>
@@ -59,7 +59,7 @@ export default async function SettingsPage() {
         </div>
 
         {/* Card 4 — System Info */}
-        <div style={{ background: "#13131F", border: "1px solid #1E1E2E", borderRadius: 12, padding: 20 }}>
+        <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>System Info</div>
           {[
             { label: "Version", value: "V1.5 Phase 1" },
@@ -70,7 +70,7 @@ export default async function SettingsPage() {
             { label: "Deployment", value: "Vercel" },
             { label: "ID Format", value: "PREFIX-001 (no UUID)" },
           ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #1E1E2E" }}>
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-os-border)" }}>
               <span style={{ fontSize: 11, color: "#4B5563" }}>{label}</span>
               <span style={{ fontSize: 11, color: "#C8F135" }}>{value}</span>
             </div>
