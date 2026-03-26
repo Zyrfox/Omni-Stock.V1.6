@@ -230,6 +230,11 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
     const kategoriAbbr = getKategoriAbbr(editForm.kategoriBahan);
     const outlet = outletList.find(o => o.id === editForm.outletId);
     const outletAbbr = getOutletAbbr(outlet?.namaOutlet);
+    // If current ID already belongs to this kategori+outlet, keep it (don't bump the number)
+    if (editTarget.id.startsWith(`${kategoriAbbr}-${outletAbbr}-`)) {
+      setEditNextIdPreview(editTarget.id);
+      return;
+    }
     setEditNextIdPreview(null);
     getNextBahanId(kategoriAbbr, outletAbbr).then(setEditNextIdPreview).catch(() => {});
   }, [editForm.kategoriBahan, editForm.outletId, editTarget]);
