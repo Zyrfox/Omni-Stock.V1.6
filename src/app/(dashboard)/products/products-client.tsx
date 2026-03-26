@@ -179,6 +179,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [searchBahan, setSearchBahan] = useState("");
   const [filterKategori, setFilterKategori] = useState("ALL");
   const [filterOutletId, setFilterOutletId] = useState("ALL");
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
   const [dragMenuId, setDragMenuId] = useState<string | null>(null);
@@ -699,13 +700,37 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* Tab 1 — Master Bahan */}
       {activeTab === 1 && (
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Search + Filter toggle row */}
+          <div style={{ padding: "10px 14px", borderBottom: showFilterPanel ? "none" : "1px solid var(--color-os-border)", display: "flex", gap: 8, alignItems: "center" }}>
             <input
               value={searchBahan}
               onChange={(e) => { setSearchBahan(e.target.value); setBahanPage(0); }}
               placeholder="Cari nama bahan atau ID..."
               style={{ flex: 1, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
             />
+            {/* Filter toggle button */}
+            {(() => {
+              const activeCount = (filterKategori !== "ALL" ? 1 : 0) + (filterOutletId !== "ALL" ? 1 : 0);
+              return (
+                <button
+                  onClick={() => setShowFilterPanel(v => !v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 7, cursor: "pointer", flexShrink: 0,
+                    background: showFilterPanel || activeCount > 0 ? "rgba(200,241,53,0.12)" : "transparent",
+                    border: `1px solid ${showFilterPanel || activeCount > 0 ? "#C8F135" : "var(--color-os-border2)"}`,
+                    color: showFilterPanel || activeCount > 0 ? "#C8F135" : "#6B7280",
+                    fontSize: 11, fontWeight: 600,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3h14v1.5L10 10v5l-4-2v-3L1 4.5V3z"/></svg>
+                  Filter
+                  {activeCount > 0 && (
+                    <span style={{ background: "#C8F135", color: "#0D1117", borderRadius: 99, padding: "0 5px", fontSize: 9, fontWeight: 800, lineHeight: "15px" }}>{activeCount}</span>
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style={{ transform: showFilterPanel ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}><path d="M8 11L2 5h12z"/></svg>
+                </button>
+              );
+            })()}
             {isMobile && (
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button className={`view-toggle-btn${bahanViewMode === "card" ? " active" : ""}`} onClick={() => setBahanViewMode("card")}>Cards</button>
@@ -713,37 +738,69 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               </div>
             )}
           </div>
-          {/* Filter chips — Kategori & Outlet */}
-          <div style={{ padding: "8px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {/* Kategori chips */}
-            {[{ label: "Semua", value: "ALL" }, { label: "BHN", value: "BHN" }, ...ALL_KATEGORI.map(k => ({ label: KATEGORI_ABBR[k], value: KATEGORI_ABBR[k] }))].map(({ label, value }) => (
-              <button
-                key={value}
-                onClick={() => { setFilterKategori(value); setBahanPage(0); }}
-                style={{
-                  padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: "pointer", border: "1px solid",
-                  background: filterKategori === value ? "rgba(200,241,53,0.15)" : "transparent",
-                  borderColor: filterKategori === value ? "#C8F135" : "var(--color-os-border2)",
-                  color: filterKategori === value ? "#C8F135" : "#6B7280",
-                }}
-              >{label}</button>
-            ))}
-            {/* Separator dot */}
-            <span style={{ color: "#374151", alignSelf: "center", fontSize: 14 }}>·</span>
-            {/* Outlet chips */}
-            {[{ label: "Semua Outlet", value: "ALL" }, ...outletList.map(o => ({ label: getOutletAbbr(o.namaOutlet), value: o.id }))].map(({ label, value }) => (
-              <button
-                key={value}
-                onClick={() => { setFilterOutletId(value); setBahanPage(0); }}
-                style={{
-                  padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: "pointer", border: "1px solid",
-                  background: filterOutletId === value ? "rgba(96,165,250,0.15)" : "transparent",
-                  borderColor: filterOutletId === value ? "#60A5FA" : "var(--color-os-border2)",
-                  color: filterOutletId === value ? "#60A5FA" : "#6B7280",
-                }}
-              >{label}</button>
-            ))}
-          </div>
+
+          {/* Expanded filter panel */}
+          {showFilterPanel && (
+            <div style={{ padding: "12px 14px 14px", borderBottom: "1px solid var(--color-os-border)", background: "rgba(255,255,255,0.02)", display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* Kategori section */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 7 }}>Kategori Produk</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {[{ label: "Semua", sub: "", value: "ALL" }, { label: "BHN", sub: "Bahan", value: "BHN" }, ...ALL_KATEGORI.map(k => ({ label: KATEGORI_ABBR[k], sub: k, value: KATEGORI_ABBR[k] }))].map(({ label, sub, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => { setFilterKategori(value); setBahanPage(0); }}
+                      style={{
+                        display: "flex", flexDirection: "column", alignItems: "center", padding: "5px 12px", borderRadius: 8, cursor: "pointer", border: "1px solid",
+                        background: filterKategori === value ? "rgba(200,241,53,0.15)" : "rgba(255,255,255,0.03)",
+                        borderColor: filterKategori === value ? "#C8F135" : "var(--color-os-border2)",
+                        color: filterKategori === value ? "#C8F135" : "#9CA3AF",
+                        minWidth: 44,
+                      }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", lineHeight: 1.2 }}>{label}</span>
+                      {sub && <span style={{ fontSize: 9, color: filterKategori === value ? "rgba(200,241,53,0.7)" : "#4B5563", lineHeight: 1.2, marginTop: 1 }}>{sub}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Outlet section */}
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 7 }}>Outlet</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {[{ label: "Semua", sub: "Outlet", value: "ALL" }, ...outletList.map(o => ({ label: getOutletAbbr(o.namaOutlet), sub: o.namaOutlet, value: o.id }))].map(({ label, sub, value }) => (
+                    <button
+                      key={value}
+                      onClick={() => { setFilterOutletId(value); setBahanPage(0); }}
+                      style={{
+                        display: "flex", flexDirection: "column", alignItems: "center", padding: "5px 12px", borderRadius: 8, cursor: "pointer", border: "1px solid",
+                        background: filterOutletId === value ? "rgba(96,165,250,0.15)" : "rgba(255,255,255,0.03)",
+                        borderColor: filterOutletId === value ? "#60A5FA" : "var(--color-os-border2)",
+                        color: filterOutletId === value ? "#60A5FA" : "#9CA3AF",
+                        minWidth: 44, maxWidth: 110,
+                      }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", lineHeight: 1.2 }}>{label}</span>
+                      <span style={{ fontSize: 9, color: filterOutletId === value ? "rgba(96,165,250,0.7)" : "#4B5563", lineHeight: 1.2, marginTop: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset row */}
+              {(filterKategori !== "ALL" || filterOutletId !== "ALL") && (
+                <div>
+                  <button
+                    onClick={() => { setFilterKategori("ALL"); setFilterOutletId("ALL"); setBahanPage(0); }}
+                    style={{ fontSize: 10, color: "#EF4444", background: "transparent", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}
+                  >
+                    Reset Filter
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {isMobile && bahanViewMode === "card" ? (
             <div className="bahan-card-list">
               {pagedBahans.length === 0 ? (

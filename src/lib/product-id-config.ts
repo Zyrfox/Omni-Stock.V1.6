@@ -20,6 +20,7 @@ export const OUTLET_ABBR: Record<string, string> = {
   "Back To Mie Forest": "BTMF",
   "Taman Sari Forest": "TSF",
   "Healthopia Clinic": "HC",
+  "Pusat - Easy Going Group": "PUSAT",
 };
 
 /** Get category abbreviation — falls back to "BHN" */
@@ -28,14 +29,15 @@ export function getKategoriAbbr(kategori: string | null | undefined): string {
   return KATEGORI_ABBR[kategori] ?? "BHN";
 }
 
-/** Get outlet abbreviation from namaOutlet — falls back to uppercased initials */
+/** Get outlet abbreviation from namaOutlet — falls back to uppercased alphanumeric initials */
 export function getOutletAbbr(namaOutlet: string | null | undefined): string {
   if (!namaOutlet) return "GEN";
   if (OUTLET_ABBR[namaOutlet]) return OUTLET_ABBR[namaOutlet];
-  // Derive from initials as fallback
+  // Derive from words (skip punctuation-only tokens)
   return namaOutlet
     .split(/\s+/)
-    .map((w) => w[0])
+    .filter((w) => /[A-Za-z0-9]/.test(w))
+    .map((w) => w.replace(/[^A-Za-z0-9]/g, "")[0] ?? "")
     .join("")
     .toUpperCase()
     .slice(0, 6);
