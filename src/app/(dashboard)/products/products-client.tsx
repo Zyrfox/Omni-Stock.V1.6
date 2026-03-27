@@ -99,6 +99,47 @@ function inferChannelType(m: MenuItem): string {
   return "dine_in";
 }
 
+function computeVariantRanges(variants: MenuItem[]) {
+  const cogsVals: number[] = [];
+  const hjVals: number[] = [];
+  const marginVals: number[] = [];
+  for (const m of variants) {
+    const cogs = parseFloat(m.totalCogs ?? "0");
+    const hj   = parseFloat(m.hargaJual ?? "0");
+    const fee  = parseFloat(m.platformFeePercent ?? "0");
+    if (cogs > 0) cogsVals.push(cogs);
+    if (hj > 0)   hjVals.push(hj);
+    const netRevenue = hj - (hj * fee / 100);
+    if (netRevenue > 0 && cogs > 0)
+      marginVals.push((netRevenue - cogs) / netRevenue * 100);
+  }
+  return {
+    cogsMin:   cogsVals.length   ? Math.min(...cogsVals)   : null,
+    cogsMax:   cogsVals.length   ? Math.max(...cogsVals)   : null,
+    hjMin:     hjVals.length     ? Math.min(...hjVals)     : null,
+    hjMax:     hjVals.length     ? Math.max(...hjVals)     : null,
+    marginMin: marginVals.length ? Math.min(...marginVals) : null,
+    marginMax: marginVals.length ? Math.max(...marginVals) : null,
+  };
+}
+
+function fmtRupiahRange(min: number | null, max: number | null): string {
+  if (min === null) return "—";
+  if (max === null || Math.round(min) === Math.round(max)) return formatRupiah(min);
+  return `${formatRupiah(min)} – ${formatRupiah(max)}`;
+}
+
+function fmtMarginRange(min: number | null, max: number | null): string {
+  if (min === null) return "—";
+  if (max === null || Math.abs(min - max) < 0.05) return `${min.toFixed(1)}%`;
+  return `${min.toFixed(1)}% – ${max.toFixed(1)}%`;
+}
+
+function marginRangeColor(min: number | null): string {
+  if (min === null) return "#4B5563";
+  return min >= 65 ? "#22C55E" : min >= 40 ? "#F59E0B" : "#EF4444";
+}
+
 export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outletList, vendorList }: ProductsClientProps) {
   const { isGuest, userRole } = useAppContext();
   const isAdmin = userRole === "admin";
@@ -1232,11 +1273,33 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                   next.has(baseName) ? next.delete(baseName) : next.add(baseName);
                   return next;
                 });
+                const cardRanges = computeVariantRanges(variants);
                 return (
                   <div key={baseName} className="menu-group-card">
                     <div className="menu-group-card-header" onClick={toggle}>
                       <span style={{ color: "#C8F135", fontSize: 12 }}>{isExpanded ? "▾" : "▸"}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", flex: 1 }}>{baseName}</span>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{baseName}</span>
+                        {!isExpanded && (cardRanges.cogsMin !== null || cardRanges.hjMin !== null) && (
+                          <div style={{ display: "flex", gap: 10, marginTop: 3, flexWrap: "wrap" }}>
+                            {cardRanges.cogsMin !== null && (
+                              <span style={{ fontSize: 10, color: "#4B5563" }}>
+                                COGS: <span style={{ color: "#C8F135", fontWeight: 700 }}>{fmtRupiahRange(cardRanges.cogsMin, cardRanges.cogsMax)}</span>
+                              </span>
+                            )}
+                            {cardRanges.hjMin !== null && (
+                              <span style={{ fontSize: 10, color: "#4B5563" }}>
+                                Jual: <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{fmtRupiahRange(cardRanges.hjMin, cardRanges.hjMax)}</span>
+                              </span>
+                            )}
+                            {cardRanges.marginMin !== null && (
+                              <span style={{ fontSize: 10, color: "#4B5563" }}>
+                                Margin: <span style={{ color: marginRangeColor(cardRanges.marginMin), fontWeight: 700 }}>{fmtMarginRange(cardRanges.marginMin, cardRanges.marginMax)}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: "rgba(200,241,53,0.1)", color: "#C8F135", border: "1px solid rgba(200,241,53,0.2)" }}>
                         {variants.length} channel
                       </span>
@@ -1329,6 +1392,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     return next;
                   });
                   const hasAnyRecipe = variants.some(v => v.mappingResep && v.mappingResep.length > 0);
+                  const ranges = computeVariantRanges(variants);
 
                   return [
                     // Group header row
@@ -1360,7 +1424,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                           {variants.length} channel
                         </span>
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#4B5563" }} colSpan={2}>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#4B5563" }}>
                         {variants.map(v => (
                           <span key={v.id} style={{ marginRight: 6, fontSize: 11 }}>
                             {getChannelIcon(inferChannelType(v))} {getChannelLabel(inferChannelType(v))}
@@ -1372,6 +1436,17 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                           ? <Badge color="green" size="sm">✓ Ada Resep</Badge>
                           : <Badge color="gray" size="sm">No Recipe</Badge>
                         }
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <span style={{ fontSize: 11, color: ranges.cogsMin !== null ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                          {fmtRupiahRange(ranges.cogsMin, ranges.cogsMax)}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: ranges.hjMin !== null ? "#E2E8F0" : "#4B5563", fontWeight: 600 }}>
+                        {fmtRupiahRange(ranges.hjMin, ranges.hjMax)}
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: marginRangeColor(ranges.marginMin), fontWeight: 700 }}>
+                        {fmtMarginRange(ranges.marginMin, ranges.marginMax)}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
                         <button
@@ -1391,7 +1466,6 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                           + Variant
                         </button>
                       </td>
-                      <td />
                     </tr>,
 
                     // Sub-rows (channel variants) when expanded
