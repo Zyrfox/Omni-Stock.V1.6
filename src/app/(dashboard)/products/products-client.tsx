@@ -244,6 +244,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [sfgList, setSfgList] = useState<SFGItem[]>(sfgListProp);
   const [showAddSFG, setShowAddSFG] = useState(false);
   const [sfgForm, setSfgForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
+  const [sfgCreateHargaJual, setSfgCreateHargaJual] = useState("");
   const [editSFG, setEditSFG] = useState<SFGItem | null>(null);
   const [editSFGForm, setEditSFGForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1" });
   const [showSFGEditor, setShowSFGEditor] = useState(false);
@@ -585,13 +586,29 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
         satuanHasil: sfgForm.satuanHasil,
         jumlahHasil: parseFloat(sfgForm.jumlahHasil) || 1,
       });
+      const validLines = sfgBomLines.filter(l => l.itemId);
+      if (validLines.length > 0) {
+        await saveSFGBOM(result.id, validLines);
+      }
+      const jumlahHasil = parseFloat(sfgForm.jumlahHasil) || 1;
+      const cogsPerUnit = jumlahHasil > 0 ? sfgTotalCOGS / jumlahHasil : 0;
       setSfgList(prev => [...prev, {
         id: result.id, namaSemiFinished: sfgForm.namaSemiFinished,
         satuan: sfgForm.satuanHasil, satuanHasil: sfgForm.satuanHasil,
-        jumlahHasil: sfgForm.jumlahHasil, totalCogs: "0", cogsPerUnit: "0",
-        outletId: sfgForm.outletId, mappingResep: [],
+        jumlahHasil: sfgForm.jumlahHasil,
+        totalCogs: sfgTotalCOGS.toFixed(2),
+        cogsPerUnit: cogsPerUnit.toFixed(6),
+        outletId: sfgForm.outletId,
+        mappingResep: validLines.map((l, i) => ({
+          id: `tmp-${i}`, itemId: l.itemId, qty: String(l.qty), itemType: l.itemType,
+          bahan: bahanList.find(b => b.id === l.itemId)
+            ? { namaBahan: bahanList.find(b => b.id === l.itemId)!.namaBahan, satuanDapur: bahanList.find(b => b.id === l.itemId)!.satuanDapur }
+            : null,
+        })),
       }]);
       setShowAddSFG(false);
+      setSfgBomLines([]);
+      setSfgBomSearches([]);
       setSfgForm({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
     } finally {
       setSfgSaving(false);
@@ -684,7 +701,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
             </button>
           ) : activeTab === 2 ? (
             <button
-              onClick={() => { setSfgForm({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" }); setShowAddSFG(true); }}
+              onClick={() => { setSfgForm({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" }); setSfgBomLines([]); setSfgBomSearches([]); setSfgCreateHargaJual(""); setShowAddSFG(true); }}
               className="btn-accent"
               style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}
             >
@@ -2711,7 +2728,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                         style={{ width: 110, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
                       >
                         <option value="bahan_dasar">Bahan</option>
-                        <option value="semi_finished">Sub-Resep</option>
+                        <option value="semi_finished">Raw Menu</option>
                         <option value="kemasan">📦 Kemasan</option>
                       </select>
                       <div style={{ flex: 1 }}>
@@ -2859,10 +2876,11 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* Modal Tambah Raw Menu */}
       {showAddSFG && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 420, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 620, maxWidth: "95vw", background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #F59E0B, #C8F135, transparent)" }} />
-            <div style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Tambah Raw Menu</h2>
+            <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Tambah Raw Menu</h2>
+              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 16px" }}>Bahan setengah jadi / pre-made component</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Raw Menu *</label>
@@ -2901,6 +2919,100 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                   </div>
                 )}
               </div>
+
+              {/* BOM / Recipe Section */}
+              <div style={{ borderTop: "1px solid var(--color-os-border)", margin: "18px 0 14px" }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", marginBottom: 10 }}>Resep / Komposisi Bahan</div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--color-os-border)" }}>
+                <div style={{ width: 100, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
+                <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
+                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
+                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
+                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
+                <div style={{ width: 28 }} />
+              </div>
+              <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                {sfgBomLines.map((line, idx) => {
+                  const nestedSfg = line.itemType === "semi_finished" ? sfgList.find(s => s.id === line.itemId) : undefined;
+                  const bahan = line.itemType === "bahan_dasar" ? bahanList.find(b => b.id === line.itemId) : undefined;
+                  const satuan = line.itemType === "semi_finished" ? (nestedSfg?.satuanHasil || nestedSfg?.satuan) : bahan?.satuanDapur;
+                  const subCogs = line.itemType === "semi_finished"
+                    ? line.qty * parseFloat(nestedSfg?.cogsPerUnit ?? "0")
+                    : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
+                  return (
+                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
+                      <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                        style={{ width: 100, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                        <option value="bahan_dasar">Bahan</option>
+                        <option value="semi_finished">Raw Menu</option>
+                      </select>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          ref={el => { sfgBomInputRefs.current[idx] = el; }}
+                          value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
+                          onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                          onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                          onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
+                          placeholder="— Cari item —"
+                          style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                        />
+                      </div>
+                      <input type="number" value={line.qty} min={0.001} step={0.001}
+                        onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
+                        style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
+                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
+                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                      </span>
+                      <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
+                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
+                    </div>
+                  );
+                })}
+                {sfgBomLines.length === 0 && (
+                  <div style={{ padding: "12px 0", textAlign: "center", color: "#374151", fontSize: 11 }}>Belum ada bahan. Klik "+ Tambah Bahan".</div>
+                )}
+              </div>
+              <button onClick={() => setSfgBomLines(l => [...l, { itemType: "bahan_dasar", itemId: "", qty: 1 }])}
+                style={{ marginTop: 8, fontSize: 11, padding: "6px 12px", border: "1px dashed #2D2D44", borderRadius: 6, background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+                + Tambah Bahan
+              </button>
+
+              {/* Analysis Panel */}
+              {(() => {
+                const jumlahHasil = parseFloat(sfgForm.jumlahHasil) || 1;
+                const cogsPerUnit = jumlahHasil > 0 ? sfgTotalCOGS / jumlahHasil : 0;
+                const hj = parseFloat(sfgCreateHargaJual) || 0;
+                const margin = hj > 0 && sfgTotalCOGS > 0 ? ((hj - cogsPerUnit) / hj * 100) : null;
+                const marginColor = margin === null ? "#4B5563" : margin >= 65 ? "#22C55E" : margin >= 40 ? "#F59E0B" : "#EF4444";
+                return (
+                  <div style={{ marginTop: 14, padding: "12px 14px", background: `var(--color-os-surface)`, borderRadius: 8, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Total COGS Batch</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#C8F135" }}>Rp {Math.round(sfgTotalCOGS).toLocaleString("id-ID")}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Hasil / Batch</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{parseFloat(sfgForm.jumlahHasil || "1").toLocaleString("id-ID")} {sfgForm.satuanHasil}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>COGS / {sfgForm.satuanHasil || "unit"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#F59E0B" }}>{cogsPerUnit > 0 ? `Rp ${Math.round(cogsPerUnit).toLocaleString("id-ID")}` : "—"}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9, color: "#4B5563", fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Margin</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: marginColor }}>{margin !== null ? `${margin.toFixed(1)}%` : "—"}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+              <div style={{ marginTop: 10 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Harga Jual / {sfgForm.satuanHasil || "unit"} <span style={{ fontWeight: 400, color: "#374151", textTransform: "none" }}>(opsional, untuk analisa margin)</span></label>
+                <input type="number" value={sfgCreateHargaJual} onChange={e => setSfgCreateHargaJual(e.target.value)}
+                  placeholder="0"
+                  style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }} />
+              </div>
+
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowAddSFG(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button onClick={handleCreateSFG} disabled={sfgSaving || !sfgForm.namaSemiFinished.trim()} className="btn-accent" style={{ padding: "8px 16px", border: "none", cursor: "pointer", fontSize: 12, borderRadius: 8 }}>
@@ -2988,7 +3100,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                       <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
                         style={{ width: 100, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
                         <option value="bahan_dasar">Bahan</option>
-                        <option value="semi_finished">Sub-Resep</option>
+                        <option value="semi_finished">Raw Menu</option>
                       </select>
                       <div style={{ flex: 1 }}>
                         <input
@@ -3061,7 +3173,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
             if (!line) return null;
             const q = (sfgBomSearches[sfgBomOpenIdx] ?? "").toLowerCase();
             if (line.itemType === "semi_finished") {
-              const sfgOptions = sfgList.filter(s => s.id !== selectedSFG!.id && (!q || s.namaSemiFinished.toLowerCase().includes(q)));
+              const sfgOptions = sfgList.filter(s => s.id !== (selectedSFG?.id ?? "") && (!q || s.namaSemiFinished.toLowerCase().includes(q)));
               if (sfgOptions.length === 0) return <div style={{ padding: "10px 12px", fontSize: 11, color: "#4B5563" }}>Tidak ada hasil</div>;
               return sfgOptions.map(s => (
                 <div key={s.id} onMouseDown={() => { setSfgBomLines(l => l.map((x, i) => i === sfgBomOpenIdx ? { ...x, itemId: s.id } : x)); setSfgBomSearches(sr => { const a = [...sr]; a[sfgBomOpenIdx!] = s.namaSemiFinished; return a; }); setSfgBomOpenIdx(null); }}
