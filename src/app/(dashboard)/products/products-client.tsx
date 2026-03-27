@@ -242,6 +242,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
 
   // Raw Menu (SFG) state
   const [sfgList, setSfgList] = useState<SFGItem[]>(sfgListProp);
+  const [expandedSFGRows, setExpandedSFGRows] = useState<Set<string>>(new Set());
   const [showAddSFG, setShowAddSFG] = useState(false);
   const [sfgForm, setSfgForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
   const [sfgCreateHargaJual, setSfgCreateHargaJual] = useState("");
@@ -1030,54 +1031,93 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                 <tbody>
                   {filteredSFG.length === 0 ? (
                     <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchSFG ? `Tidak ada raw menu "${searchSFG}"` : `Belum ada raw menu. Klik "+ Tambah Raw Menu".`}</td></tr>
-                  ) : pagedSFG.map(s => (
-                    <tr key={s.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                      <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{s.id}</td>
-                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{s.namaSemiFinished}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{s.satuanHasil || s.satuan}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{parseFloat(s.jumlahHasil).toLocaleString("id-ID")}</td>
-                      <td style={{ padding: "10px 14px" }}>
-                        {s.mappingResep && s.mappingResep.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                            {s.mappingResep.slice(0, 3).map((r, i) => (
-                              <span key={i} style={{ fontSize: 9, padding: "2px 5px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#9CA3AF" }}>
-                                {r.bahan?.namaBahan || r.itemId} {r.qty}{r.bahan?.satuanDapur || ""}
+                  ) : pagedSFG.flatMap(s => {
+                    const isExpanded = expandedSFGRows.has(s.id);
+                    const hasRecipe = s.mappingResep && s.mappingResep.length > 0;
+                    const toggleExpand = () => setExpandedSFGRows(prev => {
+                      const next = new Set(prev);
+                      next.has(s.id) ? next.delete(s.id) : next.add(s.id);
+                      return next;
+                    });
+                    const mainRow = (
+                      <tr key={s.id} className="table-row-hover" style={{ borderBottom: isExpanded && hasRecipe ? "none" : "1px solid var(--color-os-border)" }}>
+                        <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{s.id}</td>
+                        <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{s.namaSemiFinished}</td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{s.satuanHasil || s.satuan}</td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>{parseFloat(s.jumlahHasil).toLocaleString("id-ID")}</td>
+                        <td style={{ padding: "10px 14px", cursor: hasRecipe ? "pointer" : "default" }} onClick={hasRecipe ? toggleExpand : undefined}>
+                          {hasRecipe ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 3, alignItems: "center" }}>
+                              {s.mappingResep!.slice(0, 2).map((r, i) => (
+                                <span key={i} style={{ fontSize: 9, padding: "2px 5px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#9CA3AF" }}>
+                                  {r.bahan?.namaBahan || r.itemId} {r.qty}{r.bahan?.satuanDapur || ""}
+                                </span>
+                              ))}
+                              <span style={{ fontSize: 9, color: isExpanded ? "#F59E0B" : "#C8F135", fontWeight: 700, whiteSpace: "nowrap" }}>
+                                {isExpanded ? "▲ tutup" : s.mappingResep!.length > 2 ? `+${s.mappingResep!.length - 2} lagi ▸` : "▸ detail"}
                               </span>
-                            ))}
-                            {s.mappingResep.length > 3 && <span style={{ fontSize: 9, color: "#4B5563" }}>+{s.mappingResep.length - 3}</span>}
+                            </div>
+                          ) : <span style={{ fontSize: 10, color: "#374151" }}>—</span>}
+                        </td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.totalCogs) > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                          {parseFloat(s.totalCogs) > 0 ? formatRupiah(parseFloat(s.totalCogs)) : "—"}
+                        </td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.cogsPerUnit) > 0 ? "#F59E0B" : "#4B5563", fontWeight: 700 }}>
+                          {parseFloat(s.cogsPerUnit) > 0 ? `${formatRupiah(parseFloat(s.cogsPerUnit))} /${s.satuanHasil || s.satuan}` : "—"}
+                        </td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                          {!isGuest && (
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedSFG(s);
+                                  setSfgBomLines(s.mappingResep?.map(r => ({ itemType: r.itemType, itemId: r.itemId, qty: parseFloat(r.qty) })) ?? []);
+                                  setSfgBomSearches([]);
+                                  setSfgBomOpenIdx(null);
+                                  setShowSFGEditor(true);
+                                }}
+                                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                              >
+                                {hasRecipe ? "Edit Resep" : "+ Buat Resep"}
+                              </button>
+                              <button onClick={() => { setEditSFG(s); setEditSFGForm({ namaSemiFinished: s.namaSemiFinished, satuanHasil: s.satuanHasil || s.satuan, jumlahHasil: s.jumlahHasil }); }}
+                                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
+                              <button onClick={() => handleDeleteSFG(s.id)}
+                                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                    if (!isExpanded || !hasRecipe) return [mainRow];
+                    const detailRow = (
+                      <tr key={`${s.id}-detail`} style={{ borderBottom: "1px solid var(--color-os-border)", background: "rgba(200,241,53,0.02)" }}>
+                        <td colSpan={8} style={{ padding: "0 14px 14px 28px" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px 110px", gap: "0 12px", borderTop: "1px solid var(--color-os-border)", paddingTop: 8 }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Bahan</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Qty</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Satuan</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Sub-COGS</div>
+                            {s.mappingResep!.map((r, i) => {
+                              const bahanData = bahanList.find(b => b.id === r.itemId);
+                              const sfgData = sfgList.find(sf => sf.id === r.itemId);
+                              const qty = parseFloat(r.qty);
+                              const subCogs = r.itemType === "bahan_dasar"
+                                ? qty * parseFloat(bahanData?.hargaPerSatuanPorsi ?? "0")
+                                : qty * parseFloat(sfgData?.cogsPerUnit ?? "0");
+                              return [
+                                <div key={`${i}-n`} style={{ fontSize: 11, color: "#9CA3AF", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{r.bahan?.namaBahan || sfgData?.namaSemiFinished || r.itemId}</div>,
+                                <div key={`${i}-q`} style={{ fontSize: 11, color: "#E2E8F0", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{qty.toLocaleString("id-ID")}</div>,
+                                <div key={`${i}-s`} style={{ fontSize: 11, color: "#6B7280", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{r.bahan?.satuanDapur || sfgData?.satuanHasil || "—"}</div>,
+                                <div key={`${i}-c`} style={{ fontSize: 11, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700, padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}</div>,
+                              ];
+                            })}
                           </div>
-                        ) : <span style={{ fontSize: 10, color: "#374151" }}>—</span>}
-                      </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.totalCogs) > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {parseFloat(s.totalCogs) > 0 ? formatRupiah(parseFloat(s.totalCogs)) : "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(s.cogsPerUnit) > 0 ? "#F59E0B" : "#4B5563", fontWeight: 700 }}>
-                        {parseFloat(s.cogsPerUnit) > 0 ? `${formatRupiah(parseFloat(s.cogsPerUnit))} /${s.satuanHasil || s.satuan}` : "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                        {!isGuest && (
-                          <div style={{ display: "flex", gap: 4 }}>
-                            <button
-                              onClick={() => {
-                                setSelectedSFG(s);
-                                setSfgBomLines(s.mappingResep?.map(r => ({ itemType: r.itemType, itemId: r.itemId, qty: parseFloat(r.qty) })) ?? []);
-                                setSfgBomSearches([]);
-                                setSfgBomOpenIdx(null);
-                                setShowSFGEditor(true);
-                              }}
-                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
-                            >
-                              {s.mappingResep && s.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
-                            </button>
-                            <button onClick={() => { setEditSFG(s); setEditSFGForm({ namaSemiFinished: s.namaSemiFinished, satuanHasil: s.satuanHasil || s.satuan, jumlahHasil: s.jumlahHasil }); }}
-                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Edit</button>
-                            <button onClick={() => handleDeleteSFG(s.id)}
-                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: "#EF4444", cursor: "pointer" }}>Hapus</button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                    return [mainRow, detailRow];
+                  })}
                 </tbody>
               </table>
             </div>

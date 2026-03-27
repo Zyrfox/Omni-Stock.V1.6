@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { semiFinished, masterBahan, mappingResep } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { generateId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
 
@@ -84,46 +84,62 @@ export interface SFGBOMLine {
 }
 
 export async function saveSFGBOM(sfgId: string, lines: SFGBOMLine[]) {
-  // Fetch current SFG for jumlahHasil
-  const sfg = await db.query.semiFinished.findFirst({
-    where: eq(semiFinished.id, sfgId),
-  });
+  const validLines = lines.filter(l => l.itemId && l.itemId !== sfgId);
+
+  const bahanIds = [...new Set(validLines.filter(l => l.itemType === "bahan_dasar").map(l => l.itemId))];
+  const sfgItemIds = [...new Set(validLines.filter(l => l.itemType === "semi_finished").map(l => l.itemId))];
+
+  // Fetch everything needed in parallel
+  const [sfg, bahanRows, nestedSfgRows, maxIdResult] = await Promise.all([
+    db.query.semiFinished.findFirst({ where: eq(semiFinished.id, sfgId) }),
+    bahanIds.length > 0
+      ? db.select({ id: masterBahan.id, hargaPerSatuanPorsi: masterBahan.hargaPerSatuanPorsi }).from(masterBahan).where(inArray(masterBahan.id, bahanIds))
+      : Promise.resolve([] as { id: string; hargaPerSatuanPorsi: string | null }[]),
+    sfgItemIds.length > 0
+      ? db.select({ id: semiFinished.id, cogsPerUnit: semiFinished.cogsPerUnit }).from(semiFinished).where(inArray(semiFinished.id, sfgItemIds))
+      : Promise.resolve([] as { id: string; cogsPerUnit: string }[]),
+    db.execute(sql`SELECT id FROM mapping_resep ORDER BY id DESC LIMIT 1`),
+  ]);
+
   if (!sfg) return;
 
-  // Delete existing BOM lines for this SFG
+  // Build lookup maps and compute COGS in-memory
+  const bahanMap = new Map(bahanRows.map(b => [b.id, b.hargaPerSatuanPorsi]));
+  const sfgMap = new Map(nestedSfgRows.map(s => [s.id, s.cogsPerUnit]));
+
+  let totalCogs = 0;
+  for (const line of validLines) {
+    if (line.itemType === "bahan_dasar") {
+      const price = bahanMap.get(line.itemId);
+      if (price) totalCogs += line.qty * parseFloat(price);
+    } else {
+      const cogs = sfgMap.get(line.itemId);
+      if (cogs) totalCogs += line.qty * parseFloat(cogs);
+    }
+  }
+
+  // Generate sequential IDs locally from max existing
+  const maxIdRows = maxIdResult as unknown as Array<{ id: string }>;
+  let lastNum = 0;
+  if (maxIdRows.length > 0) {
+    const parts = maxIdRows[0].id.split("-");
+    lastNum = parseInt(parts[parts.length - 1], 10) || 0;
+  }
+
+  // Delete old lines, batch-insert new ones, update COGS — sequentially but minimal round-trips
   await db.delete(mappingResep).where(eq(mappingResep.parentId, sfgId));
 
-  // Insert new lines and compute totalCogs
-  let totalCogs = 0;
-  for (const line of lines) {
-    if (!line.itemId) continue;
-    const id = await generateId("mapping_resep");
-    await db.insert(mappingResep).values({
-      id,
-      parentId: sfgId,
-      parentType: "semi_finished",
-      itemId: line.itemId,
-      itemType: line.itemType,
-      qty: String(line.qty),
-    });
-
-    if (line.itemType === "bahan_dasar") {
-      const bahan = await db.query.masterBahan.findFirst({
-        where: eq(masterBahan.id, line.itemId),
-      });
-      if (bahan?.hargaPerSatuanPorsi) {
-        totalCogs += line.qty * parseFloat(bahan.hargaPerSatuanPorsi);
-      }
-    } else if (line.itemType === "semi_finished") {
-      // Guard against self-reference
-      if (line.itemId === sfgId) continue;
-      const nestedSfg = await db.query.semiFinished.findFirst({
-        where: eq(semiFinished.id, line.itemId),
-      });
-      if (nestedSfg?.cogsPerUnit) {
-        totalCogs += line.qty * parseFloat(nestedSfg.cogsPerUnit);
-      }
-    }
+  if (validLines.length > 0) {
+    await db.insert(mappingResep).values(
+      validLines.map((line, i) => ({
+        id: `RSP-${String(lastNum + i + 1).padStart(3, "0")}`,
+        parentId: sfgId,
+        parentType: "semi_finished" as const,
+        itemId: line.itemId,
+        itemType: line.itemType,
+        qty: String(line.qty),
+      }))
+    );
   }
 
   const jumlahHasil = parseFloat(sfg.jumlahHasil);
