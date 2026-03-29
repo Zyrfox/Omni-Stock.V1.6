@@ -8,7 +8,7 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan, renameBahanId, getNextBahanId } from "@/actions/bahan";
 import { KATEGORI_ABBR, ALL_KATEGORI, getKategoriAbbr, getOutletAbbr } from "@/lib/product-id-config";
-import { saveBOM, createMenu, updateMenu } from "@/actions/menu";
+import { saveBOM, createMenu, updateMenu, getNextMenuId, renameMenuId } from "@/actions/menu";
 import { createSemiFinished, updateSemiFinished, deleteSemiFinished, saveSFGBOM } from "@/actions/semi-finished";
 import { useAppContext } from "@/contexts/app-context";
 import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
@@ -166,6 +166,11 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [addVariantBase, setAddVariantBase] = useState<string>("");
   const [menus, setMenus] = useState<MenuItem[]>(menuList);
+  const [showEditMenuModal, setShowEditMenuModal] = useState(false);
+  const [editMenuTarget, setEditMenuTarget] = useState<MenuItem | null>(null);
+  const [editMenuForm, setEditMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", outletId: "", channelType: "dine_in", hargaJual: "", platformFeePercent: "0" });
+  const [editMenuNextIdPreview, setEditMenuNextIdPreview] = useState<string | null>(null);
+  const [editMenuSaving, setEditMenuSaving] = useState(false);
 
   // Add Bahan form state
   const [form, setForm] = useState({
@@ -292,6 +297,19 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
     getNextBahanId(kategoriAbbr, outletAbbr).then(setAddNextIdPreview).catch(() => {});
   }, [form.kategoriBahan, form.outletId, showAddBahan]);
 
+  // Fetch next menu ID when outlet changes in edit menu modal
+  useEffect(() => {
+    if (!editMenuTarget || !showEditMenuModal) return;
+    const outlet = outletList.find((o) => o.id === editMenuForm.outletId);
+    const outletAbbr = getOutletAbbr(outlet?.namaOutlet);
+    if (editMenuTarget.id.startsWith(`MNU-${outletAbbr}-`)) {
+      setEditMenuNextIdPreview(editMenuTarget.id);
+      return;
+    }
+    setEditMenuNextIdPreview(null);
+    getNextMenuId(outletAbbr).then(setEditMenuNextIdPreview).catch(() => {});
+  }, [editMenuForm.outletId, editMenuTarget, showEditMenuModal]);
+
   const tabs = ["1. Master Bahan", "2. Raw Menu", "3. Master Resep", "4. Master Menu"];
 
   const q1 = searchBahan.toLowerCase();
@@ -413,6 +431,43 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       setShowAddMenu(false);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpdateMenu() {
+    if (!editMenuTarget) return;
+    setEditMenuSaving(true);
+    try {
+      const oldId = editMenuTarget.id;
+      const newId = editMenuNextIdPreview && editMenuNextIdPreview !== oldId ? editMenuNextIdPreview : oldId;
+      await updateMenu(oldId, {
+        namaMenu: editMenuForm.namaMenu.trim(),
+        kategori: editMenuForm.kategori,
+        outletId: editMenuForm.outletId || undefined,
+        channelType: editMenuForm.channelType,
+        hargaJual: editMenuForm.hargaJual ? parseFloat(editMenuForm.hargaJual) : null,
+        platformFeePercent: parseFloat(editMenuForm.platformFeePercent) || 0,
+      });
+      // Rename ID if outlet changed
+      if (newId !== oldId) {
+        await renameMenuId(oldId, newId);
+      }
+      setMenus((prev) => prev.map((m) => m.id === oldId
+        ? {
+            ...m,
+            id: newId,
+            namaMenu: editMenuForm.namaMenu.trim(),
+            kategori: editMenuForm.kategori,
+            outletId: editMenuForm.outletId || null,
+            channelType: editMenuForm.channelType,
+            hargaJual: editMenuForm.hargaJual || null,
+            platformFeePercent: editMenuForm.platformFeePercent,
+          }
+        : m));
+      setShowEditMenuModal(false);
+      setEditMenuTarget(null);
+    } finally {
+      setEditMenuSaving(false);
     }
   }
 
@@ -567,9 +622,25 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
           hargaJual: bomHargaJual ? parseFloat(bomHargaJual) : null,
         }),
       ]);
-      // Update local menus state
+      // Update local menus state — including mappingResep so re-opening modal shows saved data
       setMenus((prev) => prev.map((m) => m.id === selectedMenu.id
-        ? { ...m, hargaJual: bomHargaJual || null, totalCogs: String(totalCOGS.toFixed(2)) }
+        ? {
+            ...m,
+            hargaJual: bomHargaJual || null,
+            totalCogs: String(totalCOGS.toFixed(2)),
+            mappingResep: bomLines
+              .filter((l) => l.itemId)
+              .map((l, i) => {
+                const b = l.itemType !== "semi_finished" ? bahanList.find((bh) => bh.id === l.itemId) : undefined;
+                return {
+                  id: `tmp-${i}`,
+                  itemId: l.itemId,
+                  qty: String(l.qty),
+                  itemType: (l.itemType === "kemasan" ? "bahan_dasar" : l.itemType) as "bahan_dasar" | "semi_finished",
+                  bahan: b ? { namaBahan: b.namaBahan, satuanDapur: b.satuanDapur, kategoriBahan: b.kategoriBahan ?? null } : undefined,
+                };
+              }),
+          }
         : m));
       setShowBOMEditor(false);
     } finally {
@@ -1185,11 +1256,16 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                   </div>
                   {m.mappingResep && m.mappingResep.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-                      {m.mappingResep.map((r) => (
-                        <span key={r.id} style={{ fontSize: 9, padding: "2px 6px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#E2E8F0" }}>
-                          {r.bahan?.namaBahan} {r.qty}{r.bahan?.satuanDapur}
-                        </span>
-                      ))}
+                      {m.mappingResep.map((r) => {
+                        const sfgItem = r.itemType === "semi_finished" ? sfgList.find((s) => s.id === r.itemId) : undefined;
+                        const itemName = sfgItem ? sfgItem.namaSemiFinished : r.bahan?.namaBahan;
+                        const itemSatuan = sfgItem ? sfgItem.satuanHasil : r.bahan?.satuanDapur;
+                        return (
+                          <span key={r.id} style={{ fontSize: 9, padding: "2px 6px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#E2E8F0" }}>
+                            {itemName} {r.qty}{itemSatuan}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -1239,11 +1315,16 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     <td style={{ padding: "10px 14px" }}>
                       {m.mappingResep && m.mappingResep.length > 0 ? (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {m.mappingResep.map((r) => (
-                            <span key={r.id} style={{ fontSize: 10, padding: "2px 6px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#E2E8F0" }}>
-                              {r.bahan?.namaBahan} {r.qty}{r.bahan?.satuanDapur}
-                            </span>
-                          ))}
+                          {m.mappingResep.map((r) => {
+                            const sfgItem = r.itemType === "semi_finished" ? sfgList.find((s) => s.id === r.itemId) : undefined;
+                            const itemName = sfgItem ? sfgItem.namaSemiFinished : r.bahan?.namaBahan;
+                            const itemSatuan = sfgItem ? sfgItem.satuanHasil : r.bahan?.satuanDapur;
+                            return (
+                              <span key={r.id} style={{ fontSize: 10, padding: "2px 6px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#E2E8F0" }}>
+                                {itemName} {r.qty}{itemSatuan}
+                              </span>
+                            );
+                          })}
                         </div>
                       ) : (
                         <span style={{ fontSize: 10, color: "#374151" }}>—</span>
@@ -1386,7 +1467,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                                 <span>Jual: <span style={{ color: "#E2E8F0" }}>{hj > 0 ? formatRupiah(hj) : "—"}</span></span>
                                 {fee > 0 && <span>Fee: <span style={{ color: "#F59E0B" }}>{formatRupiah(feeAmount)}</span></span>}
                               </div>
-                              <div style={{ marginTop: 6 }}>
+                              <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
                                 <button
                                   onClick={() => {
                                     setSelectedMenu(m);
@@ -1399,6 +1480,17 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                                   style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
                                 >
                                   {m.mappingResep && m.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditMenuTarget(m);
+                                    setEditMenuForm({ namaMenu: m.namaMenu, kategori: m.kategori ?? "food", outletId: m.outletId ?? "", channelType: m.channelType ?? "dine_in", hargaJual: m.hargaJual ?? "", platformFeePercent: m.platformFeePercent ?? "0" });
+                                    setEditMenuNextIdPreview(null);
+                                    setShowEditMenuModal(true);
+                                  }}
+                                  style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.08)", color: "#60A5FA", cursor: "pointer" }}
+                                >
+                                  Edit
                                 </button>
                               </div>
                             </div>
@@ -1592,19 +1684,32 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                             )}
                           </td>
                           <td style={{ padding: "10px 14px" }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => {
-                                setSelectedMenu(m);
-                                setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
-                                setBomHargaJual(m.hargaJual ?? "");
-                                setBomSearches([]);
-                                setBomOpenIdx(null);
-                                setShowBOMEditor(true);
-                              }}
-                              style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
-                            >
-                              {hasRecipe ? "Edit Resep" : "+ Buat Resep"}
-                            </button>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedMenu(m);
+                                  setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                                  setBomHargaJual(m.hargaJual ?? "");
+                                  setBomSearches([]);
+                                  setBomOpenIdx(null);
+                                  setShowBOMEditor(true);
+                                }}
+                                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                              >
+                                {hasRecipe ? "Edit Resep" : "+ Buat Resep"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditMenuTarget(m);
+                                  setEditMenuForm({ namaMenu: m.namaMenu, kategori: m.kategori ?? "food", outletId: m.outletId ?? "", channelType: m.channelType ?? "dine_in", hargaJual: m.hargaJual ?? "", platformFeePercent: m.platformFeePercent ?? "0" });
+                                  setEditMenuNextIdPreview(null);
+                                  setShowEditMenuModal(true);
+                                }}
+                                style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.08)", color: "#60A5FA", cursor: "pointer" }}
+                              >
+                                Edit
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -2911,6 +3016,115 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
           })()}
         </div>,
         document.body
+      )}
+
+      {/* Modal Edit Menu */}
+      {showEditMenuModal && editMenuTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div className="modal-fadein" style={{ width: 480, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+            <div style={{ height: 3, background: "linear-gradient(90deg, #60A5FA, #C8F135, transparent)" }} />
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Menu</h2>
+              <p style={{ fontSize: 11, color: "#4B5563", margin: "0 0 16px" }}>
+                ID saat ini: <span style={{ fontFamily: "monospace", color: "#60A5FA" }}>{editMenuTarget.id}</span>
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {/* Nama Menu */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Nama Menu *</label>
+                  <input
+                    type="text"
+                    value={editMenuForm.namaMenu}
+                    onChange={(e) => setEditMenuForm((f) => ({ ...f, namaMenu: e.target.value }))}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                  />
+                </div>
+                {/* Outlet */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Outlet</label>
+                  <select
+                    value={editMenuForm.outletId}
+                    onChange={(e) => setEditMenuForm((f) => ({ ...f, outletId: e.target.value }))}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  >
+                    <option value="">— Semua Outlet —</option>
+                    {outletList.map((o) => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
+                  </select>
+                  {editMenuNextIdPreview && editMenuNextIdPreview !== editMenuTarget.id && (
+                    <div style={{ marginTop: 4, fontSize: 10, color: "#6B7280" }}>
+                      ID baru: <span style={{ fontFamily: "monospace", color: "#C8F135", fontWeight: 700 }}>{editMenuNextIdPreview}</span>
+                    </div>
+                  )}
+                </div>
+                {/* Kategori */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Kategori</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {(["food", "beverage"] as const).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setEditMenuForm((f) => ({ ...f, kategori: k }))}
+                        style={{ flex: 1, padding: "8px 12px", borderRadius: 8, cursor: "pointer", border: `1px solid ${editMenuForm.kategori === k ? "rgba(200,241,53,0.5)" : "#2D2D44"}`, background: editMenuForm.kategori === k ? "rgba(200,241,53,0.1)" : "transparent", color: editMenuForm.kategori === k ? "#C8F135" : "#6B7280", fontSize: 12, fontWeight: editMenuForm.kategori === k ? 700 : 400 }}
+                      >
+                        {k === "food" ? "🍽 Food" : "🥤 Beverage"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Channel Type */}
+                <div>
+                  <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Channel</label>
+                  <select
+                    value={editMenuForm.channelType}
+                    onChange={(e) => setEditMenuForm((f) => ({ ...f, channelType: e.target.value }))}
+                    style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none" }}
+                  >
+                    <option value="dine_in">Dine In</option>
+                    <option value="takeaway">Take Away</option>
+                    <option value="grabfood">GrabFood</option>
+                    <option value="gojek">GoFood</option>
+                    <option value="shopeefood">ShopeeFood</option>
+                    <option value="online">Online</option>
+                  </select>
+                </div>
+                {/* Harga Jual + Platform Fee */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Harga Jual (Rp)</label>
+                    <input
+                      type="number"
+                      value={editMenuForm.hargaJual}
+                      onChange={(e) => setEditMenuForm((f) => ({ ...f, hargaJual: e.target.value }))}
+                      placeholder="cth: 25000"
+                      style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>Platform Fee %</label>
+                    <input
+                      type="number"
+                      value={editMenuForm.platformFeePercent}
+                      onChange={(e) => setEditMenuForm((f) => ({ ...f, platformFeePercent: e.target.value }))}
+                      placeholder="0"
+                      style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "8px 12px", fontSize: 12, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
+                <button onClick={() => { setShowEditMenuModal(false); setEditMenuTarget(null); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+                <button
+                  onClick={handleUpdateMenu}
+                  disabled={editMenuSaving || !editMenuForm.namaMenu.trim()}
+                  style={{ padding: "8px 16px", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.4)", borderRadius: 8, color: "#60A5FA", fontSize: 12, cursor: "pointer", fontWeight: 700, opacity: editMenuSaving || !editMenuForm.namaMenu.trim() ? 0.6 : 1 }}
+                >
+                  {editMenuSaving ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal Tambah Raw Menu */}
