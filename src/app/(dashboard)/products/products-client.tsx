@@ -171,6 +171,9 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [editMenuForm, setEditMenuForm] = useState({ namaMenu: "", kategori: "food" as "food" | "beverage", outletId: "", channelType: "dine_in", hargaJual: "", platformFeePercent: "0" });
   const [editMenuNextIdPreview, setEditMenuNextIdPreview] = useState<string | null>(null);
   const [editMenuSaving, setEditMenuSaving] = useState(false);
+  const [showAddVariantInEdit, setShowAddVariantInEdit] = useState(false);
+  const [addVariantInEditForm, setAddVariantInEditForm] = useState({ channelType: "grabfood", hargaJual: "", platformFeePercent: "20" });
+  const [addVariantInEditSaving, setAddVariantInEditSaving] = useState(false);
 
   // Add Bahan form state
   const [form, setForm] = useState({
@@ -469,6 +472,39 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       setEditMenuTarget(null);
     } finally {
       setEditMenuSaving(false);
+    }
+  }
+
+  async function handleAddVariantInEdit() {
+    if (!editMenuTarget) return;
+    setAddVariantInEditSaving(true);
+    try {
+      const baseName = extractBaseName(editMenuTarget.namaMenu);
+      const ch = CHANNELS.find((c) => c.key === addVariantInEditForm.channelType);
+      const variantName = ch ? `${baseName} - ${ch.label}` : baseName;
+      const result = await createMenu({
+        namaMenu: variantName,
+        outletId: editMenuForm.outletId || editMenuTarget.outletId || "",
+        kategori: editMenuForm.kategori,
+        hargaJual: addVariantInEditForm.hargaJual ? parseFloat(addVariantInEditForm.hargaJual) : undefined,
+        channelType: addVariantInEditForm.channelType,
+        platformFeePercent: parseFloat(addVariantInEditForm.platformFeePercent) || 0,
+      });
+      setMenus((prev) => [...prev, {
+        id: result.id,
+        namaMenu: variantName,
+        kategori: editMenuForm.kategori,
+        outletId: editMenuForm.outletId || editMenuTarget.outletId || null,
+        totalCogs: "0",
+        hargaJual: addVariantInEditForm.hargaJual || null,
+        mappingResep: [],
+        channelType: addVariantInEditForm.channelType,
+        platformFeePercent: addVariantInEditForm.platformFeePercent,
+      }]);
+      setShowAddVariantInEdit(false);
+      setAddVariantInEditForm({ channelType: "grabfood", hargaJual: "", platformFeePercent: "20" });
+    } finally {
+      setAddVariantInEditSaving(false);
     }
   }
 
@@ -1527,6 +1563,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                                     setEditMenuTarget(m);
                                     setEditMenuForm({ namaMenu: m.namaMenu, kategori: m.kategori ?? "food", outletId: m.outletId ?? "", channelType: m.channelType ?? "dine_in", hargaJual: m.hargaJual ?? "", platformFeePercent: m.platformFeePercent ?? "0" });
                                     setEditMenuNextIdPreview(null);
+                                    setShowAddVariantInEdit(false);
                                     setShowEditMenuModal(true);
                                   }}
                                   style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.08)", color: "#60A5FA", cursor: "pointer" }}
@@ -3153,8 +3190,105 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
-                <button onClick={() => { setShowEditMenuModal(false); setEditMenuTarget(null); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
+              {/* Add Variant Platform section */}
+              {(() => {
+                const baseName = extractBaseName(editMenuTarget.namaMenu);
+                const existingChannels = new Set(
+                  menus.filter((m) => extractBaseName(m.namaMenu) === baseName).map((m) => inferChannelType(m))
+                );
+                return (
+                  <div style={{ marginTop: 16, borderTop: "1px solid var(--color-os-border)", paddingTop: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddVariantInEdit((v) => !v);
+                        // Auto-pick first channel not yet used
+                        const nextCh = CHANNELS.find((c) => !existingChannels.has(c.key));
+                        if (nextCh) {
+                          setAddVariantInEditForm((f) => ({ ...f, channelType: nextCh.key, platformFeePercent: String(nextCh.defaultFee) }));
+                        }
+                      }}
+                      style={{ fontSize: 11, padding: "5px 12px", borderRadius: 6, border: "1px dashed rgba(200,241,53,0.4)", background: showAddVariantInEdit ? "rgba(200,241,53,0.08)" : "transparent", color: showAddVariantInEdit ? "#C8F135" : "#6B7280", cursor: "pointer", width: "100%" }}
+                    >
+                      {showAddVariantInEdit ? "▲ Batal Tambah Variant" : "+ Tambah Variant Platform"}
+                    </button>
+                    {showAddVariantInEdit && (
+                      <div style={{ marginTop: 10, padding: 12, background: "rgba(200,241,53,0.03)", border: "1px solid rgba(200,241,53,0.12)", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+                        {/* Existing variants info */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {menus.filter((m) => extractBaseName(m.namaMenu) === baseName).map((m) => {
+                            const chType = inferChannelType(m);
+                            return (
+                              <span key={m.id} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 10, background: "rgba(96,165,250,0.1)", color: "#60A5FA", border: "1px solid rgba(96,165,250,0.2)" }}>
+                                {getChannelIcon(chType)} {getChannelLabel(chType)}
+                              </span>
+                            );
+                          })}
+                          <span style={{ fontSize: 9, color: "#4B5563", alignSelf: "center" }}>sudah ada</span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                          {/* Channel selector */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", marginBottom: 4 }}>Platform</label>
+                            <select
+                              value={addVariantInEditForm.channelType}
+                              onChange={(e) => {
+                                const ch = CHANNELS.find((c) => c.key === e.target.value);
+                                setAddVariantInEditForm((f) => ({ ...f, channelType: e.target.value, platformFeePercent: String(ch?.defaultFee ?? 0) }));
+                              }}
+                              style={{ width: "100%", background: `var(--color-os-surface)`, border: `1px solid ${existingChannels.has(addVariantInEditForm.channelType) ? "rgba(239,68,68,0.5)" : "var(--color-os-border2)"}`, borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none" }}
+                            >
+                              {CHANNELS.map((c) => (
+                                <option key={c.key} value={c.key}>
+                                  {c.icon} {c.label}{existingChannels.has(c.key) ? " ✓" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            {existingChannels.has(addVariantInEditForm.channelType) && (
+                              <div style={{ fontSize: 9, color: "#EF4444", marginTop: 2 }}>Platform sudah ada</div>
+                            )}
+                          </div>
+                          {/* Harga Jual */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", marginBottom: 4 }}>Harga Jual (Rp)</label>
+                            <input
+                              type="number"
+                              value={addVariantInEditForm.hargaJual}
+                              onChange={(e) => setAddVariantInEditForm((f) => ({ ...f, hargaJual: e.target.value }))}
+                              placeholder="25000"
+                              style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                            />
+                          </div>
+                          {/* Platform Fee */}
+                          <div>
+                            <label style={{ display: "block", fontSize: 9, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", marginBottom: 4 }}>Fee %</label>
+                            <input
+                              type="number"
+                              value={addVariantInEditForm.platformFeePercent}
+                              onChange={(e) => setAddVariantInEditForm((f) => ({ ...f, platformFeePercent: e.target.value }))}
+                              placeholder="0"
+                              style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 8px", fontSize: 11, color: "#E2E8F0", outline: "none", boxSizing: "border-box" }}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 10, color: "#4B5563" }}>
+                          Nama: <span style={{ color: "#E2E8F0" }}>{baseName} — {getChannelIcon(addVariantInEditForm.channelType)} {getChannelLabel(addVariantInEditForm.channelType)}</span>
+                        </div>
+                        <button
+                          onClick={handleAddVariantInEdit}
+                          disabled={addVariantInEditSaving || existingChannels.has(addVariantInEditForm.channelType)}
+                          className="btn-accent"
+                          style={{ padding: "7px 14px", border: "none", borderRadius: 7, fontSize: 11, cursor: "pointer", opacity: addVariantInEditSaving || existingChannels.has(addVariantInEditForm.channelType) ? 0.5 : 1 }}
+                        >
+                          {addVariantInEditSaving ? "Menambahkan..." : `+ Tambah ${getChannelLabel(addVariantInEditForm.channelType)}`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
+                <button onClick={() => { setShowEditMenuModal(false); setEditMenuTarget(null); setShowAddVariantInEdit(false); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "#6B7280", fontSize: 12, cursor: "pointer" }}>Batal</button>
                 <button
                   onClick={handleUpdateMenu}
                   disabled={editMenuSaving || !editMenuForm.namaMenu.trim()}
