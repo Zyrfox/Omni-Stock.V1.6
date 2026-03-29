@@ -248,6 +248,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   // Raw Menu (SFG) state
   const [sfgList, setSfgList] = useState<SFGItem[]>(sfgListProp);
   const [expandedSFGRows, setExpandedSFGRows] = useState<Set<string>>(new Set());
+  const [expandedResepRows, setExpandedResepRows] = useState<Set<string>>(new Set());
   const [showAddSFG, setShowAddSFG] = useState(false);
   const [sfgForm, setSfgForm] = useState({ namaSemiFinished: "", satuanHasil: "gram", jumlahHasil: "1", outletId: outletList[0]?.id ?? "OUT-001" });
   const [sfgCreateHargaJual, setSfgCreateHargaJual] = useState("");
@@ -1294,62 +1295,102 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               {filteredResep.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>{searchResep ? `Tidak ada menu "${searchResep}"` : `Belum ada menu. Tambahkan dari tab Master Menu.`}</td></tr>
               ) : (
-                pagedResep.map((m) => (
-                  <tr
-                    key={m.id}
-                    draggable
-                    onDragStart={() => setDragResepId(m.id)}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverResepId(m.id); }}
-                    onDrop={() => handleResepDrop(m.id)}
-                    onDragEnd={() => { setDragResepId(null); setDragOverResepId(null); }}
-                    className="table-row-hover"
-                    style={{
-                      borderBottom: "1px solid var(--color-os-border)",
-                      background: dragOverResepId === m.id && dragResepId !== m.id ? "rgba(200,241,53,0.04)" : undefined,
-                      opacity: dragResepId === m.id ? 0.4 : 1,
-                    }}
-                  >
-                    <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563", cursor: "grab" }}>⠿ {m.id}</td>
-                    <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
-                    <td style={{ padding: "10px 14px" }}>
-                      {m.mappingResep && m.mappingResep.length > 0 ? (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {m.mappingResep.map((r) => {
-                            const sfgItem = r.itemType === "semi_finished" ? sfgList.find((s) => s.id === r.itemId) : undefined;
-                            const itemName = sfgItem ? sfgItem.namaSemiFinished : r.bahan?.namaBahan;
-                            const itemSatuan = sfgItem ? sfgItem.satuanHasil : r.bahan?.satuanDapur;
-                            return (
-                              <span key={r.id} style={{ fontSize: 10, padding: "2px 6px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#E2E8F0" }}>
-                                {itemName} {r.qty}{itemSatuan}
-                              </span>
-                            );
+                pagedResep.flatMap((m) => {
+                  const hasRecipe = m.mappingResep && m.mappingResep.length > 0;
+                  const isExpanded = expandedResepRows.has(m.id);
+                  const toggleExpand = () => setExpandedResepRows((prev) => {
+                    const next = new Set(prev);
+                    next.has(m.id) ? next.delete(m.id) : next.add(m.id);
+                    return next;
+                  });
+                  const mainRow = (
+                    <tr
+                      key={m.id}
+                      draggable
+                      onDragStart={() => setDragResepId(m.id)}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverResepId(m.id); }}
+                      onDrop={() => handleResepDrop(m.id)}
+                      onDragEnd={() => { setDragResepId(null); setDragOverResepId(null); }}
+                      className="table-row-hover"
+                      style={{
+                        borderBottom: isExpanded && hasRecipe ? "none" : "1px solid var(--color-os-border)",
+                        background: dragOverResepId === m.id && dragResepId !== m.id ? "rgba(200,241,53,0.04)" : undefined,
+                        opacity: dragResepId === m.id ? 0.4 : 1,
+                      }}
+                    >
+                      <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563", cursor: "grab" }}>⠿ {m.id}</td>
+                      <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{m.outletId ?? "—"}</td>
+                      <td style={{ padding: "10px 14px", cursor: hasRecipe ? "pointer" : "default" }} onClick={hasRecipe ? toggleExpand : undefined}>
+                        {hasRecipe ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                            {m.mappingResep!.slice(0, 2).map((r) => {
+                              const sfgItem = r.itemType === "semi_finished" ? sfgList.find((s) => s.id === r.itemId) : undefined;
+                              const itemName = sfgItem ? sfgItem.namaSemiFinished : r.bahan?.namaBahan;
+                              const itemSatuan = sfgItem ? sfgItem.satuanHasil : r.bahan?.satuanDapur;
+                              return (
+                                <span key={r.id} style={{ fontSize: 9, padding: "2px 5px", background: `var(--color-os-row-hover)`, borderRadius: 4, color: "#9CA3AF" }}>
+                                  {itemName} {r.qty}{itemSatuan}
+                                </span>
+                              );
+                            })}
+                            <span style={{ fontSize: 9, color: isExpanded ? "#F59E0B" : "#C8F135", fontWeight: 700, whiteSpace: "nowrap" }}>
+                              {isExpanded ? "▲ tutup" : m.mappingResep!.length > 2 ? `+${m.mappingResep!.length - 2} lagi ▸` : "▸ detail"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 10, color: "#374151" }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(m.totalCogs ?? "0") > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
+                        {formatRupiah(parseFloat(m.totalCogs ?? "0"))}
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <button
+                          onClick={() => {
+                            setSelectedMenu(m);
+                            setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
+                            setBomHargaJual(m.hargaJual ?? "");
+                            setBomSearches([]);
+                            setBomOpenIdx(null);
+                            setShowBOMEditor(true);
+                          }}
+                          style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
+                        >
+                          {hasRecipe ? "Edit Resep" : "+ Buat Resep"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                  if (!isExpanded || !hasRecipe) return [mainRow];
+                  const detailRow = (
+                    <tr key={`${m.id}-detail`} style={{ borderBottom: "1px solid var(--color-os-border)", background: "rgba(200,241,53,0.02)" }}>
+                      <td colSpan={6} style={{ padding: "0 14px 14px 28px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px 110px", gap: "0 12px", borderTop: "1px solid var(--color-os-border)", paddingTop: 8 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Bahan</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Qty</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Satuan</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase", paddingBottom: 4 }}>Sub-COGS</div>
+                          {m.mappingResep!.map((r, i) => {
+                            const bahanData = bahanList.find((b) => b.id === r.itemId);
+                            const sfgData = sfgList.find((s) => s.id === r.itemId);
+                            const qty = parseFloat(r.qty);
+                            const subCogs = r.itemType === "semi_finished"
+                              ? qty * parseFloat(sfgData?.cogsPerUnit ?? "0")
+                              : qty * parseFloat(bahanData?.hargaPerSatuanPorsi ?? "0");
+                            return [
+                              <div key={`${i}-n`} style={{ fontSize: 11, color: "#9CA3AF", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{r.bahan?.namaBahan || sfgData?.namaSemiFinished || r.itemId}</div>,
+                              <div key={`${i}-q`} style={{ fontSize: 11, color: "#E2E8F0", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{qty.toLocaleString("id-ID")}</div>,
+                              <div key={`${i}-s`} style={{ fontSize: 11, color: "#6B7280", padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{r.bahan?.satuanDapur || sfgData?.satuanHasil || "—"}</div>,
+                              <div key={`${i}-c`} style={{ fontSize: 11, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700, padding: "3px 0", borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>{subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}</div>,
+                            ];
                           })}
                         </div>
-                      ) : (
-                        <span style={{ fontSize: 10, color: "#374151" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: parseFloat(m.totalCogs ?? "0") > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                      {formatRupiah(parseFloat(m.totalCogs ?? "0"))}
-                    </td>
-                    <td style={{ padding: "10px 14px" }}>
-                      <button
-                        onClick={() => {
-                          setSelectedMenu(m);
-                          setBomLines(m.mappingResep?.map((r) => ({ itemType: (r.bahan?.kategoriBahan === "Kemasan & Alat Makan" ? "kemasan" : (r.itemType ?? "bahan_dasar")) as "bahan_dasar" | "semi_finished" | "kemasan", itemId: r.itemId ?? "", qty: parseFloat(r.qty) })) ?? []);
-                          setBomHargaJual(m.hargaJual ?? "");
-                          setBomSearches([]);
-                          setBomOpenIdx(null);
-                          setShowBOMEditor(true);
-                        }}
-                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.1)", color: "#C8F135", cursor: "pointer" }}
-                      >
-                        {m.mappingResep && m.mappingResep.length > 0 ? "Edit Resep" : "+ Buat Resep"}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                  return [mainRow, detailRow];
+                })
               )}
             </tbody>
           </table>
