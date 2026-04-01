@@ -22,21 +22,21 @@ export default async function UsersPage() {
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Users</h1>
-        <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Manajemen pengguna — Admin Only</p>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Users</h1>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Manajemen pengguna — Admin Only</p>
       </div>
 
       {/* Admin-only banner */}
-      <div style={{ background: "rgba(200,241,53,0.04)", border: "1px solid rgba(200,241,53,0.15)", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ background: "color-mix(in srgb, var(--color-os-accent) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--color-os-accent) 15%, transparent)", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 12 }}>🔒</span>
-        <span style={{ fontSize: 12, color: "#C8F135" }}>Halaman ini hanya dapat diakses oleh Admin. Data pengguna bersifat sensitif.</span>
+        <span style={{ fontSize: 12, color: "var(--color-os-accent)" }}>Halaman ini hanya dapat diakses oleh Admin. Data pengguna bersifat sensitif.</span>
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Pengguna" value={stats.total} icon={Users} color="#60A5FA" />
-        <StatCard label="Admin" value={stats.admin} icon={Shield} color="#C8F135" />
-        <StatCard label="Manager" value={stats.manager} icon={User} color="#22C55E" />
-        <StatCard label="Supervisor" value={stats.supervisor} icon={UserCheck} color="#F59E0B" />
+        <StatCard label="Total Pengguna" value={stats.total} icon={Users} color="var(--color-os-blue)" />
+        <StatCard label="Admin" value={stats.admin} icon={Shield} color="var(--color-os-accent)" />
+        <StatCard label="Manager" value={stats.manager} icon={User} color="var(--color-os-green)" />
+        <StatCard label="Supervisor" value={stats.supervisor} icon={UserCheck} color="var(--color-os-amber)" />
         <StatCard label="Staff" value={stats.staff} icon={UserCog} color="#A78BFA" />
       </div>
 

@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isPending) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--color-os-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#C8F135", fontSize: 24 }}>⊚</div>
+        <div style={{ color: "var(--color-os-accent)", fontSize: 24 }}>⊚</div>
       </div>
     );
   }
@@ -41,10 +41,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Guest banner */}
           {isGuest && (
             <div className="guest-banner" style={{ background: "rgba(200,241,53,0.08)", borderBottom: "1px solid rgba(200,241,53,0.2)", padding: "8px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, color: "#C8F135", fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: "var(--color-os-accent)", fontWeight: 600 }}>
                 👁 Mode Tamu — hanya bisa melihat, tidak bisa melakukan aksi
               </span>
-              <Link href="/login" style={{ fontSize: 11, color: "#0A0A0F", background: "#C8F135", padding: "4px 12px", borderRadius: 6, fontWeight: 700, textDecoration: "none" }}>
+              <Link href="/login" style={{ fontSize: 11, color: "var(--color-os-bg)", background: "var(--color-os-accent)", padding: "4px 12px", borderRadius: 6, fontWeight: 700, textDecoration: "none" }}>
                 Login →
               </Link>
             </div>

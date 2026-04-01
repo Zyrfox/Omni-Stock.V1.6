@@ -72,8 +72,8 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", background: "#0D0D1A",
-    border: "1px solid var(--color-os-border)", borderRadius: 8, color: "#E2E8F0",
+    width: "100%", padding: "9px 12px", background: "var(--color-os-bg)",
+    border: "1px solid var(--color-os-border)", borderRadius: 8, color: "var(--color-os-text)",
     fontSize: 13, outline: "none", boxSizing: "border-box",
   };
 
@@ -89,8 +89,8 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
               style={{
                 padding: "6px 16px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12,
                 fontWeight: activeTab === i + 1 ? 700 : 400,
-                background: activeTab === i + 1 ? "#1E1E2E" : "transparent",
-                color: activeTab === i + 1 ? "#E2E8F0" : "#4B5563",
+                background: activeTab === i + 1 ? "var(--color-os-surface)" : "transparent",
+                color: activeTab === i + 1 ? "var(--color-os-text)" : "var(--color-os-muted)",
                 transition: "all 0.15s",
               }}
             >
@@ -104,8 +104,8 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             onClick={() => { setShowAddOutlet(true); setNamaOutlet(""); setAddError(""); }}
             style={{
               padding: "7px 16px", borderRadius: 8, border: "none", cursor: "pointer",
-              background: "linear-gradient(135deg, #C8F135, #86EF3C)",
-              color: "#0D1117", fontSize: 12, fontWeight: 700,
+              background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))",
+              color: "var(--color-os-bg)", fontSize: 12, fontWeight: 700,
             }}
           >
             + Tambah Outlet
@@ -121,33 +121,33 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             <thead>
               <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Outlet ID", "Nama Outlet", "Upload Compliance", "Inventory Net Worth", "Critical", "Warning", "Aksi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {outlets.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada outlet terdaftar.</td></tr>
+                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>Belum ada outlet terdaftar.</td></tr>
               ) : (
                 outlets.map((o) => (
                   <tr key={o.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>{o.id}</td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{o.namaOutlet}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-muted)" }}>{o.id}</td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{o.namaOutlet}</td>
                     <td style={{ padding: "10px 14px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{ width: 80, height: 4, background: `var(--color-os-border)`, borderRadius: 2 }}>
-                          <div style={{ width: "0%", height: "100%", background: "#EF4444", borderRadius: 2 }} />
+                          <div style={{ width: "0%", height: "100%", background: "var(--color-os-red)", borderRadius: 2 }} />
                         </div>
-                        <span style={{ fontSize: 11, color: "#EF4444" }}>0%</span>
+                        <span style={{ fontSize: 11, color: "var(--color-os-red)" }}>0%</span>
                       </div>
                     </td>
-                    <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0", fontWeight: 600 }}>Rp 0</td>
+                    <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)", fontWeight: 600 }}>Rp 0</td>
                     <td style={{ padding: "10px 14px" }}><Badge color="red" size="sm">0</Badge></td>
                     <td style={{ padding: "10px 14px" }}><Badge color="amber" size="sm">0</Badge></td>
                     <td style={{ padding: "10px 14px" }}>
                       <button
                         onClick={() => setDetailOutlet(o)}
-                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}
+                        style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--color-os-blue) 30%, transparent)", background: "color-mix(in srgb, var(--color-os-blue) 10%, transparent)", color: "var(--color-os-blue)", cursor: "pointer" }}
                       >
                         Detail
                       </button>
@@ -169,14 +169,14 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             <thead>
               <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Nama Menu", "COGS", "Harga Jual", "Margin", "Terjual/Bulan", "Kontribusi"].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {menuProfitList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  <td colSpan={6} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>
                     Belum ada data menu. Tambah menu di halaman Products & Recipes.
                   </td>
                 </tr>
@@ -188,33 +188,33 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
                   const margin = jual > 0 ? Math.round(((jual - cogs) / jual) * 100) : 0;
                   const kontribusi = qty * Math.max(jual - cogs, 0);
                   const kontribusiPct = (kontribusi / maxKontribusi) * 100;
-                  const marginColor = margin >= 65 ? "#22C55E" : "#F59E0B";
+                  const marginColor = margin >= 65 ? "var(--color-os-green)" : "var(--color-os-amber)";
 
                   return (
                     <tr key={m.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                      <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{m.namaMenu}</td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
-                        {cogs > 0 ? formatRupiah(cogs) : <span style={{ color: "#4B5563" }}>—</span>}
+                      <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{m.namaMenu}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>
+                        {cogs > 0 ? formatRupiah(cogs) : <span style={{ color: "var(--color-os-muted)" }}>—</span>}
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "#E2E8F0" }}>
-                        {jual > 0 ? formatRupiah(jual) : <span style={{ color: "#4B5563" }}>—</span>}
+                      <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: "var(--color-os-text)" }}>
+                        {jual > 0 ? formatRupiah(jual) : <span style={{ color: "var(--color-os-muted)" }}>—</span>}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
                         {jual > 0 ? (
                           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: `${marginColor}1A`, border: `1px solid ${marginColor}4D`, color: marginColor }}>
                             {margin}%
                           </span>
-                        ) : <span style={{ color: "#4B5563", fontSize: 11 }}>—</span>}
+                        ) : <span style={{ color: "var(--color-os-muted)", fontSize: 11 }}>—</span>}
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>
-                        {qty > 0 ? `${qty} porsi` : <span style={{ color: "#4B5563" }}>0 porsi</span>}
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>
+                        {qty > 0 ? `${qty} porsi` : <span style={{ color: "var(--color-os-muted)" }}>0 porsi</span>}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ width: 60, height: 4, background: `var(--color-os-border)`, borderRadius: 2, flexShrink: 0 }}>
-                            <div style={{ width: `${kontribusiPct}%`, height: "100%", background: "linear-gradient(90deg, #C8F135, #86EF3C)", borderRadius: 2 }} />
+                            <div style={{ width: `${kontribusiPct}%`, height: "100%", background: "linear-gradient(90deg, var(--color-os-accent), var(--color-os-accentD))", borderRadius: 2 }} />
                           </div>
-                          <span style={{ fontSize: 10, color: "#C8F135", fontWeight: 700, whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 10, color: "var(--color-os-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
                             {kontribusi >= 1_000_000
                               ? `${(kontribusi / 1_000_000).toFixed(1)}jt`
                               : kontribusi >= 1000
@@ -237,10 +237,10 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
       {showAddOutlet && (
         <div style={MODAL_OVERLAY} onClick={() => setShowAddOutlet(false)}>
           <div style={MODAL_BOX} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700, color: "#E2E8F0" }}>Tambah Outlet</h3>
+            <h3 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700, color: "var(--color-os-text)" }}>Tambah Outlet</h3>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, color: "#6B7280", fontWeight: 600, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <label style={{ fontSize: 11, color: "var(--color-os-sub)", fontWeight: 600, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 Nama Outlet *
               </label>
               <input
@@ -254,20 +254,20 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             </div>
 
             {addError && (
-              <p style={{ fontSize: 12, color: "#EF4444", margin: "0 0 12px" }}>{addError}</p>
+              <p style={{ fontSize: 12, color: "var(--color-os-red)", margin: "0 0 12px" }}>{addError}</p>
             )}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setShowAddOutlet(false)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "var(--color-os-sub)", fontSize: 13, cursor: "pointer" }}
               >
                 Batal
               </button>
               <button
                 onClick={handleAddOutlet}
                 disabled={saving}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #C8F135, #86EF3C)", color: "#0D1117", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))", color: "var(--color-os-bg)", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? "Menyimpan..." : "Simpan"}
               </button>
@@ -281,39 +281,39 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
         <div style={MODAL_OVERLAY} onClick={() => setDetailOutlet(null)}>
           <div style={MODAL_BOX} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#E2E8F0" }}>Detail Outlet</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "var(--color-os-text)" }}>Detail Outlet</h3>
               <button
                 onClick={() => setDetailOutlet(null)}
-                style={{ background: "none", border: "none", color: "#6B7280", fontSize: 18, cursor: "pointer", lineHeight: 1 }}
+                style={{ background: "none", border: "none", color: "var(--color-os-sub)", fontSize: 18, cursor: "pointer", lineHeight: 1 }}
               >
                 ×
               </button>
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ background: "#0D0D1A", borderRadius: 8, padding: "12px 16px" }}>
-                <div style={{ fontSize: 10, color: "#4B5563", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Outlet ID</div>
-                <div style={{ fontFamily: "monospace", fontSize: 14, color: "#60A5FA", fontWeight: 700 }}>{detailOutlet.id}</div>
+              <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "12px 16px" }}>
+                <div style={{ fontSize: 10, color: "var(--color-os-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Outlet ID</div>
+                <div style={{ fontFamily: "monospace", fontSize: 14, color: "var(--color-os-blue)", fontWeight: 700 }}>{detailOutlet.id}</div>
               </div>
-              <div style={{ background: "#0D0D1A", borderRadius: 8, padding: "12px 16px" }}>
-                <div style={{ fontSize: 10, color: "#4B5563", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Nama Outlet</div>
-                <div style={{ fontSize: 14, color: "#E2E8F0", fontWeight: 600 }}>{detailOutlet.namaOutlet}</div>
+              <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "12px 16px" }}>
+                <div style={{ fontSize: 10, color: "var(--color-os-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Nama Outlet</div>
+                <div style={{ fontSize: 14, color: "var(--color-os-text)", fontWeight: 600 }}>{detailOutlet.namaOutlet}</div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <div style={{ background: "#0D0D1A", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>Upload</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#60A5FA" }}>—</div>
+                <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>Upload</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-os-blue)" }}>—</div>
                 </div>
-                <div style={{ background: "#0D0D1A", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>Critical</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#EF4444" }}>—</div>
+                <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>Critical</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-os-red)" }}>—</div>
                 </div>
-                <div style={{ background: "#0D0D1A", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#4B5563", marginBottom: 4 }}>Warning</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#F59E0B" }}>—</div>
+                <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "12px 16px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>Warning</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-os-amber)" }}>—</div>
                 </div>
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: "#4B5563", textAlign: "center" }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--color-os-muted)", textAlign: "center" }}>
                 Data stok tersedia setelah upload Kartu Stok untuk outlet ini.
               </p>
             </div>
@@ -321,7 +321,7 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
               <button
                 onClick={() => setDetailOutlet(null)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "#6B7280", fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid var(--color-os-border)", background: "transparent", color: "var(--color-os-sub)", fontSize: 13, cursor: "pointer" }}
               >
                 Tutup
               </button>

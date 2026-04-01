@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   const data = await getDashboardData();
 
   return (
-    <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
+    <Suspense fallback={<div style={{ color: "var(--color-os-sub)", fontSize: 13 }}>Memuat...</div>}>
       <DashboardClient
         totalBahan={data.totalBahan}
         recentPOs={data.recentPOs as any}

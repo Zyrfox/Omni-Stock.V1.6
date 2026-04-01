@@ -63,9 +63,9 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
   }
 
   const typeIconMap: Record<string, React.ReactNode> = {
-    bahan: <Package size={14} style={{ color: "#C8F135" }} />,
-    menu: <UtensilsCrossed size={14} style={{ color: "#60A5FA" }} />,
-    vendor: <Store size={14} style={{ color: "#F59E0B" }} />,
+    bahan: <Package size={14} style={{ color: "var(--color-os-accent)" }} />,
+    menu: <UtensilsCrossed size={14} style={{ color: "var(--color-os-blue)" }} />,
+    vendor: <Store size={14} style={{ color: "var(--color-os-amber)" }} />,
   };
   const typeLabel: Record<string, string> = { bahan: "Bahan Baku", menu: "Menu", vendor: "Supplier" };
 
@@ -102,7 +102,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
       {/* Search Bar */}
       <div ref={searchRef} className="topbar-search" style={{ position: "relative", flex: 1, maxWidth: 400 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 8, padding: "6px 12px" }}>
-          <span style={{ color: "#C8F135", fontSize: 13 }}>✦</span>
+          <span style={{ color: "var(--color-os-accent)", fontSize: 13 }}>✦</span>
           <input
             value={searchQuery}
             onChange={handleSearchChange}
@@ -168,7 +168,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
             <span style={{
               position: "absolute", top: 2, right: 2,
               minWidth: 14, height: 14, borderRadius: 7,
-              background: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center",
+              background: "var(--color-os-red)", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 9, fontWeight: 700, color: "#fff", padding: "0 3px",
             }}>
               {criticalCount > 9 ? "9+" : criticalCount}
@@ -194,7 +194,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                   </button>
                 )}
                 {criticalCount > 0 && (
-                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "rgba(239,68,68,0.15)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}>
+                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "color-mix(in srgb, var(--color-os-red) 15%, transparent)", color: "var(--color-os-red)", border: "1px solid color-mix(in srgb, var(--color-os-red) 30%, transparent)" }}>
                     {criticalCount} item
                   </span>
                 )}
@@ -219,7 +219,7 @@ export function Topbar({ onToggleSidebar, userNama }: TopbarProps) {
                     </div>
                     <button
                       onClick={() => { router.push("/products"); setShowNotif(false); }}
-                      style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.3)", cursor: "pointer" }}
+                      style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "color-mix(in srgb, var(--color-os-amber) 15%, transparent)", color: "var(--color-os-amber)", border: "1px solid color-mix(in srgb, var(--color-os-amber) 30%, transparent)", cursor: "pointer" }}
                     >
                       PANTAU
                     </button>

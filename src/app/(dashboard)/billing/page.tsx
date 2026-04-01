@@ -35,15 +35,15 @@ export default async function BillingPage() {
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Billing</h1>
-        <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Manajemen invoice & pembayaran</p>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Billing</h1>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Manajemen invoice & pembayaran</p>
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Invoice" value={parseInt(stats?.total ?? "0")} icon={FileText} color="#60A5FA" />
-        <StatCard label="Outstanding" value={formatRupiah(parseFloat(stats?.outstanding ?? "0"))} icon={Clock} color="#F59E0B" sub={`${stats?.outstanding_count ?? 0} invoice`} />
-        <StatCard label="Lunas" value={formatRupiah(parseFloat(stats?.lunas ?? "0"))} icon={CheckCircle2} color="#22C55E" sub={`${stats?.lunas_count ?? 0} invoice`} />
-        <StatCard label="Bulan Ini" value={formatRupiah(parseFloat(stats?.bulan_ini ?? "0"))} icon={BarChart2} color="#C8F135" />
+        <StatCard label="Total Invoice" value={parseInt(stats?.total ?? "0")} icon={FileText} color="var(--color-os-blue)" />
+        <StatCard label="Outstanding" value={formatRupiah(parseFloat(stats?.outstanding ?? "0"))} icon={Clock} color="var(--color-os-amber)" sub={`${stats?.outstanding_count ?? 0} invoice`} />
+        <StatCard label="Lunas" value={formatRupiah(parseFloat(stats?.lunas ?? "0"))} icon={CheckCircle2} color="var(--color-os-green)" sub={`${stats?.lunas_count ?? 0} invoice`} />
+        <StatCard label="Bulan Ini" value={formatRupiah(parseFloat(stats?.bulan_ini ?? "0"))} icon={BarChart2} color="var(--color-os-accent)" />
       </div>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
@@ -51,21 +51,21 @@ export default async function BillingPage() {
           <thead>
             <tr style={{ background: `var(--color-os-row-hover)` }}>
               {["Invoice ID", "Tanggal", "Vendor", "Total Item", "Total Biaya", "Status", "Action"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada invoice.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>Belum ada invoice.</td></tr>
             ) : (
               orders.map((po) => (
                 <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>{po.id}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>{formatDateTime(po.createdAt)}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{(po as any).vendor?.namaVendor}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#6B7280" }}>1</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#EF4444", fontWeight: 700 }}>{formatRupiah(parseFloat(po.totalHarga))}</td>
+                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-accent)", fontWeight: 700 }}>{po.id}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>{formatDateTime(po.createdAt)}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{(po as any).vendor?.namaVendor}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>1</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-red)", fontWeight: 700 }}>{formatRupiah(parseFloat(po.totalHarga))}</td>
                   <td style={{ padding: "10px 14px" }}>
                     <Badge color={po.status === "received" ? "green" : "amber"} size="sm">
                       {po.status === "received" ? "✓ LUNAS" : "⏳ UNPAID"}
@@ -73,8 +73,8 @@ export default async function BillingPage() {
                   </td>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)", color: "#60A5FA", cursor: "pointer" }}>Detail</button>
-                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid var(--color-os-border2)", background: "transparent", color: "#6B7280", cursor: "pointer" }}>PDF</button>
+                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid color-mix(in srgb, var(--color-os-blue) 30%, transparent)", background: "color-mix(in srgb, var(--color-os-blue) 10%, transparent)", color: "var(--color-os-blue)", cursor: "pointer" }}>Detail</button>
+                      <button style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid var(--color-os-border2)", background: "transparent", color: "var(--color-os-sub)", cursor: "pointer" }}>PDF</button>
                       {po.status !== "received" && <BillingActions poId={po.id} />}
                     </div>
                   </td>

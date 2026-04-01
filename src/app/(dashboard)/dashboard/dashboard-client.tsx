@@ -232,9 +232,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             <span
               style={{
                 fontSize: 10,
-                background: "rgba(34,197,94,0.1)",
-                color: "#22C55E",
-                border: "1px solid rgba(34,197,94,0.3)",
+                background: "color-mix(in srgb, var(--color-os-green) 10%, transparent)",
+                color: "var(--color-os-green)",
+                border: "1px solid color-mix(in srgb, var(--color-os-green) 30%, transparent)",
                 borderRadius: 4,
                 padding: "2px 8px",
                 fontWeight: 600,
@@ -248,14 +248,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         <div
           onClick={() => fileRef.current?.click()}
           style={{
-            border: `2px dashed ${uploading ? "#C8F135" : "var(--color-os-border)"}`,
+            border: `2px dashed ${uploading ? "var(--color-os-accent)" : "var(--color-os-border)"}`,
             borderRadius: 8,
             padding: "20px",
             textAlign: "center",
             cursor: uploading ? "wait" : "pointer",
             transition: "border-color 0.2s",
           }}
-          onMouseEnter={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "#C8F135"; }}
+          onMouseEnter={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-os-accent)"; }}
           onMouseLeave={(e) => { if (!uploading) (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-os-border)"; }}
         >
           <div style={{ fontSize: 20, marginBottom: 8 }}>⬆</div>
@@ -272,23 +272,23 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           onChange={handleFileUpload}
         />
         {uploadError && (
-          <div style={{ marginTop: 8, fontSize: 11, color: "#EF4444" }}>⚠ {uploadError}</div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--color-os-red)" }}>⚠ {uploadError}</div>
         )}
       </div>
 
       {/* Stat Cards */}
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Products" value={totalBahan} icon={Package} color="#60A5FA" />
-        <StatCard label="Available Stocks" value={safeCount} icon={CheckCircle2} color="#22C55E" sub="Status SAFE" />
-        <StatCard label="Warning + Critical" value={warnCount + critCount} icon={AlertTriangle} color="#F59E0B" sub="Butuh perhatian" />
-        <StatCard label="Out of Stocks" value={critCount} icon={XCircle} color="#EF4444" sub="Status CRITICAL" />
+        <StatCard label="Total Products" value={totalBahan} icon={Package} color="var(--color-os-blue)" />
+        <StatCard label="Available Stocks" value={safeCount} icon={CheckCircle2} color="var(--color-os-green)" sub="Status SAFE" />
+        <StatCard label="Warning + Critical" value={warnCount + critCount} icon={AlertTriangle} color="var(--color-os-amber)" sub="Butuh perhatian" />
+        <StatCard label="Out of Stocks" value={critCount} icon={XCircle} color="var(--color-os-red)" sub="Status CRITICAL" />
       </div>
 
       {/* Widget Row 2×2 */}
       <div className="panel-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
         {/* Widget 1 — Top Contributors */}
         <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Users size={13} style={{ color: "#60A5FA" }} /> Top Contributors</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><Users size={13} style={{ color: "var(--color-os-blue)" }} /> Top Contributors</div>
           {topContributors.length === 0 ? (
             <div style={{ textAlign: "center", padding: "16px 0", color: "var(--color-os-muted)", fontSize: 12 }}>Belum ada aktivitas.</div>
           ) : (
@@ -297,14 +297,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               const total = parseInt(u.po_count ?? "0");
               return (
                 <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: idx < topContributors.length - 1 ? "1px solid var(--color-os-border)" : "none" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #C8F135, #86EF3C)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: `var(--color-os-bg)`, flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: `var(--color-os-bg)`, flexShrink: 0 }}>
                     {initial}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nama || u.email}</div>
                     <div style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{total} POs dibuat</div>
                   </div>
-                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: total > 0 ? "rgba(200,241,53,0.1)" : "rgba(75,85,99,0.2)", border: `1px solid ${total > 0 ? "rgba(200,241,53,0.3)" : "rgba(75,85,99,0.3)"}`, color: total > 0 ? "#C8F135" : "var(--color-os-muted)" }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: total > 0 ? "color-mix(in srgb, var(--color-os-accent) 10%, transparent)" : "color-mix(in srgb, var(--color-os-muted) 20%, transparent)", border: `1px solid ${total > 0 ? "color-mix(in srgb, var(--color-os-accent) 30%, transparent)" : "color-mix(in srgb, var(--color-os-muted) 30%, transparent)"}`, color: total > 0 ? "var(--color-os-accent)" : "var(--color-os-muted)" }}>
                     {total}
                   </span>
                 </div>
@@ -315,11 +315,11 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
 
         {/* Widget 2 — Audit Pengeluaran */}
         <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><CreditCard size={13} style={{ color: "#60A5FA" }} /> Audit Pengeluaran</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><CreditCard size={13} style={{ color: "var(--color-os-blue)" }} /> Audit Pengeluaran</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "10px 12px" }}>
               <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>OUTSTANDING</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#F59E0B" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--color-os-amber)" }}>
                 {auditData.outstanding >= 1_000_000
                   ? `Rp ${(auditData.outstanding / 1_000_000).toFixed(1)}jt`
                   : formatRupiah(auditData.outstanding)}
@@ -327,7 +327,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             </div>
             <div style={{ background: "var(--color-os-bg)", borderRadius: 8, padding: "10px 12px" }}>
               <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 4 }}>LUNAS</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#22C55E" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--color-os-green)" }}>
                 {auditData.paid >= 1_000_000
                   ? `Rp ${(auditData.paid / 1_000_000).toFixed(1)}jt`
                   : formatRupiah(auditData.paid)}
@@ -345,12 +345,12 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 <div key={v.nama_vendor} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                     <span style={{ fontSize: 11, color: "var(--color-os-text)" }}>{v.nama_vendor}</span>
-                    <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 700 }}>
+                    <span style={{ fontSize: 11, color: "var(--color-os-red)", fontWeight: 700 }}>
                       {val >= 1_000_000 ? `Rp ${(val / 1_000_000).toFixed(1)}jt` : formatRupiah(val)}
                     </span>
                   </div>
                   <div style={{ height: 4, background: "var(--color-os-border)", borderRadius: 2 }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: "#EF4444", borderRadius: 2, opacity: 0.7 }} />
+                    <div style={{ width: `${pct}%`, height: "100%", background: "var(--color-os-red)", borderRadius: 2, opacity: 0.7 }} />
                   </div>
                 </div>
               );
@@ -360,7 +360,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
 
         {/* Widget 3 — Smart Stock Warning */}
         <div style={{ background: "var(--color-os-card)", border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={13} style={{ color: "#F59E0B" }} /> Smart Stock Warning</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={13} style={{ color: "var(--color-os-amber)" }} /> Smart Stock Warning</div>
           {critWarning.length === 0 ? (
             <div style={{ textAlign: "center", padding: "20px 0", color: "var(--color-os-muted)", fontSize: 12 }}>
               🔥 Semua stok aman
@@ -413,8 +413,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
           >
             ✦
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#C8F135", marginBottom: 12 }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Sparkles size={13} style={{ color: "#C8F135" }} /> AI Predictive Restock (Gemini)</span>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--color-os-accent)", marginBottom: 12 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Sparkles size={13} style={{ color: "var(--color-os-accent)" }} /> AI Predictive Restock (Gemini)</span>
           </div>
           {stockItems.length === 0 ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
@@ -462,7 +462,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     <span style={{ fontSize: 11, color: "var(--color-os-muted)" }}>{filteredItems.length} item</span>
                     <button
                       onClick={() => setFilterOpen(prev => !prev)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, border: filterOpen ? "1px solid rgba(200,241,53,0.5)" : "1px solid var(--color-os-border)", background: filterOpen ? "rgba(200,241,53,0.08)" : "transparent", color: filterOpen ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, border: filterOpen ? "1px solid color-mix(in srgb, var(--color-os-accent) 50%, transparent)" : "1px solid var(--color-os-border)", background: filterOpen ? "color-mix(in srgb, var(--color-os-accent) 8%, transparent)" : "transparent", color: filterOpen ? "var(--color-os-accent)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
                     >
                       ⊟ Filter
                     </button>
@@ -485,9 +485,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
                   {([
                     { key: "" as const, label: "Semua", count: displayItems.length, color: "var(--color-os-text)" },
-                    { key: "CRITICAL" as const, label: "Critical", count: critCount, color: "#EF4444" },
-                    { key: "WARNING" as const, label: "Warning", count: warnCount, color: "#F59E0B" },
-                    { key: "SAFE" as const, label: "Safe", count: safeCount, color: "#22C55E" },
+                    { key: "CRITICAL" as const, label: "Critical", count: critCount, color: "var(--color-os-red)" },
+                    { key: "WARNING" as const, label: "Warning", count: warnCount, color: "var(--color-os-amber)" },
+                    { key: "SAFE" as const, label: "Safe", count: safeCount, color: "var(--color-os-green)" },
                   ] as const).map(({ key, label, count, color }) => {
                     const active = invStatusFilter === key;
                     return (
@@ -510,7 +510,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Filter &amp; sort</span>
                       <button
                         onClick={() => { setInvSearch(""); setInvStatusFilter(""); setInvVendorFilter(""); setInvTipeBahanFilter(""); setRowsPerPage(20); setCurrentPage(0); }}
-                        style={{ fontSize: 11, color: "#60A5FA", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        style={{ fontSize: 11, color: "var(--color-os-blue)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >Reset</button>
                     </div>
                     {/* STATUS */}
@@ -519,9 +519,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {([
                           { key: "" as const, label: "Semua", count: displayItems.length, color: "var(--color-os-text)" },
-                          { key: "CRITICAL" as const, label: `Critical (${critCount})`, color: "#EF4444" },
-                          { key: "WARNING" as const, label: `Warning (${warnCount})`, color: "#F59E0B" },
-                          { key: "SAFE" as const, label: `Safe (${safeCount})`, color: "#22C55E" },
+                          { key: "CRITICAL" as const, label: `Critical (${critCount})`, color: "var(--color-os-red)" },
+                          { key: "WARNING" as const, label: `Warning (${warnCount})`, color: "var(--color-os-amber)" },
+                          { key: "SAFE" as const, label: `Safe (${safeCount})`, color: "var(--color-os-green)" },
                         ] as const).map(({ key, label, color }) => {
                           const active = invStatusFilter === key;
                           return (
@@ -557,7 +557,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           const active = invTipeBahanFilter === key;
                           return (
                             <button key={key} onClick={() => setInvTipeBahanFilter(key)}
-                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "color-mix(in srgb, var(--color-os-text) 12%, transparent)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {label}
                             </button>
                           );
@@ -572,7 +572,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           const active = rowsPerPage === n;
                           return (
                             <button key={n} onClick={() => { setRowsPerPage(n); setCurrentPage(0); }}
-                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "color-mix(in srgb, var(--color-os-text) 12%, transparent)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {n}
                             </button>
                           );
@@ -587,7 +587,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           const active = invViewMode === key;
                           return (
                             <button key={key} onClick={() => setInvViewMode(key)}
-                              style={{ padding: "5px 20px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "rgba(226,232,240,0.12)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
+                              style={{ padding: "5px 20px", borderRadius: 6, border: `1px solid ${active ? "var(--color-os-text)" : "var(--color-os-border)"}`, background: active ? "color-mix(in srgb, var(--color-os-text) 12%, transparent)" : "transparent", color: active ? "var(--color-os-text)" : "var(--color-os-sub)", fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400 }}>
                               {label}
                             </button>
                           );
@@ -612,7 +612,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                 <button
                   onClick={() => { setStockItems([]); setLastUpload(null); setLastUploadInfo(null); }}
                   title="Hapus data kartu stok dari tampilan"
-                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 5, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", cursor: "pointer", whiteSpace: "nowrap" }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 5, border: "1px solid color-mix(in srgb, var(--color-os-red) 30%, transparent)", background: "color-mix(in srgb, var(--color-os-red) 8%, transparent)", color: "var(--color-os-red)", cursor: "pointer", whiteSpace: "nowrap" }}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
                   Clear Dashboard
@@ -676,7 +676,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   {displayItems.length === 0 ? "Upload kartu stok untuk melihat inventory." : "Tidak ada item yang cocok."}
                 </div>
               ) : pagedItems.map((item) => {
-                const statusColor = item.status === "CRITICAL" ? "#EF4444" : item.status === "WARNING" ? "#F59E0B" : "#22C55E";
+                const statusColor = item.status === "CRITICAL" ? "var(--color-os-red)" : item.status === "WARNING" ? "var(--color-os-amber)" : "var(--color-os-green)";
                 const inCart = item.bahanId ? poCart.find((c) => c.bahanId === item.bahanId) : false;
                 return (
                   <div key={item.bahanId ?? item.namaBahan} className="inv-card" style={{ borderLeft: `3px solid ${statusColor}` }}>
@@ -709,7 +709,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           {item.status === "CRITICAL" ? "Stok kritis" : "Perlu restock"}
                         </span>
                         {inCart
-                          ? <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700 }}>✓ In Cart</span>
+                          ? <span style={{ fontSize: 10, color: "var(--color-os-green)", fontWeight: 700 }}>✓ In Cart</span>
                           : <button onClick={() => addToCart(item)} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 5, border: `1px solid ${statusColor}40`, background: `${statusColor}18`, color: statusColor, cursor: "pointer" }}>+ Rancang PO</button>
                         }
                       </div>
@@ -765,7 +765,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       >
                         <td className="col-hide-mobile" style={{ padding: "10px 14px", fontSize: 10, color: "var(--color-os-muted)" }}>{globalIdx + 1}</td>
                         <td className="col-hide-mobile" style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-muted)" }}>
-                          {item.bahanId ?? <span style={{ color: "#EF4444", fontSize: 10 }}>unmatched</span>}
+                          {item.bahanId ?? <span style={{ color: "var(--color-os-red)", fontSize: 10 }}>unmatched</span>}
                         </td>
                         <td className="col-sticky-nama" style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>
                           {item.namaBahan}
@@ -795,7 +795,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         <td style={{ padding: "10px 14px" }}>
                           {item.status !== "SAFE" && item.bahanId ? (
                             inCart ? (
-                              <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700 }}>✓ In Cart</span>
+                              <span style={{ fontSize: 10, color: "var(--color-os-green)", fontWeight: 700 }}>✓ In Cart</span>
                             ) : (
                               <button
                                 onClick={() => addToCart(item)}
@@ -804,9 +804,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                                   fontWeight: 700,
                                   padding: "3px 8px",
                                   borderRadius: 4,
-                                  border: `1px solid ${item.status === "CRITICAL" ? "rgba(239,68,68,0.4)" : "rgba(245,158,11,0.4)"}`,
-                                  background: `${item.status === "CRITICAL" ? "rgba(239,68,68,0.1)" : "rgba(245,158,11,0.1)"}`,
-                                  color: item.status === "CRITICAL" ? "#EF4444" : "#F59E0B",
+                                  border: `1px solid ${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 40%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 40%, transparent)"}`,
+                                  background: `${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 10%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 10%, transparent)"}`,
+                                  color: item.status === "CRITICAL" ? "var(--color-os-red)" : "var(--color-os-amber)",
                                   cursor: "pointer",
                                   whiteSpace: "nowrap",
                                 }}
@@ -827,7 +827,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               </tbody>
             </table>
             {isMobile && (
-              <div style={{ textAlign: "center", padding: "8px 0 6px", color: "#374151", fontSize: 10 }}>— Scroll horizontal —</div>
+              <div style={{ textAlign: "center", padding: "8px 0 6px", color: "var(--color-os-muted)", fontSize: 10 }}>— Scroll horizontal —</div>
             )}
           </div>
           )}
@@ -846,7 +846,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     const p = start + i;
                     return (
                       <button key={p} onClick={() => setCurrentPage(p)}
-                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "var(--color-os-border)"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        style={{ flexShrink: 0, padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "color-mix(in srgb, var(--color-os-accent) 40%, transparent)" : "var(--color-os-border)"}`, background: p === safePage ? "color-mix(in srgb, var(--color-os-accent) 10%, transparent)" : "transparent", color: p === safePage ? "var(--color-os-accent)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
                         {p + 1}
                       </button>
                     );
@@ -879,7 +879,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     const p = start + i;
                     return (
                       <button key={p} onClick={() => setCurrentPage(p)}
-                        style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "rgba(200,241,53,0.4)" : "var(--color-os-border)"}`, background: p === safePage ? "rgba(200,241,53,0.1)" : "transparent", color: p === safePage ? "#C8F135" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
+                        style={{ padding: "4px 8px", borderRadius: 5, border: `1px solid ${p === safePage ? "color-mix(in srgb, var(--color-os-accent) 40%, transparent)" : "var(--color-os-border)"}`, background: p === safePage ? "color-mix(in srgb, var(--color-os-accent) 10%, transparent)" : "transparent", color: p === safePage ? "var(--color-os-accent)" : "var(--color-os-sub)", fontSize: 11, cursor: "pointer", fontWeight: p === safePage ? 700 : 400 }}>
                         {p + 1}
                       </button>
                     );
@@ -919,7 +919,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   width: 20,
                   height: 20,
                   borderRadius: "50%",
-                  background: "#C8F135",
+                  background: "var(--color-os-accent)",
                   color: `var(--color-os-bg)`,
                   fontSize: 10,
                   fontWeight: 800,
@@ -991,7 +991,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       </div>
                       <button
                         onClick={() => removeFromCart(item.bahanId)}
-                        style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12 }}
+                        style={{ background: "none", border: "none", color: "var(--color-os-red)", cursor: "pointer", fontSize: 12 }}
                       >
                         ✕
                       </button>
@@ -1033,7 +1033,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           style={{ width: 70, background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
                         />
                         {item.hargaSatuan > 0 && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: "#C8F135", marginLeft: "auto" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-accent)", marginLeft: "auto" }}>
                             = Rp {(item.qty * item.hargaSatuan).toLocaleString("id-ID")}
                           </span>
                         )}
@@ -1094,7 +1094,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--color-os-border)" }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)" }}>Grand Total</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: "#C8F135" }}>Rp {grandTotal.toLocaleString("id-ID")}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "var(--color-os-accent)" }}>Rp {grandTotal.toLocaleString("id-ID")}</span>
                     </div>
                   </div>
                   {/* Actions */}
@@ -1170,7 +1170,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             ) : (
               recentPOs.map((po) => (
                 <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>
+                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-accent)", fontWeight: 700 }}>
                     {po.id}
                   </td>
                   <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>
@@ -1180,7 +1180,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     {(po as any).vendor?.namaVendor ?? "—"}
                   </td>
                   <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>1</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#EF4444", fontWeight: 700 }}>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-red)", fontWeight: 700 }}>
                     {formatRupiah(parseFloat(po.totalHarga))}
                   </td>
                   <td style={{ padding: "10px 14px" }}>
@@ -1197,9 +1197,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         fontSize: 10,
                         padding: "3px 8px",
                         borderRadius: 4,
-                        border: "1px solid rgba(96,165,250,0.3)",
-                        background: "rgba(96,165,250,0.1)",
-                        color: "#60A5FA",
+                        border: "1px solid color-mix(in srgb, var(--color-os-blue) 30%, transparent)",
+                        background: "color-mix(in srgb, var(--color-os-blue) 10%, transparent)",
+                        color: "var(--color-os-blue)",
                         cursor: "pointer",
                         marginRight: 6,
                       }}

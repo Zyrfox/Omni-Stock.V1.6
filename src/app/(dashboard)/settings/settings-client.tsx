@@ -25,8 +25,8 @@ export function SettingsClient({ isMigrated }: { isMigrated: boolean }) {
 
   return (
     <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>One-Way Bridge Migration</div>
-      <p style={{ fontSize: 11, color: "#6B7280", marginBottom: 16, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 16 }}>One-Way Bridge Migration</div>
+      <p style={{ fontSize: 11, color: "var(--color-os-sub)", marginBottom: 16, lineHeight: 1.6 }}>
         Migrasi data one-way dari Google Sheets ke Supabase. Hanya dapat dilakukan sekali — setelah selesai, tombol dikunci permanen.
       </p>
 
@@ -34,11 +34,11 @@ export function SettingsClient({ isMigrated }: { isMigrated: boolean }) {
         style={{
           padding: "10px 14px",
           borderRadius: 8,
-          background: isMigrated ? "rgba(34,197,94,0.08)" : "rgba(245,158,11,0.08)",
-          border: `1px solid ${isMigrated ? "rgba(34,197,94,0.3)" : "rgba(245,158,11,0.3)"}`,
+          background: isMigrated ? "color-mix(in srgb, var(--color-os-green) 8%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 8%, transparent)",
+          border: `1px solid ${isMigrated ? "color-mix(in srgb, var(--color-os-green) 30%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 30%, transparent)"}`,
           marginBottom: 16,
           fontSize: 12,
-          color: isMigrated ? "#22C55E" : "#F59E0B",
+          color: isMigrated ? "var(--color-os-green)" : "var(--color-os-amber)",
           fontWeight: 600,
         }}
       >
@@ -46,7 +46,7 @@ export function SettingsClient({ isMigrated }: { isMigrated: boolean }) {
       </div>
 
       {result && (
-        <div style={{ padding: "8px 12px", background: `var(--color-os-surface)`, borderRadius: 6, fontSize: 11, color: "#E2E8F0", marginBottom: 12 }}>
+        <div style={{ padding: "8px 12px", background: `var(--color-os-surface)`, borderRadius: 6, fontSize: 11, color: "var(--color-os-text)", marginBottom: 12 }}>
           {result}
         </div>
       )}
@@ -59,8 +59,8 @@ export function SettingsClient({ isMigrated }: { isMigrated: boolean }) {
           padding: "10px",
           borderRadius: 8,
           border: "none",
-          background: isMigrated ? "#1E2A06" : loading ? "#1E2A06" : "linear-gradient(135deg, #C8F135, #86EF3C)",
-          color: isMigrated || loading ? "#4B5563" : `var(--color-os-bg)`,
+          background: isMigrated ? "color-mix(in srgb, var(--color-os-accent) 12%, transparent)" : loading ? "color-mix(in srgb, var(--color-os-accent) 12%, transparent)" : "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))",
+          color: isMigrated || loading ? "var(--color-os-muted)" : `var(--color-os-bg)`,
           fontSize: 12,
           fontWeight: 800,
           cursor: isMigrated || loading ? "not-allowed" : "pointer",

@@ -54,8 +54,8 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Upload History</h1>
-          <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Log semua sesi upload kartu stok</p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Upload History</h1>
+          <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Log semua sesi upload kartu stok</p>
         </div>
         <button
           onClick={handleRefresh}
@@ -64,7 +64,7 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
             display: "flex", alignItems: "center", gap: 6,
             padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600,
             cursor: isRefreshing ? "not-allowed" : "pointer",
-            border: "1px solid var(--color-os-border2)", background: `var(--color-os-card)`, color: "#E2E8F0",
+            border: "1px solid var(--color-os-border2)", background: `var(--color-os-card)`, color: "var(--color-os-text)",
             opacity: isRefreshing ? 0.6 : 1,
           }}
         >
@@ -90,14 +90,14 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
             <thead>
               <tr style={{ background: `var(--color-os-row-hover)` }}>
                 {["Batch ID", "Outlet", "Tgl Kartu Stok", "Total Produk", "Matched Bahan", "Upload Oleh", "Status", "Tanggal Upload", ...(isAdmin ? ["Aksi"] : [])].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {batches.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>
+                  <td colSpan={isAdmin ? 9 : 8} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>
                     Belum ada upload history. Upload kartu stok dari Dashboard untuk memulai.
                   </td>
                 </tr>
@@ -107,7 +107,7 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
                     ? Math.round((b.matchedBahan / b.totalProduk) * 100) : 0;
                   return (
                     <tr key={b.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                      <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135", fontWeight: 700 }}>
+                      <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-accent)", fontWeight: 700 }}>
                         {b.id}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
@@ -115,21 +115,21 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
                           {b.outlet?.namaOutlet ?? b.outletNameRaw ?? b.outletId ?? "—"}
                         </Badge>
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>
                         {formatDate(b.tanggalKartuStok)}
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>
                         {b.totalProduk}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 12, color: matchPct >= 80 ? "#22C55E" : matchPct >= 50 ? "#F59E0B" : "#EF4444", fontWeight: 700 }}>
+                          <span style={{ fontSize: 12, color: matchPct >= 80 ? "var(--color-os-green)" : matchPct >= 50 ? "var(--color-os-amber)" : "var(--color-os-red)", fontWeight: 700 }}>
                             {b.matchedBahan}/{b.totalProduk}
                           </span>
-                          <span style={{ fontSize: 10, color: "#4B5563" }}>({matchPct}%)</span>
+                          <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>({matchPct}%)</span>
                         </div>
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>
                         {b.uploadedByUser?.nama ?? b.uploadedByUser?.email ?? "—"}
                       </td>
                       <td style={{ padding: "10px 14px" }}>
@@ -137,7 +137,7 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
                           {matchPct >= 80 ? "✓ Sukses" : matchPct >= 50 ? "⚠ Parsial" : "✗ Rendah"}
                         </Badge>
                       </td>
-                      <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>
+                      <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>
                         {b.createdAt ? formatDateTime(b.createdAt) : "—"}
                       </td>
                       {isAdmin && (
@@ -147,8 +147,8 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
                             disabled={deletingId === b.id}
                             style={{
                               fontSize: 11, padding: "3px 10px", borderRadius: 4,
-                              border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)",
-                              color: "#EF4444", cursor: deletingId === b.id ? "not-allowed" : "pointer",
+                              border: "1px solid color-mix(in srgb, var(--color-os-red) 30%, transparent)", background: "color-mix(in srgb, var(--color-os-red) 10%, transparent)",
+                              color: "var(--color-os-red)", cursor: deletingId === b.id ? "not-allowed" : "pointer",
                               opacity: deletingId === b.id ? 0.5 : 1,
                             }}
                           >

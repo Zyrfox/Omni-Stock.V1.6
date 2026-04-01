@@ -98,13 +98,13 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
             width: 32,
             height: 32,
             borderRadius: 8,
-            background: "linear-gradient(135deg, #C8F135, #86EF3C)",
+            background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 16,
             flexShrink: 0,
-            color: "#0A0A0F",
+            color: "var(--color-os-bg)",
             fontWeight: 800,
           }}
         >
@@ -175,9 +175,9 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                         fontWeight: 700,
                         padding: "1px 4px",
                         borderRadius: 3,
-                        background: "rgba(200,241,53,0.15)",
-                        color: "#C8F135",
-                        border: "1px solid rgba(200,241,53,0.3)",
+                        background: "color-mix(in srgb, var(--color-os-accent) 15%, transparent)",
+                        color: "var(--color-os-accent)",
+                        border: "1px solid color-mix(in srgb, var(--color-os-accent) 30%, transparent)",
                       }}
                     >
                       A
@@ -191,7 +191,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
       </nav>
 
       {/* Theme Switcher */}
-      <div style={{ borderTop: "1px solid #1E1E2E" }}>
+      <div style={{ borderTop: "1px solid var(--color-os-surface)" }}>
         <ThemeSwitcher collapsed={collapsed} />
       </div>
 
@@ -201,19 +201,19 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
         {showUserMenu && !collapsed && (
           <div style={{
             position: "absolute", bottom: "calc(100% + 6px)", left: 10, right: 10,
-            background: "#1A1A2E", border: "1px solid #2D2D44", borderRadius: 10,
+            background: "var(--color-os-bg)", border: "1px solid var(--color-os-border2)", borderRadius: 10,
             overflow: "hidden", zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}>
             <button
               onClick={() => { setShowUserMenu(false); setShowChangePw(true); setPwError(""); setPwForm({ current: "", next: "", confirm: "" }); }}
-              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", textAlign: "left", fontSize: 12, color: "#E2E8F0", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", textAlign: "left", fontSize: 12, color: "var(--color-os-text)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
             >
               🔐 Ganti Password
             </button>
-            <div style={{ height: 1, background: "#2D2D44", margin: "0 10px" }} />
+            <div style={{ height: 1, background: "var(--color-os-border2)", margin: "0 10px" }} />
             <button
               onClick={handleSignOut}
-              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", textAlign: "left", fontSize: 12, color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", padding: "10px 14px", background: "none", border: "none", textAlign: "left", fontSize: 12, color: "var(--color-os-red)", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
             >
               🚪 Keluar
             </button>
@@ -222,11 +222,11 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
 
         {userRole === "guest" ? (
           /* Guest: show login button instead of user menu */
-          <div style={{ padding: "12px 14px", borderTop: "1px solid #1E1E2E" }}>
+          <div style={{ padding: "12px 14px", borderTop: "1px solid var(--color-os-surface)" }}>
             {collapsed ? (
-              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "50%", background: "#C8F135", color: "#0A0A0F", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>→</Link>
+              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: "50%", background: "var(--color-os-accent)", color: "var(--color-os-bg)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>→</Link>
             ) : (
-              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 12px", borderRadius: 8, background: "rgba(200,241,53,0.1)", border: "1px solid rgba(200,241,53,0.3)", color: "#C8F135", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>
+              <Link href="/login" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 12px", borderRadius: 8, background: "color-mix(in srgb, var(--color-os-accent) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-os-accent) 30%, transparent)", color: "var(--color-os-accent)", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>
                 🔑 Login ke Akun
               </Link>
             )}
@@ -236,7 +236,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
           onClick={() => !collapsed && setShowUserMenu((v) => !v)}
           style={{
             padding: "12px 14px",
-            borderTop: "1px solid #1E1E2E",
+            borderTop: "1px solid var(--color-os-surface)",
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -247,19 +247,19 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
           <div
             style={{
               width: 28, height: 28, borderRadius: "50%",
-              background: "linear-gradient(135deg, #C8F135, #86EF3C)",
+              background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700, color: "#0A0A0F", flexShrink: 0,
+              fontSize: 11, fontWeight: 700, color: "var(--color-os-bg)", flexShrink: 0,
             }}
           >
             {initials}
           </div>
           {!collapsed && (
             <div style={{ overflow: "hidden", flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#E2E8F0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {userNama}
               </div>
-              <div style={{ fontSize: 9, color: "#4B5563", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ fontSize: 9, color: "var(--color-os-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {userEmail}
               </div>
             </div>
@@ -268,9 +268,9 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
             <span
               style={{
                 fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 3,
-                background: userRole === "admin" ? "rgba(200,241,53,0.15)" : "rgba(96,165,250,0.15)",
-                color: userRole === "admin" ? "#C8F135" : "#60A5FA",
-                border: userRole === "admin" ? "1px solid rgba(200,241,53,0.3)" : "1px solid rgba(96,165,250,0.3)",
+                background: userRole === "admin" ? "color-mix(in srgb, var(--color-os-accent) 15%, transparent)" : "color-mix(in srgb, var(--color-os-blue) 15%, transparent)",
+                color: userRole === "admin" ? "var(--color-os-accent)" : "var(--color-os-blue)",
+                border: userRole === "admin" ? "1px solid color-mix(in srgb, var(--color-os-accent) 30%, transparent)" : "1px solid color-mix(in srgb, var(--color-os-blue) 30%, transparent)",
                 textTransform: "uppercase", flexShrink: 0,
               }}
             >
@@ -285,9 +285,9 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
       {showChangePw && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ width: 380, background: "var(--color-os-card)", borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
-            <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
+            <div style={{ height: 3, background: "linear-gradient(90deg, var(--color-os-accent), var(--color-os-accentD), transparent)" }} />
             <div style={{ padding: 24 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 20px" }}>Ganti Password</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--color-os-text)", margin: "0 0 20px" }}>Ganti Password</h2>
               <div style={{ display: "grid", gap: 12 }}>
                 {[
                   { label: "Password Saat Ini", key: "current" as const },
@@ -295,7 +295,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                   { label: "Konfirmasi Password Baru", key: "confirm" as const },
                 ].map(({ label, key }) => (
                   <div key={key}>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "#4B5563", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--color-os-muted)", marginBottom: 4, textTransform: "uppercase" }}>{label}</label>
                     <input
                       type="password"
                       value={pwForm[key]}
@@ -305,10 +305,10 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                   </div>
                 ))}
               </div>
-              {pwError && <p style={{ fontSize: 11, color: "#EF4444", margin: "10px 0 0" }}>{pwError}</p>}
+              {pwError && <p style={{ fontSize: 11, color: "var(--color-os-red)", margin: "10px 0 0" }}>{pwError}</p>}
               <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowChangePw(false)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid var(--color-os-border2)", borderRadius: 7, color: "var(--color-os-sub)", fontSize: 12, cursor: "pointer" }}>Batal</button>
-                <button onClick={handleChangePassword} disabled={pwSaving} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #C8F135, #86EF3C)", border: "none", borderRadius: 8, color: "#0D1117", fontSize: 12, fontWeight: 700, cursor: pwSaving ? "not-allowed" : "pointer", opacity: pwSaving ? 0.7 : 1 }}>
+                <button onClick={handleChangePassword} disabled={pwSaving} style={{ padding: "8px 16px", background: "linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD))", border: "none", borderRadius: 8, color: "var(--color-os-bg)", fontSize: 12, fontWeight: 700, cursor: pwSaving ? "not-allowed" : "pointer", opacity: pwSaving ? 0.7 : 1 }}>
                   {pwSaving ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>

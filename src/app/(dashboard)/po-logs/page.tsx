@@ -11,7 +11,7 @@ export default async function POLogsPage() {
   ]);
 
   return (
-    <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
+    <Suspense fallback={<div style={{ color: "var(--color-os-sub)", fontSize: 13 }}>Memuat...</div>}>
       <POLogsClient orders={orders as any} stats={stats} />
     </Suspense>
   );

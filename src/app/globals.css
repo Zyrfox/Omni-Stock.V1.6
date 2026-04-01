@@ -388,8 +388,8 @@
 
 /* ─── Gradient accent button ─── */
 .btn-accent {
-  background: linear-gradient(135deg, #C8F135, #86EF3C);
-  color: #0A0A0F;
+  background: linear-gradient(135deg, var(--color-os-accent), var(--color-os-accentD));
+  color: var(--color-os-bg);
   font-weight: 800;
   border-radius: 8px;
   transition: opacity 0.15s;
@@ -398,8 +398,8 @@
   opacity: 0.9;
 }
 .btn-accent:disabled {
-  background: #1E2A06;
-  color: #4B5563;
+  background: color-mix(in srgb, var(--color-os-accent) 12%, transparent);
+  color: var(--color-os-muted);
   cursor: not-allowed;
   opacity: 0.7;
 }

@@ -8,7 +8,7 @@ interface StatCardProps {
   sub?: string;
 }
 
-export function StatCard({ label, value, icon: Icon, color = "#E2E8F0", sub }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, color = "var(--color-os-text)", sub }: StatCardProps) {
   return (
     <div
       style={{

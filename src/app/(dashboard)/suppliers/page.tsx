@@ -21,7 +21,7 @@ export default async function SuppliersPage() {
   ) as unknown as Array<{ total_vendor: string; vendor_wa: string }>;
 
   return (
-    <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
+    <Suspense fallback={<div style={{ color: "var(--color-os-sub)", fontSize: 13 }}>Memuat...</div>}>
       <SuppliersClient
         vendors={vendors as any}
         allBahan={bahanList.map((b) => ({ id: b.id, namaBahan: b.namaBahan }))}

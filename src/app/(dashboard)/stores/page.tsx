@@ -43,15 +43,15 @@ export default async function StoresPage() {
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Stores</h1>
-        <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Compliance & performa per outlet</p>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Stores</h1>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Compliance & performa per outlet</p>
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Outlet" value={parseInt(statsResult?.total ?? "0")} icon={Store} color="#60A5FA" sub="Aktif" />
-        <StatCard label="Inventory Net Worth" value="Rp 0" icon={DollarSign} color="#22C55E" sub="Total semua cabang" />
-        <StatCard label="Avg Upload Compliance" value="0%" icon={BarChart2} color="#F59E0B" sub="Target: 80%" />
-        <StatCard label="Butuh Perhatian" value="0" icon={AlertTriangle} color="#EF4444" sub="Compliance rendah" />
+        <StatCard label="Total Outlet" value={parseInt(statsResult?.total ?? "0")} icon={Store} color="var(--color-os-blue)" sub="Aktif" />
+        <StatCard label="Inventory Net Worth" value="Rp 0" icon={DollarSign} color="var(--color-os-green)" sub="Total semua cabang" />
+        <StatCard label="Avg Upload Compliance" value="0%" icon={BarChart2} color="var(--color-os-amber)" sub="Target: 80%" />
+        <StatCard label="Butuh Perhatian" value="0" icon={AlertTriangle} color="var(--color-os-red)" sub="Compliance rendah" />
       </div>
 
       <StoresClient

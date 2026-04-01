@@ -27,14 +27,14 @@ export default async function DeliveryPage() {
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Delivery Tracking</h1>
-        <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Pantau status pengiriman bahan baku</p>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Delivery Tracking</h1>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Pantau status pengiriman bahan baku</p>
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="In Transit" value={parseInt(statsResult?.in_transit ?? "0")} icon={Truck} color="#60A5FA" />
-        <StatCard label="Pending" value={parseInt(statsResult?.pending ?? "0")} icon={Clock} color="#F59E0B" />
-        <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon={CheckCircle2} color="#22C55E" />
+        <StatCard label="In Transit" value={parseInt(statsResult?.in_transit ?? "0")} icon={Truck} color="var(--color-os-blue)" />
+        <StatCard label="Pending" value={parseInt(statsResult?.pending ?? "0")} icon={Clock} color="var(--color-os-amber)" />
+        <StatCard label="Delivered" value={parseInt(statsResult?.delivered ?? "0")} icon={CheckCircle2} color="var(--color-os-green)" />
       </div>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
@@ -43,22 +43,22 @@ export default async function DeliveryPage() {
           <thead>
             <tr style={{ background: `var(--color-os-row-hover)` }}>
               {["DEL ID", "PO ID", "Vendor", "Bahan", "Qty", "ETA", "Status", "Aksi"].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "#4B5563", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h} style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: "var(--color-os-muted)", textTransform: "uppercase", textAlign: "left", borderBottom: "1px solid var(--color-os-border)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
-              <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "#4B5563", fontSize: 12 }}>Belum ada pengiriman aktif.</td></tr>
+              <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", color: "var(--color-os-muted)", fontSize: 12 }}>Belum ada pengiriman aktif.</td></tr>
             ) : (
               orders.map((po, idx) => (
                 <tr key={po.id} className="table-row-hover" style={{ borderBottom: "1px solid var(--color-os-border)" }}>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#4B5563" }}>DEL-{String(idx + 1).padStart(3, "0")}</td>
-                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "#C8F135" }}>{po.id}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{(po as any).vendor?.namaVendor}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>{(po as any).bahan?.namaBahan}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 12, color: "#E2E8F0" }}>{po.qtyOrder} {(po as any).bahan?.satuanDapur}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 11, color: "#6B7280" }}>
+                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-muted)" }}>DEL-{String(idx + 1).padStart(3, "0")}</td>
+                  <td style={{ padding: "10px 14px", fontFamily: "monospace", fontSize: 11, color: "var(--color-os-accent)" }}>{po.id}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, fontWeight: 600, color: "var(--color-os-text)" }}>{(po as any).vendor?.namaVendor}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>{(po as any).bahan?.namaBahan}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>{po.qtyOrder} {(po as any).bahan?.satuanDapur}</td>
+                  <td style={{ padding: "10px 14px", fontSize: 11, color: "var(--color-os-sub)" }}>
                     {po.tanggalKirim ? calculateETA(po.tanggalKirim, (po as any).vendor?.estimasiPengiriman ?? 1) : "—"}
                   </td>
                   <td style={{ padding: "10px 14px" }}>
@@ -70,7 +70,7 @@ export default async function DeliveryPage() {
                     {po.status !== "received" ? (
                       <DeliveryActions poId={po.id} />
                     ) : (
-                      <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 600 }}>✓ Selesai</span>
+                      <span style={{ fontSize: 10, color: "var(--color-os-green)", fontWeight: 600 }}>✓ Selesai</span>
                     )}
                   </td>
                 </tr>

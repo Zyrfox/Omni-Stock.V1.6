@@ -69,24 +69,24 @@ export default async function ReportPage() {
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "#E2E8F0", margin: 0 }}>Report</h1>
-          <p style={{ fontSize: 12, color: "#6B7280", margin: "4px 0 0" }}>Analitik pengeluaran & performa</p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Report</h1>
+          <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Analitik pengeluaran & performa</p>
         </div>
-        <button style={{ fontSize: 12, padding: "8px 14px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: "transparent", color: "#6B7280", cursor: "pointer" }}>
+        <button style={{ fontSize: 12, padding: "8px 14px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: "transparent", color: "var(--color-os-sub)", cursor: "pointer" }}>
           Export Excel
         </button>
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Pengeluaran" value={formatRupiah(parseFloat(statsResult?.total_pengeluaran ?? "0"))} icon={TrendingDown} color="#EF4444" />
-        <StatCard label="Total PO Selesai" value={parseInt(statsResult?.total_po_selesai ?? "0")} icon={CheckCircle2} color="#22C55E" />
-        <StatCard label="Avg Lead Time" value={`${Math.round(parseFloat(statsResult?.avg_lead_time ?? "0"))} hari`} icon={Clock} color="#60A5FA" />
-        <StatCard label="Item Critical" value="0" icon={XCircle} color="#EF4444" />
+        <StatCard label="Total Pengeluaran" value={formatRupiah(parseFloat(statsResult?.total_pengeluaran ?? "0"))} icon={TrendingDown} color="var(--color-os-red)" />
+        <StatCard label="Total PO Selesai" value={parseInt(statsResult?.total_po_selesai ?? "0")} icon={CheckCircle2} color="var(--color-os-green)" />
+        <StatCard label="Avg Lead Time" value={`${Math.round(parseFloat(statsResult?.avg_lead_time ?? "0"))} hari`} icon={Clock} color="var(--color-os-blue)" />
+        <StatCard label="Item Critical" value="0" icon={XCircle} color="var(--color-os-red)" />
       </div>
 
       {/* Bar Chart */}
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 16 }}>Tren Pengeluaran (Tahun Ini)</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 16 }}>Tren Pengeluaran (Tahun Ini)</div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140 }}>
           {chartData.map((d) => {
             const heightPct = maxVal > 0 ? (d.value / maxVal) * 100 : 0;
@@ -94,7 +94,7 @@ export default async function ReportPage() {
             return (
               <div key={d.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 {d.value > 0 && (
-                  <span style={{ fontSize: 8, color: "#C8F135", marginBottom: 2 }}>
+                  <span style={{ fontSize: 8, color: "var(--color-os-accent)", marginBottom: 2 }}>
                     {d.value >= 1_000_000 ? `${(d.value / 1_000_000).toFixed(0)}jt` : `${(d.value / 1000).toFixed(0)}k`}
                   </span>
                 )}
@@ -104,13 +104,13 @@ export default async function ReportPage() {
                     height: `${Math.max(heightPct, 3)}%`,
                     borderRadius: "3px 3px 0 0",
                     background: isCurrentMonth
-                      ? "linear-gradient(180deg, #C8F135, #86EF3C)"
-                      : "rgba(200,241,53,0.2)",
-                    border: isCurrentMonth ? "none" : "1px solid rgba(200,241,53,0.1)",
+                      ? "linear-gradient(180deg, var(--color-os-accent), var(--color-os-accentD))"
+                      : "color-mix(in srgb, var(--color-os-accent) 20%, transparent)",
+                    border: isCurrentMonth ? "none" : "1px solid color-mix(in srgb, var(--color-os-accent) 10%, transparent)",
                     transition: "height 0.3s",
                   }}
                 />
-                <span style={{ fontSize: 9, color: "#4B5563" }}>{MONTHS_ID[d.month - 1]}</span>
+                <span style={{ fontSize: 9, color: "var(--color-os-muted)" }}>{MONTHS_ID[d.month - 1]}</span>
               </div>
             );
           })}
@@ -121,20 +121,20 @@ export default async function ReportPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {/* Top 5 Bahan */}
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>Top 5 Bahan by Pengeluaran</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12 }}>Top 5 Bahan by Pengeluaran</div>
           {topBahan.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada data.</div>
+            <div style={{ fontSize: 11, color: "var(--color-os-muted)" }}>Belum ada data.</div>
           ) : (
             topBahan.map((b) => {
               const pct = (parseFloat(b.total) / (parseFloat(topBahan[0].total) || 1)) * 100;
               return (
                 <div key={b.nama_bahan} style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: "#E2E8F0" }}>{b.nama_bahan}</span>
-                    <span style={{ fontSize: 12, color: "#EF4444", fontWeight: 700 }}>{formatRupiah(parseFloat(b.total))}</span>
+                    <span style={{ fontSize: 12, color: "var(--color-os-text)" }}>{b.nama_bahan}</span>
+                    <span style={{ fontSize: 12, color: "var(--color-os-red)", fontWeight: 700 }}>{formatRupiah(parseFloat(b.total))}</span>
                   </div>
                   <div style={{ height: 4, background: `var(--color-os-border)`, borderRadius: 2 }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #C8F135, #86EF3C)", borderRadius: 2 }} />
+                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, var(--color-os-accent), var(--color-os-accentD))", borderRadius: 2 }} />
                   </div>
                 </div>
               );
@@ -144,15 +144,15 @@ export default async function ReportPage() {
 
         {/* Performa Vendor */}
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0", marginBottom: 12 }}>Performa Vendor</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", marginBottom: 12 }}>Performa Vendor</div>
           {vendorPerforma.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#4B5563" }}>Belum ada data pengiriman selesai.</div>
+            <div style={{ fontSize: 11, color: "var(--color-os-muted)" }}>Belum ada data pengiriman selesai.</div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
                   {["Vendor", "Est.", "Aktual", "Status"].map((h) => (
-                    <th key={h} style={{ fontSize: 10, color: "#4B5563", textAlign: "left", paddingBottom: 8 }}>{h}</th>
+                    <th key={h} style={{ fontSize: 10, color: "var(--color-os-muted)", textAlign: "left", paddingBottom: 8 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -161,9 +161,9 @@ export default async function ReportPage() {
                   const onTime = parseFloat(v.lead_time_aktual ?? "0") <= parseFloat(v.lead_time_estimasi);
                   return (
                     <tr key={v.nama_vendor} style={{ borderTop: "1px solid var(--color-os-border)" }}>
-                      <td style={{ padding: "8px 0", fontSize: 12, color: "#E2E8F0" }}>{v.nama_vendor}</td>
-                      <td style={{ padding: "8px 4px", fontSize: 11, color: "#6B7280" }}>{v.lead_time_estimasi}h</td>
-                      <td style={{ padding: "8px 4px", fontSize: 11, color: "#6B7280" }}>{Math.round(parseFloat(v.lead_time_aktual ?? "0"))}h</td>
+                      <td style={{ padding: "8px 0", fontSize: 12, color: "var(--color-os-text)" }}>{v.nama_vendor}</td>
+                      <td style={{ padding: "8px 4px", fontSize: 11, color: "var(--color-os-sub)" }}>{v.lead_time_estimasi}h</td>
+                      <td style={{ padding: "8px 4px", fontSize: 11, color: "var(--color-os-sub)" }}>{Math.round(parseFloat(v.lead_time_aktual ?? "0"))}h</td>
                       <td style={{ padding: "8px 0" }}>
                         <Badge color={onTime ? "green" : "amber"} size="sm">
                           {onTime ? "⭐ On Time" : "⚠ Terlambat"}

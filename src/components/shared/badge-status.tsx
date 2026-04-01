@@ -36,12 +36,12 @@ interface BadgeProps {
 }
 
 const BADGE_COLORS = {
-  blue: { color: "#60A5FA", bg: "rgba(96,165,250,0.1)", border: "rgba(96,165,250,0.3)" },
-  green: { color: "#22C55E", bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.3)" },
-  amber: { color: "#F59E0B", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)" },
-  red: { color: "#EF4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.3)" },
-  accent: { color: "#C8F135", bg: "rgba(200,241,53,0.1)", border: "rgba(200,241,53,0.3)" },
-  gray: { color: "#6B7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.3)" },
+  blue: { color: "var(--color-os-blue)", bg: "color-mix(in srgb, var(--color-os-blue) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-blue) 30%, transparent)" },
+  green: { color: "var(--color-os-green)", bg: "color-mix(in srgb, var(--color-os-green) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-green) 30%, transparent)" },
+  amber: { color: "var(--color-os-amber)", bg: "color-mix(in srgb, var(--color-os-amber) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-amber) 30%, transparent)" },
+  red: { color: "var(--color-os-red)", bg: "color-mix(in srgb, var(--color-os-red) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-red) 30%, transparent)" },
+  accent: { color: "var(--color-os-accent)", bg: "color-mix(in srgb, var(--color-os-accent) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-accent) 30%, transparent)" },
+  gray: { color: "var(--color-os-sub)", bg: "color-mix(in srgb, var(--color-os-sub) 10%, transparent)", border: "color-mix(in srgb, var(--color-os-sub) 30%, transparent)" },
 };
 
 export function Badge({ children, color = "blue", size = "md" }: BadgeProps) {

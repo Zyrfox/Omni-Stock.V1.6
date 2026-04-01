@@ -22,7 +22,7 @@ export function DeliveryActions({ poId }: { poId: string }) {
       style={{
         fontSize: 10, padding: "3px 8px", borderRadius: 4,
         border: "1px solid rgba(96,165,250,0.3)", background: "rgba(96,165,250,0.1)",
-        color: "#60A5FA", cursor: loading ? "wait" : "pointer", whiteSpace: "nowrap",
+        color: "var(--color-os-blue)", cursor: loading ? "wait" : "pointer", whiteSpace: "nowrap",
       }}
     >
       {loading ? "..." : "✓ Konfirmasi Terima"}

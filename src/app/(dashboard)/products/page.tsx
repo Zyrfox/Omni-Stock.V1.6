@@ -18,7 +18,7 @@ export default async function ProductsPage() {
   ]);
 
   return (
-    <Suspense fallback={<div style={{ color: "#6B7280", fontSize: 13 }}>Memuat...</div>}>
+    <Suspense fallback={<div style={{ color: "var(--color-os-sub)", fontSize: 13 }}>Memuat...</div>}>
       <ProductsClient
         bahanList={bahanList as any}
         menuList={menuList as any}
