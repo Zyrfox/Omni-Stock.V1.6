@@ -412,11 +412,14 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   }
 
   async function handleSaveMenu() {
-    if (!menuForm.namaMenu.trim()) return;
+    const variantName = addVariantBase
+      ? `${addVariantBase} - ${CHANNELS.find(c => c.key === menuForm.channelType)?.label ?? ""}`
+      : menuForm.namaMenu.trim();
+    if (!variantName.trim()) return;
     setSaving(true);
     try {
       const result = await createMenu({
-        namaMenu: menuForm.namaMenu.trim(),
+        namaMenu: variantName,
         outletId: menuForm.outletId,
         kategori: menuForm.kategori,
         hargaJual: menuForm.hargaJual ? parseFloat(menuForm.hargaJual) : undefined,
@@ -424,7 +427,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
         platformFeePercent: parseFloat(menuForm.platformFeePercent) || 0,
       });
       setMenus((prev) => [...prev, {
-        id: result.id, namaMenu: menuForm.namaMenu.trim(),
+        id: result.id, namaMenu: variantName,
         kategori: menuForm.kategori, outletId: menuForm.outletId, totalCogs: "0",
         hargaJual: menuForm.hargaJual || null, mappingResep: [],
         channelType: menuForm.channelType,
@@ -1579,8 +1582,9 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     <div className="menu-group-card-footer">
                       <button
                         onClick={() => {
+                          const firstVariant = variants[0];
                           setAddVariantBase(baseName);
-                          setMenuForm(f => ({ ...f, namaMenu: baseName, channelType: "dine_in", platformFeePercent: "0" }));
+                          setMenuForm(f => ({ ...f, namaMenu: baseName, channelType: "dine_in", platformFeePercent: "0", outletId: firstVariant?.outletId ?? f.outletId, kategori: (firstVariant?.kategori ?? f.kategori ?? "food") as "food" | "beverage" }));
                           setShowAddMenu(true);
                         }}
                         style={{ fontSize: 10, padding: "4px 10px", borderRadius: 4, border: "1px solid rgba(200,241,53,0.3)", background: "rgba(200,241,53,0.08)", color: "#C8F135", cursor: "pointer" }}
@@ -1679,12 +1683,15 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            const firstVariant = variants[0];
                             setAddVariantBase(baseName);
                             setMenuForm(f => ({
                               ...f,
                               namaMenu: baseName,
                               channelType: "dine_in",
                               platformFeePercent: "0",
+                              outletId: firstVariant?.outletId ?? f.outletId,
+                              kategori: (firstVariant?.kategori ?? f.kategori ?? "food") as "food" | "beverage",
                             }));
                             setShowAddMenu(true);
                           }}
@@ -2907,7 +2914,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* BOM Editor Modal */}
       {showBOMEditor && selectedMenu && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 620, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 620, maxWidth: "calc(100vw - 24px)", background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #C8F135, #86EF3C, transparent)" }} />
             <div style={{ padding: 24 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16, gap: 16 }}>
@@ -2928,11 +2935,8 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               </div>
               {/* BOM header row */}
               <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--color-os-border)" }}>
-                <div style={{ width: 110, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
+                <div style={{ width: 100, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
                 <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
-                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
-                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
-                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
                 <div style={{ width: 28 }} />
               </div>
               <div style={{ maxHeight: 260, overflowY: "auto" }}>
@@ -2944,48 +2948,52 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     ? line.qty * parseFloat(sfgItem?.cogsPerUnit ?? "0")
                     : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
-                      <select
-                        value={line.itemType}
-                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished" | "kemasan", itemId: "" } : x))}
-                        style={{ width: 110, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
-                      >
-                        <option value="bahan_dasar">Bahan</option>
-                        <option value="semi_finished">Raw Menu</option>
-                        <option value="kemasan">📦 Kemasan</option>
-                      </select>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          ref={(el) => { bomInputRefs.current[idx] = el; }}
-                          value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? ""))}
-                          onChange={(e) => {
-                            setBomSearches((s) => { const a = [...s]; a[idx] = e.target.value; return a; });
-                            setBomOpenIdx(idx);
-                            const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
-                            if (rect) setBomDropdownRect(rect);
-                          }}
-                          onFocus={() => {
-                            setBomSearches((s) => { const a = [...s]; a[idx] = ""; return a; });
-                            setBomOpenIdx(idx);
-                            const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
-                            if (rect) setBomDropdownRect(rect);
-                          }}
-                          onBlur={() => setTimeout(() => setBomOpenIdx((o) => o === idx ? null : o), 150)}
-                          placeholder="— Cari item —"
-                          style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
-                        />
+                    <div key={idx} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                        <select
+                          value={line.itemType}
+                          onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished" | "kemasan", itemId: "" } : x))}
+                          style={{ width: 100, flexShrink: 0, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
+                        >
+                          <option value="bahan_dasar">Bahan</option>
+                          <option value="semi_finished">Raw Menu</option>
+                          <option value="kemasan">📦 Kemasan</option>
+                        </select>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <input
+                            ref={(el) => { bomInputRefs.current[idx] = el; }}
+                            value={bomOpenIdx === idx ? (bomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find((b) => b.id === line.itemId)?.namaBahan ?? ""))}
+                            onChange={(e) => {
+                              setBomSearches((s) => { const a = [...s]; a[idx] = e.target.value; return a; });
+                              setBomOpenIdx(idx);
+                              const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
+                              if (rect) setBomDropdownRect(rect);
+                            }}
+                            onFocus={() => {
+                              setBomSearches((s) => { const a = [...s]; a[idx] = ""; return a; });
+                              setBomOpenIdx(idx);
+                              const rect = bomInputRefs.current[idx]?.getBoundingClientRect();
+                              if (rect) setBomDropdownRect(rect);
+                            }}
+                            onBlur={() => setTimeout(() => setBomOpenIdx((o) => o === idx ? null : o), 150)}
+                            placeholder="— Cari item —"
+                            style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                          />
+                        </div>
+                        <button onClick={() => setBomLines((l) => l.filter((_, i) => i !== idx))}
+                          style={{ flexShrink: 0, width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
                       </div>
-                      <input
-                        type="number" value={line.qty} min={0.001} step={0.001}
-                        onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
-                        style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
-                      />
-                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
-                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
-                      </span>
-                      <button onClick={() => setBomLines((l) => l.filter((_, i) => i !== idx))}
-                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 108 }}>
+                        <input
+                          type="number" value={line.qty} min={0.001} step={0.001}
+                          onChange={(e) => setBomLines((l) => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
+                          style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}
+                        />
+                        <span style={{ fontSize: 10, color: "#6B7280", minWidth: 40 }}>{satuan ?? "—"}</span>
+                        <span style={{ fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700, marginLeft: "auto" }}>
+                          {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -3355,9 +3363,6 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--color-os-border)" }}>
                 <div style={{ width: 100, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
                 <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
-                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
-                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
-                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
                 <div style={{ width: 28 }} />
               </div>
               <div style={{ maxHeight: 220, overflowY: "auto" }}>
@@ -3369,32 +3374,36 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     ? line.qty * parseFloat(nestedSfg?.cogsPerUnit ?? "0")
                     : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
-                      <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
-                        style={{ width: 100, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
-                        <option value="bahan_dasar">Bahan</option>
-                        <option value="semi_finished">Raw Menu</option>
-                      </select>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          ref={el => { sfgBomInputRefs.current[idx] = el; }}
-                          value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
-                          onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
-                          onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
-                          onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
-                          placeholder="— Cari item —"
-                          style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
-                        />
+                    <div key={idx} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                        <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                          style={{ width: 100, flexShrink: 0, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                          <option value="bahan_dasar">Bahan</option>
+                          <option value="semi_finished">Raw Menu</option>
+                        </select>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <input
+                            ref={el => { sfgBomInputRefs.current[idx] = el; }}
+                            value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
+                            onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                            onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                            onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
+                            placeholder="— Cari item —"
+                            style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                          />
+                        </div>
+                        <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
+                          style={{ flexShrink: 0, width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
                       </div>
-                      <input type="number" value={line.qty} min={0.001} step={0.001}
-                        onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
-                        style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
-                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
-                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
-                      </span>
-                      <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
-                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 108 }}>
+                        <input type="number" value={line.qty} min={0.001} step={0.001}
+                          onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
+                          style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
+                        <span style={{ fontSize: 10, color: "#6B7280", minWidth: 40 }}>{satuan ?? "—"}</span>
+                        <span style={{ fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700, marginLeft: "auto" }}>
+                          {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -3500,7 +3509,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* Modal SFG BOM Editor (Raw Menu Recipe) */}
       {showSFGEditor && selectedSFG && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div className="modal-fadein" style={{ width: 620, background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+          <div className="modal-fadein" style={{ width: 620, maxWidth: "calc(100vw - 24px)", background: `var(--color-os-card)`, borderRadius: 16, border: "1px solid var(--color-os-border2)", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
             <div style={{ height: 3, background: "linear-gradient(90deg, #F59E0B, #C8F135, transparent)" }} />
             <div style={{ padding: 24, maxHeight: "85vh", overflowY: "auto" }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0", margin: "0 0 4px" }}>Edit Resep — <span style={{ color: "#F59E0B" }}>{selectedSFG.namaSemiFinished}</span></h2>
@@ -3511,9 +3520,6 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               <div style={{ display: "flex", gap: 8, marginBottom: 6, paddingBottom: 6, borderBottom: "1px solid var(--color-os-border)" }}>
                 <div style={{ width: 100, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Tipe</div>
                 <div style={{ flex: 1, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Item</div>
-                <div style={{ width: 70, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Qty</div>
-                <div style={{ width: 60, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Satuan</div>
-                <div style={{ width: 90, fontSize: 9, fontWeight: 700, color: "#374151", textTransform: "uppercase" }}>Sub-COGS</div>
                 <div style={{ width: 28 }} />
               </div>
               <div style={{ maxHeight: 280, overflowY: "auto" }}>
@@ -3525,32 +3531,36 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                     ? line.qty * parseFloat(nestedSfg?.cogsPerUnit ?? "0")
                     : bahan ? line.qty * parseFloat(bahan.hargaPerSatuanPorsi ?? "0") : 0;
                   return (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 7 }}>
-                      <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
-                        style={{ width: 100, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
-                        <option value="bahan_dasar">Bahan</option>
-                        <option value="semi_finished">Raw Menu</option>
-                      </select>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          ref={el => { sfgBomInputRefs.current[idx] = el; }}
-                          value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
-                          onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
-                          onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
-                          onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
-                          placeholder="— Cari item —"
-                          style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
-                        />
+                    <div key={idx} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                        <select value={line.itemType} onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, itemType: e.target.value as "bahan_dasar" | "semi_finished", itemId: "" } : x))}
+                          style={{ width: 100, flexShrink: 0, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }}>
+                          <option value="bahan_dasar">Bahan</option>
+                          <option value="semi_finished">Raw Menu</option>
+                        </select>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <input
+                            ref={el => { sfgBomInputRefs.current[idx] = el; }}
+                            value={sfgBomOpenIdx === idx ? (sfgBomSearches[idx] ?? "") : (line.itemType === "semi_finished" ? (sfgList.find(s => s.id === line.itemId)?.namaSemiFinished ?? "") : (bahanList.find(b => b.id === line.itemId)?.namaBahan ?? ""))}
+                            onChange={e => { setSfgBomSearches(s => { const a = [...s]; a[idx] = e.target.value; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                            onFocus={() => { setSfgBomSearches(s => { const a = [...s]; a[idx] = ""; return a; }); setSfgBomOpenIdx(idx); const rect = sfgBomInputRefs.current[idx]?.getBoundingClientRect(); if (rect) setSfgBomDropdownRect(rect); }}
+                            onBlur={() => setTimeout(() => setSfgBomOpenIdx(o => o === idx ? null : o), 150)}
+                            placeholder="— Cari item —"
+                            style={{ width: "100%", background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0", boxSizing: "border-box", outline: "none" }}
+                          />
+                        </div>
+                        <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
+                          style={{ flexShrink: 0, width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
                       </div>
-                      <input type="number" value={line.qty} min={0.001} step={0.001}
-                        onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
-                        style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
-                      <span style={{ width: 60, fontSize: 10, color: "#6B7280" }}>{satuan ?? "—"}</span>
-                      <span style={{ width: 90, fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700 }}>
-                        {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
-                      </span>
-                      <button onClick={() => setSfgBomLines(l => l.filter((_, i) => i !== idx))}
-                        style={{ width: 28, background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 0 }}>🗑</button>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 108 }}>
+                        <input type="number" value={line.qty} min={0.001} step={0.001}
+                          onChange={e => setSfgBomLines(l => l.map((x, i) => i === idx ? { ...x, qty: parseFloat(e.target.value) || 0 } : x))}
+                          style={{ width: 70, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "6px 8px", fontSize: 11, color: "#E2E8F0" }} />
+                        <span style={{ fontSize: 10, color: "#6B7280", minWidth: 40 }}>{satuan ?? "—"}</span>
+                        <span style={{ fontSize: 10, color: subCogs > 0 ? "#C8F135" : "#4B5563", fontWeight: 700, marginLeft: "auto" }}>
+                          {subCogs > 0 ? `Rp ${Math.round(subCogs).toLocaleString("id-ID")}` : "—"}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
