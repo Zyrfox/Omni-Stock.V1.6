@@ -7,13 +7,8 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { sendPO, receivePO } from "@/actions/purchase-order";
 import { useRouter } from "next/navigation";
-
-function formatWANumber(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("0")) return "62" + digits.slice(1);
-  if (digits.startsWith("62")) return digits;
-  return digits;
-}
+import { useSession } from "@/lib/auth-client";
+import { buildWAUrl, formatWANumber, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
 
 interface POItem {
   id: string; outletId: string; vendorId: string; bahanId: string;
@@ -29,9 +24,15 @@ interface POItem {
 interface POLogsClientProps {
   orders: POItem[];
   stats: { total: number; draft: number; sent: number; received: number };
+  outletList?: Array<{ id: string; namaOutlet: string }>;
+  waTemplates?: Record<string, string>;
 }
 
-export function POLogsClient({ orders, stats }: POLogsClientProps) {
+export function POLogsClient({ orders, stats, outletList, waTemplates }: POLogsClientProps) {
+  const { data: session } = useSession();
+  const userOutletId = (session?.user as any)?.outletId ?? "OUT-001";
+  const userOutletName = outletList?.find((o) => o.id === userOutletId)?.namaOutlet ?? "";
+  const waTemplate = waTemplates?.[userOutletId] ?? DEFAULT_WA_TEMPLATE;
   const [selectedPO, setSelectedPO] = useState<POItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -164,7 +165,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
                       </button>
                     )}
                     {po.vendor?.kontakWa && (
-                      <a href={`https://wa.me/${formatWANumber(po.vendor.kontakWa)}`} target="_blank" rel="noreferrer"
+                      <a href={buildWAUrl(po.vendor.kontakWa, waTemplate, userOutletName)} target="_blank" rel="noreferrer"
                         style={{ fontSize: 10, padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none" }}>
                         📱 WA
                       </a>
@@ -219,7 +220,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
                       )}
                       {po.vendor?.kontakWa && (
                         <a
-                          href={`https://wa.me/${formatWANumber(po.vendor.kontakWa)}`}
+                          href={buildWAUrl(po.vendor.kontakWa, waTemplate, userOutletName)}
                           target="_blank"
                           rel="noreferrer"
                           style={{ fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}
@@ -338,7 +339,7 @@ export function POLogsClient({ orders, stats }: POLogsClientProps) {
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                 {selectedPO.vendor?.kontakWa && (
                   <a
-                    href={`https://wa.me/${formatWANumber(selectedPO.vendor.kontakWa)}`}
+                    href={buildWAUrl(selectedPO.vendor.kontakWa, waTemplate, userOutletName)}
                     target="_blank"
                     rel="noreferrer"
                     style={{ padding: "8px 16px", borderRadius: 7, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", cursor: "pointer", fontSize: 12, textDecoration: "none" }}

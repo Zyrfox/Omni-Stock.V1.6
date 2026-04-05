@@ -8,6 +8,8 @@ import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createVendor, updateVendor, getVendorPOs } from "@/actions/vendor";
 import { useAppContext } from "@/contexts/app-context";
+import { useSession } from "@/lib/auth-client";
+import { buildWAUrl, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
 
 interface VendorItem {
   id: string; namaVendor: string; kontakWa: string | null;
@@ -22,6 +24,8 @@ interface SuppliersClientProps {
   vendors: VendorItem[];
   allBahan?: Array<{ id: string; namaBahan: string }>;
   stats: { totalVendor: number; totalBahan: number; vendorDenganWa: number };
+  outletList?: Array<{ id: string; namaOutlet: string }>;
+  waTemplates?: Record<string, string>;
 }
 
 const STATUS_COLOR: Record<string, "amber" | "blue" | "green" | "gray"> = {
@@ -35,9 +39,13 @@ function formatWANumber(wa: string) {
   return "62" + clean;
 }
 
-export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
+export function SuppliersClient({ vendors, stats, outletList, waTemplates }: SuppliersClientProps) {
   const { isGuest } = useAppContext();
+  const { data: session } = useSession();
   const router = useRouter();
+  const userOutletId = (session?.user as any)?.outletId ?? "OUT-001";
+  const userOutletName = outletList?.find((o) => o.id === userOutletId)?.namaOutlet ?? "";
+  const waTemplate = waTemplates?.[userOutletId] ?? DEFAULT_WA_TEMPLATE;
   const [selectedVendor, setSelectedVendor] = useState<VendorItem | null>(null);
   const [vendorPOs, setVendorPOs] = useState<POItem[]>([]);
   const [loadingPOs, setLoadingPOs] = useState(false);
@@ -144,7 +152,7 @@ export function SuppliersClient({ vendors, stats }: SuppliersClientProps) {
           <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, color: "var(--color-os-muted)", marginBottom: 6 }}>📞 Kontak WA</div>
             {selectedVendor.kontakWa ? (
-              <a href={`https://wa.me/${formatWANumber(selectedVendor.kontakWa)}`} target="_blank" rel="noopener noreferrer"
+              <a href={buildWAUrl(selectedVendor.kontakWa, waTemplate, userOutletName)} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 13, color: "var(--color-os-green)", fontWeight: 600, textDecoration: "none", display: "block" }}>
                 📱 {selectedVendor.kontakWa} ↗
               </a>

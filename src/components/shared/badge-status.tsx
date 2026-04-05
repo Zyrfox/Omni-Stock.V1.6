@@ -3,9 +3,10 @@ import { StockStatus, STATUS_CONFIG } from "@/lib/stock-status";
 interface BadgeStatusProps {
   status: StockStatus;
   size?: "sm" | "md";
+  detail?: string;
 }
 
-export function BadgeStatus({ status, size = "md" }: BadgeStatusProps) {
+export function BadgeStatus({ status, size = "md", detail }: BadgeStatusProps) {
   const cfg = STATUS_CONFIG[status];
   return (
     <span
@@ -25,6 +26,7 @@ export function BadgeStatus({ status, size = "md" }: BadgeStatusProps) {
     >
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.color, display: "inline-block" }} />
       {status}
+      {detail && <span style={{ fontWeight: 500, opacity: 0.8 }}>({detail})</span>}
     </span>
   );
 }

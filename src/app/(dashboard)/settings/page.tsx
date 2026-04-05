@@ -1,27 +1,38 @@
 export const revalidate = 60;
 
 import { db } from "@/db";
-import { systemConfigs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { systemConfigs, outlets } from "@/db/schema";
+import { eq, like } from "drizzle-orm";
 import { SettingsClient } from "./settings-client";
+import { DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
 
 export default async function SettingsPage() {
-  const migrationConfig = await db.query.systemConfigs.findFirst({
-    where: eq(systemConfigs.key, "is_initial_migration_done"),
-  });
+  const [migrationConfig, outletList, waTemplateRows] = await Promise.all([
+    db.query.systemConfigs.findFirst({
+      where: eq(systemConfigs.key, "is_initial_migration_done"),
+    }),
+    db.query.outlets.findMany({ orderBy: (o, { asc }) => [asc(o.namaOutlet)] }),
+    db.select().from(systemConfigs).where(like(systemConfigs.key, "wa_template:%")),
+  ]);
 
   const isMigrated = migrationConfig?.value === "true";
+
+  const waTemplates: Record<string, string> = {};
+  for (const row of waTemplateRows) {
+    const outletId = row.key.replace("wa_template:", "");
+    waTemplates[outletId] = row.value ?? DEFAULT_WA_TEMPLATE;
+  }
 
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Settings</h1>
-        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Konfigurasi sistem — Admin Only</p>
+        <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Konfigurasi sistem — Admin & Manager</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* Card 1 — One-Way Migration */}
-        <SettingsClient isMigrated={isMigrated} />
+        <SettingsClient isMigrated={isMigrated} outletList={outletList} waTemplates={waTemplates} />
 
         {/* Card 2 — Supabase PITR */}
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, padding: 20 }}>

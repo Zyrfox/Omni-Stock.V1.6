@@ -10,6 +10,7 @@ import { processUpload } from "@/actions/upload";
 import type { UploadedStockItem } from "@/actions/upload";
 import { createDraftPO } from "@/actions/purchase-order";
 import { useSession } from "@/lib/auth-client";
+import { buildWAUrl, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
 import type { MasterBahan, PurchaseOrder, MasterVendor } from "@/db/schema";
 
 interface POCartItem {
@@ -38,10 +39,15 @@ interface DashboardClientProps {
   allBahan: Array<MasterBahan & { vendorBahan: Array<{ vendor: MasterVendor; isPrimary: boolean }> }>;
   topContributors: Array<{ id: string; nama: string; email: string; role: string; po_count: string }>;
   auditData: { outstanding: number; paid: number; topVendors: Array<{ nama_vendor: string; total: string }> };
+  outletList?: Array<{ id: string; namaOutlet: string }>;
+  waTemplates?: Record<string, string>;
 }
 
-export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributors, auditData }: DashboardClientProps) {
+export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributors, auditData, outletList, waTemplates }: DashboardClientProps) {
   const { data: session } = useSession();
+  const userOutletId = (session?.user as any)?.outletId ?? "OUT-001";
+  const userOutletName = outletList?.find((o) => o.id === userOutletId)?.namaOutlet ?? "";
+  const waTemplate = waTemplates?.[userOutletId] ?? DEFAULT_WA_TEMPLATE;
   const [stockItems, setStockItems] = useState<UploadedStockItem[]>([]);
   const [lastUpload, setLastUpload] = useState<string | null>(null);
   const [lastUploadInfo, setLastUploadInfo] = useState<{ matched: number; total: number } | null>(null);
@@ -384,7 +390,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     {estimasiHariHabis(item.stokAkhir, item.avgDailyConsumption)} hari lagi
                   </div>
                 </div>
-                <BadgeStatus status={item.status} size="sm" />
+                <BadgeStatus status={item.status} size="sm" detail={`${item.stokAkhir}/${item.stokMinimum} ${item.satuanDapur}`} />
               </div>
             ))
           )}
@@ -683,7 +689,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                     <div className="inv-card-body">
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-os-text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>{item.namaBahan}</span>
-                        <BadgeStatus status={item.status} size="sm" />
+                        <BadgeStatus status={item.status} size="sm" detail={`${item.stokAkhir}/${item.stokMinimum} ${item.satuanDapur}`} />
                       </div>
                       <div style={{ fontFamily: "monospace", fontSize: 9, color: "var(--color-os-muted)", marginTop: 2 }}>{item.bahanId ?? "—"}</div>
                       <div className="inv-card-data-grid">
@@ -703,10 +709,10 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         {item.vendorNama && <span style={{ fontSize: 9, color: "var(--color-os-muted)" }}>{item.vendorNama}</span>}
                       </div>
                     </div>
-                    {item.status !== "SAFE" && item.bahanId && (
+                    {item.bahanId && (
                       <div className="inv-card-cta" style={{ borderTopColor: statusColor, background: `${statusColor}18` }}>
                         <span style={{ fontSize: 10, color: statusColor, fontWeight: 600 }}>
-                          {item.status === "CRITICAL" ? "Stok kritis" : "Perlu restock"}
+                          {item.status === "CRITICAL" ? "Stok kritis" : item.status === "WARNING" ? "Perlu restock" : "Stok aman"}
                         </span>
                         {inCart
                           ? <span style={{ fontSize: 10, color: "var(--color-os-green)", fontWeight: 700 }}>✓ In Cart</span>
@@ -783,7 +789,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-muted)" }}>{item.stokMinimum}</td>
                         <td style={{ padding: "10px 14px" }}>
-                          <BadgeStatus status={item.status} size="sm" />
+                          <BadgeStatus status={item.status} size="sm" detail={`${item.stokAkhir}/${item.stokMinimum} ${item.satuanDapur}`} />
                         </td>
                         <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-sub)" }}>
                           {item.vendorNama ?? "—"}
@@ -793,7 +799,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                           {item.satuanBeli && <span style={{ fontSize: 9, color: "var(--color-os-muted)", marginLeft: 4 }}>/{item.satuanBeli}</span>}
                         </td>
                         <td style={{ padding: "10px 14px" }}>
-                          {item.status !== "SAFE" && item.bahanId ? (
+                          {item.bahanId ? (
                             inCart ? (
                               <span style={{ fontSize: 10, color: "var(--color-os-green)", fontWeight: 700 }}>✓ In Cart</span>
                             ) : (
@@ -804,9 +810,9 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                                   fontWeight: 700,
                                   padding: "3px 8px",
                                   borderRadius: 4,
-                                  border: `1px solid ${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 40%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 40%, transparent)"}`,
-                                  background: `${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 10%, transparent)" : "color-mix(in srgb, var(--color-os-amber) 10%, transparent)"}`,
-                                  color: item.status === "CRITICAL" ? "var(--color-os-red)" : "var(--color-os-amber)",
+                                  border: `1px solid ${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 40%, transparent)" : item.status === "WARNING" ? "color-mix(in srgb, var(--color-os-amber) 40%, transparent)" : "color-mix(in srgb, var(--color-os-green) 40%, transparent)"}`,
+                                  background: `${item.status === "CRITICAL" ? "color-mix(in srgb, var(--color-os-red) 10%, transparent)" : item.status === "WARNING" ? "color-mix(in srgb, var(--color-os-amber) 10%, transparent)" : "color-mix(in srgb, var(--color-os-green) 10%, transparent)"}`,
+                                  color: item.status === "CRITICAL" ? "var(--color-os-red)" : item.status === "WARNING" ? "var(--color-os-amber)" : "var(--color-os-green)",
                                   cursor: "pointer",
                                   whiteSpace: "nowrap",
                                 }}
@@ -815,9 +821,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                               </button>
                             )
                           ) : (
-                            <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>
-                              {item.status === "SAFE" ? "—" : "No master"}
-                            </span>
+                            <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>No master</span>
                           )}
                         </td>
                       </tr>
@@ -978,7 +982,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                             <>
                               <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{item.kontakWa}</span>
                               <a
-                                href={`https://wa.me/${formatWANumber(item.kontakWa)}`}
+                                href={buildWAUrl(item.kontakWa, waTemplate, userOutletName)}
                                 target="_blank"
                                 rel="noreferrer"
                                 style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(37,211,102,0.3)", background: "rgba(37,211,102,0.08)", color: "#25D366", textDecoration: "none", whiteSpace: "nowrap" }}

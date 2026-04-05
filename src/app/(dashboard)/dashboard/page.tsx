@@ -3,7 +3,9 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import { DashboardClient } from "./dashboard-client";
 import { db } from "@/db";
-import { sql } from "drizzle-orm";
+import { systemConfigs } from "@/db/schema";
+import { sql, like } from "drizzle-orm";
+import { DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
 
 async function getDashboardData() {
   const [totalBahan] = await db.execute(
@@ -70,7 +72,17 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const [data, outletList, waTemplateRows] = await Promise.all([
+    getDashboardData(),
+    db.query.outlets.findMany({ orderBy: (o, { asc }) => [asc(o.namaOutlet)] }),
+    db.select().from(systemConfigs).where(like(systemConfigs.key, "wa_template:%")),
+  ]);
+
+  const waTemplates: Record<string, string> = {};
+  for (const row of waTemplateRows) {
+    const outletId = row.key.replace("wa_template:", "");
+    waTemplates[outletId] = row.value ?? DEFAULT_WA_TEMPLATE;
+  }
 
   return (
     <Suspense fallback={<div style={{ color: "var(--color-os-sub)", fontSize: 13 }}>Memuat...</div>}>
@@ -80,6 +92,8 @@ export default async function DashboardPage() {
         allBahan={data.allBahan as any}
         topContributors={data.topContributors}
         auditData={data.auditData}
+        outletList={outletList.map((o) => ({ id: o.id, namaOutlet: o.namaOutlet }))}
+        waTemplates={waTemplates}
       />
     </Suspense>
   );

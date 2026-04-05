@@ -230,6 +230,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const [filterOutletId, setFilterOutletId] = useState("ALL");
   const [searchResep, setSearchResep] = useState("");
   const [searchMenu, setSearchMenu] = useState("");
+  const [filterMargin, setFilterMargin] = useState<"ALL" | "RED" | "AMBER" | "GREEN">("ALL");
   const [dragMenuId, setDragMenuId] = useState<string | null>(null);
   const [dragOverMenuId, setDragOverMenuId] = useState<string | null>(null);
   const [dragBahanId, setDragBahanId] = useState<string | null>(null);
@@ -339,7 +340,7 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
   const pagedResep = filteredResep.slice(safeResepPage * resepRowsPerPage, (safeResepPage + 1) * resepRowsPerPage);
   const filteredMenus = q3 ? menus.filter((m) => m.namaMenu.toLowerCase().includes(q3) || m.id.toLowerCase().includes(q3)) : menus;
 
-  // Group filteredMenus by base name
+  // Group filteredMenus by base name, then apply margin filter
   const menuGroups = (() => {
     const map = new Map<string, MenuItem[]>();
     for (const m of filteredMenus) {
@@ -347,7 +348,18 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       if (!map.has(base)) map.set(base, []);
       map.get(base)!.push(m);
     }
-    return Array.from(map.entries()); // [baseName, variants[]]
+    let entries = Array.from(map.entries());
+    if (filterMargin !== "ALL") {
+      entries = entries.filter(([, variants]) => {
+        const { marginMin } = computeVariantRanges(variants);
+        if (marginMin === null) return filterMargin === "RED";
+        if (filterMargin === "RED") return marginMin < 40;
+        if (filterMargin === "AMBER") return marginMin >= 40 && marginMin < 65;
+        if (filterMargin === "GREEN") return marginMin >= 65;
+        return true;
+      });
+    }
+    return entries;
   })();
   const safeMenuPage = Math.min(menuPage, Math.max(0, Math.ceil(menuGroups.length / menuRowsPerPage) - 1));
   const pagedMenuGroups = menuGroups.slice(safeMenuPage * menuRowsPerPage, (safeMenuPage + 1) * menuRowsPerPage);
@@ -1464,12 +1476,31 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
       {/* Tab 4 — Master Menu */}
       {activeTab === 4 && (
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <select
+              value={filterMargin}
+              onChange={(e) => { setFilterMargin(e.target.value as any); setMenuPage(0); }}
+              style={{
+                background: "var(--color-os-surface)",
+                border: `1px solid ${filterMargin === "RED" ? "var(--color-os-red)" : filterMargin === "AMBER" ? "var(--color-os-amber)" : filterMargin === "GREEN" ? "var(--color-os-green)" : "var(--color-os-border2)"}`,
+                borderRadius: 7,
+                padding: "7px 10px",
+                fontSize: 12,
+                color: filterMargin === "RED" ? "var(--color-os-red)" : filterMargin === "AMBER" ? "var(--color-os-amber)" : filterMargin === "GREEN" ? "var(--color-os-green)" : "var(--color-os-sub)",
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              <option value="ALL">Semua Margin</option>
+              <option value="RED">Merah (&lt;40%)</option>
+              <option value="AMBER">Kuning (40-65%)</option>
+              <option value="GREEN">Hijau (≥65%)</option>
+            </select>
             <input
               value={searchMenu}
               onChange={(e) => { setSearchMenu(e.target.value); setMenuPage(0); }}
               placeholder="Cari nama menu atau ID..."
-              style={{ flex: 1, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
+              style={{ flex: 1, minWidth: 140, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
             />
             {isMobile && (
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
