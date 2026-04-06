@@ -21,7 +21,8 @@ export interface StockStatusInput {
  */
 export function calculateStockStatus(input: StockStatusInput): StockStatus {
   const { stokAkhir, stokMinimum, leadTimeDays, avgDailyConsumption } = input;
-  const warningThreshold = stokMinimum + leadTimeDays * avgDailyConsumption;
+  const leadTimeBuffer = leadTimeDays * avgDailyConsumption;
+  const warningThreshold = stokMinimum + (leadTimeBuffer > 0 ? leadTimeBuffer : stokMinimum * 0.2);
 
   if (stokAkhir <= stokMinimum) return "CRITICAL";
   if (stokAkhir <= warningThreshold) return "WARNING";
