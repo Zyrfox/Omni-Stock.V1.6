@@ -8,6 +8,7 @@ import { TrendingDown, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { formatRupiah } from "@/lib/formatters";
 import { MONTHS_ID } from "@/lib/constants";
 import { Badge } from "@/components/shared/badge-status";
+import { ExportButton } from "@/components/shared/export-button";
 
 async function getReportData() {
   const [statsResult] = await db.execute(
@@ -72,9 +73,19 @@ export default async function ReportPage() {
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--color-os-text)", margin: 0 }}>Report</h1>
           <p style={{ fontSize: 12, color: "var(--color-os-sub)", margin: "4px 0 0" }}>Analitik pengeluaran & performa</p>
         </div>
-        <button style={{ fontSize: 12, padding: "8px 14px", borderRadius: 7, border: "1px solid var(--color-os-border2)", background: "transparent", color: "var(--color-os-sub)", cursor: "pointer" }}>
-          Export Excel
-        </button>
+        <ExportButton
+          rows={[
+            ...topBahan.map((b) => ({ Tipe: "Top Bahan", Nama: b.nama_bahan, Total: parseFloat(b.total) })),
+            ...vendorPerforma.map((v) => ({
+              Tipe: "Vendor Performa", Nama: v.nama_vendor,
+              "Est. Lead Time": v.lead_time_estimasi + "h",
+              "Aktual Lead Time": Math.round(parseFloat(v.lead_time_aktual ?? "0")) + "h",
+              Status: parseFloat(v.lead_time_aktual ?? "0") <= parseFloat(v.lead_time_estimasi) ? "On Time" : "Terlambat",
+            })),
+          ]}
+          fileName="Report"
+          sheetName="Report"
+        />
       </div>
 
       <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>

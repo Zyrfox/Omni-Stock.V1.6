@@ -8,6 +8,7 @@ import { FileText, Clock, CheckCircle2, BarChart2 } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { BillingActions } from "./billing-actions";
+import { ExportButton } from "@/components/shared/export-button";
 
 async function getBillingData() {
   const orders = await db.query.purchaseOrders.findMany({
@@ -47,6 +48,17 @@ export default async function BillingPage() {
       </div>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+          <ExportButton
+            rows={orders.map((po) => ({
+              "Invoice ID": po.id, Tanggal: po.createdAt ? new Date(po.createdAt).toLocaleDateString("id-ID") : "",
+              Vendor: (po as any).vendor?.namaVendor ?? "", "Total Biaya": parseFloat(po.totalHarga),
+              Status: po.status === "received" ? "LUNAS" : "UNPAID",
+            }))}
+            fileName="Billing"
+            sheetName="Billing"
+          />
+        </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: `var(--color-os-row-hover)` }}>

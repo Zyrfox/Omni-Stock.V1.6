@@ -10,6 +10,7 @@ import { createVendor, updateVendor, getVendorPOs } from "@/actions/vendor";
 import { useAppContext } from "@/contexts/app-context";
 import { useSession } from "@/lib/auth-client";
 import { buildWAUrl, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 interface VendorItem {
   id: string; namaVendor: string; kontakWa: string | null;
@@ -301,6 +302,17 @@ export function SuppliersClient({ vendors, stats, outletList, waTemplates }: Sup
       </div>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => exportToXlsx(vendors.map(v => ({
+              "Nama Vendor": v.namaVendor, Platform: v.vendorPlatform ?? "offline",
+              WhatsApp: v.kontakWa ?? "", "No Rekening": v.noRekening ?? "",
+              "Lead Time (hari)": v.estimasiPengiriman, "Total Bahan": v.totalBahan,
+              "Total Pengeluaran": v.totalPengeluaran,
+            })), "Suppliers", "Vendors")}
+            style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+          >↓ Export</button>
+        </div>
         <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>

@@ -11,6 +11,7 @@ import type { UploadedStockItem } from "@/actions/upload";
 import { createDraftPO } from "@/actions/purchase-order";
 import { useSession } from "@/lib/auth-client";
 import { buildWAUrl, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
+import { exportToXlsx } from "@/lib/export-xlsx";
 import type { MasterBahan, PurchaseOrder, MasterVendor } from "@/db/schema";
 
 interface POCartItem {
@@ -663,6 +664,14 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                   ✕ Reset
                 </button>
               )}
+              <button
+                onClick={() => exportToXlsx(filteredItems.map(i => ({
+                  "ID Bahan": i.bahanId ?? "", "Nama Bahan": i.namaBahan, Tipe: i.tipeBahan ?? "",
+                  "Stok Akhir": i.stokAkhir, "Satuan": i.satuanDapur, "Min. Stok": i.stokMinimum,
+                  Status: i.status, Vendor: i.vendorNama ?? "", "Harga Beli": parseFloat(i.hargaBeli),
+                })), "Inventory_Dashboard", "Inventory")}
+                style={{ flexShrink: 0, fontSize: 10, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--color-os-border)", background: "var(--color-os-bg)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+              >↓ Export</button>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
                 <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>{filteredItems.length} item</span>
                 <select

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah } from "@/lib/formatters";
 import { createOutlet } from "@/actions/outlet";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 interface OutletRow {
   id: string;
@@ -116,6 +117,14 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
       {/* Tab 1 — Upload Compliance per Outlet */}
       {activeTab === 1 && (
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={() => exportToXlsx(outlets.map(o => ({
+                "Outlet ID": o.id, "Nama Outlet": o.namaOutlet,
+              })), "Stores_Outlets", "Outlets")}
+              style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
+          </div>
           <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -164,6 +173,20 @@ export function StoresClient({ outletList, menuProfitList, totalOutlet }: Stores
       {/* Tab 2 — Menu Profitability Matrix */}
       {activeTab === 2 && (
         <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={() => exportToXlsx(menuProfitList.map(m => {
+                const cogs = parseFloat(m.totalCogs ?? "0");
+                const jual = parseFloat(m.hargaJual ?? "0");
+                const margin = jual > 0 ? ((jual - cogs) / jual * 100) : 0;
+                return {
+                  "Nama Menu": m.namaMenu, COGS: cogs, "Harga Jual": jual,
+                  "Margin %": parseFloat(margin.toFixed(1)), "Terjual/Bulan": parseInt(m.terjualBulan ?? "0"),
+                };
+              }), "Menu_Profitability", "Profitability")}
+              style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
+          </div>
           <div className="table-scroll-wrapper">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>

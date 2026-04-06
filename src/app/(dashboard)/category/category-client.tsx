@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatRupiah } from "@/lib/formatters";
 import { createBahan, updateBahan, deleteBahan } from "@/actions/bahan";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 interface BahanItem {
   id: string; namaBahan: string; kategoriBahan: string | null;
@@ -226,6 +227,13 @@ export function CategoryClient({ bahanList }: { bahanList: BahanItem[] }) {
           <div style={{ padding: "8px 16px", background: `var(--color-os-row-hover)`, borderBottom: "1px solid var(--color-os-border)", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-os-accent)" }}>{activeTab}</span>
             <span style={{ fontSize: 10, color: "var(--color-os-muted)" }}>— {activeTabMeta?.desc}</span>
+            <button
+              onClick={() => exportToXlsx(filtered.map(b => ({
+                ID: b.id, "Nama Barang": b.namaBahan, Kategori: b.kategoriBahan ?? "",
+                Satuan: b.satuanDapur, "Min. Stok": b.stokMinimum, "Harga Beli": parseFloat(b.hargaBeli),
+              })), `Kategori_${activeTab.replace(/\s+/g, "_")}`, activeTab)}
+              style={{ marginLeft: "auto", fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
           </div>
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>

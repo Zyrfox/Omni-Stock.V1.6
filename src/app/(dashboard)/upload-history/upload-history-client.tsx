@@ -6,6 +6,7 @@ import { formatDateTime, formatDate } from "@/lib/formatters";
 import { deleteUploadBatch, refreshUploadCache } from "@/actions/upload";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/contexts/app-context";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 interface Batch {
   id: string;
@@ -85,6 +86,17 @@ export function UploadHistoryClient({ batches: initialBatches }: Props) {
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => exportToXlsx(batches.map(b => ({
+              "Batch ID": b.id, Outlet: b.outlet?.namaOutlet ?? b.outletNameRaw ?? "",
+              "Tgl Kartu Stok": b.tanggalKartuStok, "Total Produk": b.totalProduk,
+              "Matched Bahan": b.matchedBahan, "Upload Oleh": b.uploadedByUser?.nama ?? "",
+              "Tanggal Upload": b.createdAt ? new Date(b.createdAt).toLocaleDateString("id-ID") : "",
+            })), "Upload_History", "Upload History")}
+            style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+          >↓ Export</button>
+        </div>
         <div className="table-scroll-wrapper" style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>

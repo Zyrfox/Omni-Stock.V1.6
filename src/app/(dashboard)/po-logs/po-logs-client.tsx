@@ -9,6 +9,7 @@ import { sendPO, receivePO } from "@/actions/purchase-order";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { buildWAUrl, formatWANumber, DEFAULT_WA_TEMPLATE } from "@/lib/wa-utils";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 interface POItem {
   id: string; outletId: string; vendorId: string; bahanId: string;
@@ -105,6 +106,16 @@ export function POLogsClient({ orders, stats, outletList, waTemplates }: POLogsC
               {s === "" ? "Semua" : s.toUpperCase()}
             </button>
           ))}
+          <button
+            onClick={() => exportToXlsx(filtered.map(po => ({
+              "PO ID": po.id, Bahan: po.bahan?.namaBahan ?? "", Vendor: po.vendor?.namaVendor ?? "",
+              Outlet: po.outlet?.namaOutlet ?? "", Qty: parseFloat(po.qtyOrder),
+              "Harga Satuan": parseFloat(po.hargaSatuan), "Total Biaya": parseFloat(po.totalHarga),
+              Status: po.status, "Dibuat Oleh": po.createdByUser?.nama ?? po.createdBy,
+              Tanggal: po.createdAt ? new Date(po.createdAt).toLocaleDateString("id-ID") : "",
+            })), "PO_Logs", "PO Logs")}
+            style={{ flexShrink: 0, fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+          >↓ Export</button>
           {isMobile && (
             <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
               <button className={`view-toggle-btn${viewMode === "card" ? " active" : ""}`} onClick={() => setViewMode("card")}>Cards</button>

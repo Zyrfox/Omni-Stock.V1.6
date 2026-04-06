@@ -8,6 +8,7 @@ import { Truck, Clock, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/shared/badge-status";
 import { formatRupiah, formatDateTime, calculateETA } from "@/lib/formatters";
 import { DeliveryActions } from "./delivery-actions";
+import { ExportButton } from "@/components/shared/export-button";
 
 export default async function DeliveryPage() {
   const orders = await db.query.purchaseOrders.findMany({
@@ -38,6 +39,18 @@ export default async function DeliveryPage() {
       </div>
 
       <div style={{ background: `var(--color-os-card)`, border: "1px solid var(--color-os-border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--color-os-border)", display: "flex", justifyContent: "flex-end" }}>
+          <ExportButton
+            rows={orders.map((po, idx) => ({
+              "DEL ID": `DEL-${String(idx + 1).padStart(3, "0")}`, "PO ID": po.id,
+              Vendor: (po as any).vendor?.namaVendor ?? "", Bahan: (po as any).bahan?.namaBahan ?? "",
+              Qty: `${po.qtyOrder} ${(po as any).bahan?.satuanDapur ?? ""}`,
+              Status: po.status === "received" ? "Delivered" : po.status === "sent" ? "In Transit" : "Pending",
+            }))}
+            fileName="Delivery"
+            sheetName="Delivery"
+          />
+        </div>
         <div className="table-scroll-wrapper">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>

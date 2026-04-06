@@ -13,6 +13,7 @@ import { createSemiFinished, updateSemiFinished, deleteSemiFinished, saveSFGBOM 
 import { useAppContext } from "@/contexts/app-context";
 import { estimateRawBulkYield, estimatePorsiSaja, estimateFromWizardAnswers, generateProductionQuestions, type RawBulkEstimationResult, type WizardEstimationResult, type ProductionQuestion, type GenerateQuestionsResult } from "@/actions/gemini";
 import { formatMinStok } from "@/lib/stock-status";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 function formatYield(v: string | number | null | undefined): string {
   if (!v) return "—";
@@ -918,6 +919,16 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               placeholder="Cari nama bahan atau ID..."
               style={{ flex: 1, minWidth: 140, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
             />
+            <button
+              onClick={() => exportToXlsx(filteredBahans.map(b => ({
+                ID: b.id, "Nama Bahan": b.namaBahan, Tipe: b.tipeBahan,
+                "Kemasan Beli": b.satuanBeli, "Satuan Dapur": b.satuanDapur,
+                "Min. Stok": b.stokMinimum, "Harga Beli": parseFloat(b.hargaBeli),
+                "Isi/Yield": parseFloat(b.isiSatuan), "Harga/Porsi": b.hargaPerSatuanPorsi ? parseFloat(b.hargaPerSatuanPorsi) : "",
+                Kategori: b.kategoriBahan ?? "",
+              })), "Master_Bahan", "Master Bahan")}
+              style={{ flexShrink: 0, fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
             {isMobile && (
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button className={`view-toggle-btn${bahanViewMode === "card" ? " active" : ""}`} onClick={() => setBahanViewMode("card")}>Cards</button>
@@ -1081,6 +1092,14 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
                 placeholder="Cari nama raw menu atau ID..."
                 style={{ flex: 1, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
               />
+              <button
+                onClick={() => exportToXlsx(filteredSFG.map(s => ({
+                  ID: s.id, "Nama Raw Menu": s.namaSemiFinished, "Satuan Hasil": s.satuanHasil,
+                  "Jumlah Hasil": parseFloat(s.jumlahHasil), "Total COGS": parseFloat(s.totalCogs),
+                  "COGS/Unit": parseFloat(s.cogsPerUnit),
+                })), "Raw_Menu", "Raw Menu")}
+                style={{ flexShrink: 0, fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+              >↓ Export</button>
               {isMobile && (
                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                   <button className={`view-toggle-btn${sfgViewMode === "card" ? " active" : ""}`} onClick={() => setSfgViewMode("card")}>Cards</button>
@@ -1281,6 +1300,15 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               placeholder="Cari nama menu atau ID..."
               style={{ flex: 1, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
             />
+            <button
+              onClick={() => exportToXlsx(filteredResep.map(m => ({
+                "ID Menu": m.id, "Nama Menu": m.namaMenu,
+                Outlet: outletList.find(o => o.id === m.outletId)?.namaOutlet ?? "",
+                "Komposisi": (m.mappingResep ?? []).map(r => `${r.bahan?.namaBahan ?? r.itemId} x${r.qty}`).join(", "),
+                "Total COGS": m.totalCogs ? parseFloat(m.totalCogs) : "",
+              })), "Master_Resep", "Master Resep")}
+              style={{ flexShrink: 0, fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
             {isMobile && (
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button className={`view-toggle-btn${resepViewMode === "card" ? " active" : ""}`} onClick={() => setResepViewMode("card")}>Cards</button>
@@ -1502,6 +1530,29 @@ export function ProductsClient({ bahanList, menuList, sfgList: sfgListProp, outl
               placeholder="Cari nama menu atau ID..."
               style={{ flex: 1, minWidth: 140, background: `var(--color-os-surface)`, border: "1px solid var(--color-os-border2)", borderRadius: 7, padding: "7px 12px", fontSize: 12, color: "var(--color-os-text)", outline: "none", boxSizing: "border-box" }}
             />
+            <button
+              onClick={() => {
+                const rows: Record<string, unknown>[] = [];
+                for (const [, variants] of menuGroups) {
+                  for (const m of variants) {
+                    const cogs = parseFloat(m.totalCogs ?? "0");
+                    const hj = parseFloat(m.hargaJual ?? "0");
+                    const fee = parseFloat(m.platformFeePercent ?? "0");
+                    const net = hj - (hj * fee / 100);
+                    const margin = net > 0 && cogs > 0 ? ((net - cogs) / net * 100) : null;
+                    rows.push({
+                      "ID Menu": m.id, "Nama Menu": m.namaMenu,
+                      Channel: getChannelLabel(m.channelType), Kategori: m.kategori ?? "",
+                      Outlet: outletList.find(o => o.id === m.outletId)?.namaOutlet ?? "",
+                      "Total COGS": cogs || "", "Harga Jual": hj || "",
+                      "Platform Fee %": fee || "", "Margin %": margin ? parseFloat(margin.toFixed(1)) : "",
+                    });
+                  }
+                }
+                exportToXlsx(rows, "Master_Menu", "Master Menu");
+              }}
+              style={{ flexShrink: 0, fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--color-os-border2)", background: "var(--color-os-surface)", color: "var(--color-os-sub)", cursor: "pointer", fontWeight: 600 }}
+            >↓ Export</button>
             {isMobile && (
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button className={`view-toggle-btn${menuViewMode === "card" ? " active" : ""}`} onClick={() => setMenuViewMode("card")}>Cards</button>
