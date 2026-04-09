@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { StatCard } from "@/components/shared/stat-card";
 import { Package, CheckCircle2, AlertTriangle, XCircle, Users, CreditCard, Sparkles } from "lucide-react";
 import { BadgeStatus, Badge } from "@/components/shared/badge-status";
-import { estimasiHariHabis } from "@/lib/stock-status";
+import { estimasiHariHabis, formatMinStok, formatStokAkhir } from "@/lib/stock-status";
 import { formatRupiah, formatDateTime } from "@/lib/formatters";
 import { processUpload } from "@/actions/upload";
 import type { UploadedStockItem } from "@/actions/upload";
@@ -20,7 +20,8 @@ interface POCartItem {
   vendorId: string;
   vendorNama: string;
   kontakWa: string | null;
-  allVendors: Array<{ id: string; nama: string; kontakWa: string | null }>;
+  vendorPlatform: string;
+  allVendors: Array<{ id: string; nama: string; kontakWa: string | null; platform: string }>;
   tipeBahan: "packaged" | "raw_bulk";
   qty: number;
   hargaSatuan: number;
@@ -57,6 +58,8 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
   const [poCart, setPoCart] = useState<POCartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [ongkir, setOngkir] = useState(0);
+  const [poDivisi, setPoDivisi] = useState("");
+  const [poOutletId, setPoOutletId] = useState(userOutletId);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -97,6 +100,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         avgDailyConsumption: b.avgDailyConsumption,
         hargaBeli: b.hargaBeli,
         satuanBeli: b.satuanBeli,
+        isiSatuan: parseFloat(b.isiSatuan),
         hargaPerSatuanPorsi: b.hargaPerSatuanPorsi,
         status: "CRITICAL" as const,
         vendorNama: vendorPrimary?.namaVendor,
@@ -165,11 +169,13 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
       id: vb.vendor?.id ?? "",
       nama: vb.vendor?.namaVendor ?? "—",
       kontakWa: vb.vendor?.kontakWa ?? null,
+      platform: vb.vendor?.vendorPlatform ?? "offline",
     })) ?? [];
     const primaryVb = bahanFull?.vendorBahan?.find((vb: any) => vb.isPrimary) ?? bahanFull?.vendorBahan?.[0];
     const primaryVendorId = primaryVb?.vendor?.id ?? item.vendorId ?? "";
     const primaryVendorNama = primaryVb?.vendor?.namaVendor ?? item.vendorNama ?? "—";
     const primaryKontakWa = primaryVb?.vendor?.kontakWa ?? null;
+    const primaryPlatform = primaryVb?.vendor?.vendorPlatform ?? "offline";
     setPoCart((prev) => [
       ...prev,
       {
@@ -178,6 +184,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
         vendorId: primaryVendorId,
         vendorNama: primaryVendorNama,
         kontakWa: primaryKontakWa,
+        vendorPlatform: primaryPlatform,
         allVendors: vendorList,
         tipeBahan: item.tipeBahan ?? "packaged",
         qty: 1,
@@ -703,8 +710,20 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                       <div style={{ fontFamily: "monospace", fontSize: 9, color: "var(--color-os-muted)", marginTop: 2 }}>{item.bahanId ?? "—"}</div>
                       <div className="inv-card-data-grid">
                         {[
-                          { label: "Stok Akhir", value: `${item.stokAkhir} ${item.satuanDapur}` },
-                          { label: "Min. Stok", value: String(item.stokMinimum) },
+                          { label: "Stok Akhir", value: (() => {
+                            if (item.isiSatuan && item.isiSatuan > 0 && item.satuanBeli) {
+                              const pkg = Math.floor(item.stokAkhir / item.isiSatuan);
+                              return `${item.stokAkhir} ${item.satuanDapur} (${pkg} ${item.satuanBeli})`;
+                            }
+                            return `${item.stokAkhir} ${item.satuanDapur}`;
+                          })() },
+                          { label: "Min. Stok", value: (() => {
+                            if (item.isiSatuan && item.isiSatuan > 0 && item.satuanBeli) {
+                              const f = formatMinStok(item.stokMinimum, item.isiSatuan, item.satuanDapur, item.satuanBeli);
+                              return f.secondary ? `${f.primary} (${f.secondary})` : f.primary;
+                            }
+                            return `${item.stokMinimum} ${item.satuanDapur}`;
+                          })() },
                           { label: "Harga Beli", value: formatRupiah(parseFloat(item.hargaBeli)) },
                         ].map(({ label, value }) => (
                           <div key={label} style={{ background: "var(--color-os-card)", borderRadius: 6, padding: "5px 7px" }}>
@@ -795,8 +814,21 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                         <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-text)" }}>
                           <span style={{ fontWeight: 600 }}>{item.stokAkhir}</span>{" "}
                           <span style={{ fontSize: 9, color: "var(--color-os-muted)" }}>{item.satuanDapur}</span>
+                          {item.isiSatuan && item.isiSatuan > 0 && item.satuanBeli && (
+                            <span style={{ display: "block", fontSize: 9, color: "var(--color-os-muted)" }}>
+                              ({Math.floor(item.stokAkhir / item.isiSatuan)} {item.satuanBeli})
+                            </span>
+                          )}
                         </td>
-                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-muted)" }}>{item.stokMinimum}</td>
+                        <td style={{ padding: "10px 14px", fontSize: 12, color: "var(--color-os-muted)" }}>
+                          {(() => {
+                            if (item.isiSatuan && item.isiSatuan > 0 && item.satuanBeli) {
+                              const fmt = formatMinStok(item.stokMinimum, item.isiSatuan, item.satuanDapur, item.satuanBeli);
+                              return <><span>{fmt.primary}</span>{fmt.secondary && <span style={{ display: "block", fontSize: 9 }}>{fmt.secondary}</span>}</>
+                            }
+                            return `${item.stokMinimum} ${item.satuanDapur}`;
+                          })()}
+                        </td>
                         <td style={{ padding: "10px 14px" }}>
                           <BadgeStatus status={item.status} size="sm" detail={`${item.stokAkhir}/${item.stokMinimum} ${item.satuanDapur}`} />
                         </td>
@@ -946,6 +978,29 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
             </div>
 
             <div style={{ padding: 12 }}>
+              {/* Outlet + Divisi identification */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <label style={{ fontSize: 9, color: "var(--color-os-muted)", textTransform: "uppercase", marginBottom: 2, display: "block" }}>Outlet</label>
+                  <select
+                    value={poOutletId}
+                    onChange={(e) => setPoOutletId(e.target.value)}
+                    style={{ width: "100%", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
+                  >
+                    {outletList?.map((o) => <option key={o.id} value={o.id}>{o.namaOutlet}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <label style={{ fontSize: 9, color: "var(--color-os-muted)", textTransform: "uppercase", marginBottom: 2, display: "block" }}>Divisi</label>
+                  <input
+                    type="text"
+                    value={poDivisi}
+                    onChange={(e) => setPoDivisi(e.target.value)}
+                    placeholder="e.g. waiters, kitchen, bar"
+                    style={{ width: "100%", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: "var(--color-os-text)", outline: "none" }}
+                  />
+                </div>
+              </div>
               {poCart.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "16px 0", color: "var(--color-os-muted)", fontSize: 12 }}>
                   🛒 Tambahkan bahan dari tabel untuk membuat PO
@@ -971,7 +1026,7 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
                             onChange={(e) => {
                               const sel = item.allVendors.find((v) => v.id === e.target.value);
                               setPoCart((prev) => prev.map((c) => c.bahanId === item.bahanId
-                                ? { ...c, vendorId: sel?.id ?? "", vendorNama: sel?.nama ?? "—", kontakWa: sel?.kontakWa ?? null }
+                                ? { ...c, vendorId: sel?.id ?? "", vendorNama: sel?.nama ?? "—", kontakWa: sel?.kontakWa ?? null, vendorPlatform: sel?.platform ?? "offline" }
                                 : c));
                             }}
                             style={{ width: "100%", background: "var(--color-os-bg)", border: "1px solid var(--color-os-border)", borderRadius: 5, padding: "3px 6px", fontSize: 10, color: "var(--color-os-text)", outline: "none", marginBottom: 3 }}
@@ -1063,27 +1118,76 @@ export function DashboardClient({ totalBahan, recentPOs, allBahan, topContributo
               const grandTotal = subtotal + ongkir;
               function buildWAText() {
                 const lines: string[] = [];
-                lines.push("📋 *PURCHASE ORDER — OMNI-STOCK*");
-                lines.push(`📅 ${new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}`);
+                const dateStr = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+                const outletName = outletList?.find((o) => o.id === poOutletId)?.namaOutlet ?? "";
+                const userName = (session?.user as any)?.nama ?? session?.user?.name ?? "";
+
+                lines.push("📋 PURCHASE ORDER — OMNI-STOCK");
+                lines.push(`📅 ${dateStr}`);
                 lines.push("");
-                // Group by vendor
-                const byVendor = new Map<string, typeof poCart>();
+                lines.push(`pengajuan ${poDivisi}${poDivisi ? " " : ""}${outletName} ${dateStr}:`);
+                lines.push(`Dibuat oleh: ${userName}`);
+                lines.push("");
+
+                // Group by vendor platform
+                const tunaiItems: POCartItem[] = [];
+                const shopeeItems: POCartItem[] = [];
+                const tokopediaItems: POCartItem[] = [];
                 for (const c of poCart) {
-                  if (!byVendor.has(c.vendorNama)) byVendor.set(c.vendorNama, []);
-                  byVendor.get(c.vendorNama)!.push(c);
+                  const p = (c.vendorPlatform ?? "offline").toLowerCase();
+                  if (p === "shopee") shopeeItems.push(c);
+                  else if (p === "tokopedia") tokopediaItems.push(c);
+                  else tunaiItems.push(c);
                 }
-                for (const [vName, items] of byVendor) {
-                  const firstItem = items[0];
-                  lines.push(`🏪 *${vName}*${firstItem.kontakWa ? ` — WA: ${firstItem.kontakWa}` : ""}`);
-                  for (const c of items) {
-                    const sub = c.qty * c.hargaSatuan;
-                    lines.push(`  • ${c.namaBahan} — ${c.qty}x${c.hargaSatuan > 0 ? ` @ Rp ${c.hargaSatuan.toLocaleString("id-ID")} = Rp ${sub.toLocaleString("id-ID")}` : ""}`);
+
+                const sections: Array<{ label: string; items: POCartItem[] }> = [];
+                if (tunaiItems.length > 0) sections.push({ label: "Tunai", items: tunaiItems });
+                if (shopeeItems.length > 0) sections.push({ label: "Shopee", items: shopeeItems });
+                if (tokopediaItems.length > 0) sections.push({ label: "Tokopedia", items: tokopediaItems });
+
+                let total = 0;
+
+                for (const section of sections) {
+                  lines.push(`${section.label}:`);
+                  let sectionSub = 0;
+                  let num = 1;
+
+                  if (section.label === "Tunai") {
+                    // Sub-group by vendor name
+                    const byVendor = new Map<string, POCartItem[]>();
+                    for (const c of section.items) {
+                      if (!byVendor.has(c.vendorNama)) byVendor.set(c.vendorNama, []);
+                      byVendor.get(c.vendorNama)!.push(c);
+                    }
+                    for (const [vName, items] of byVendor) {
+                      const first = items[0];
+                      lines.push(`🏪 ${vName}${first.kontakWa ? ` — WA: ${first.kontakWa}` : ""}`);
+                      for (const c of items) {
+                        const lineTotal = c.qty * c.hargaSatuan;
+                        sectionSub += lineTotal;
+                        lines.push(`${num}. ${c.namaBahan} — ${c.qty}x @ Rp ${c.hargaSatuan.toLocaleString("id-ID")} = Rp ${lineTotal.toLocaleString("id-ID")}`);
+                        num++;
+                      }
+                    }
+                  } else {
+                    for (const c of section.items) {
+                      const lineTotal = c.qty * c.hargaSatuan;
+                      sectionSub += lineTotal;
+                      lines.push(`${num}. ${c.namaBahan} — ${c.qty}x @ Rp ${c.hargaSatuan.toLocaleString("id-ID")} = Rp ${lineTotal.toLocaleString("id-ID")}`);
+                      num++;
+                    }
                   }
+
+                  lines.push(`Subtotal: Rp ${sectionSub.toLocaleString("id-ID")}`);
                   lines.push("");
+                  total += sectionSub;
                 }
-                lines.push(`💰 *Subtotal: Rp ${subtotal.toLocaleString("id-ID")}*`);
-                if (ongkir > 0) lines.push(`🚚 Ongkir: Rp ${ongkir.toLocaleString("id-ID")}`);
-                lines.push(`✅ *TOTAL: Rp ${grandTotal.toLocaleString("id-ID")}*`);
+
+                if (ongkir > 0) {
+                  lines.push(`🚚 Ongkir: Rp ${ongkir.toLocaleString("id-ID")}`);
+                  total += ongkir;
+                }
+                lines.push(`✅ Total: Rp ${total.toLocaleString("id-ID")}`);
                 return lines.join("\n");
               }
               return (

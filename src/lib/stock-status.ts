@@ -77,3 +77,19 @@ export function formatMinStok(
   const kemasan = Math.ceil(stokMinimum / isiSatuan);
   return { primary, secondary: `${kemasan} ${satuanBeli}` };
 }
+
+/**
+ * Format stokAkhir in both satuanDapur and kemasan units.
+ * Uses Math.floor (actual stock = whole packages on hand).
+ */
+export function formatStokAkhir(
+  stokAkhir: number,
+  isiSatuan: number,
+  satuanDapur: string,
+  satuanBeli: string
+): { primary: string; secondary: string | null } {
+  const primary = `${stokAkhir} ${satuanDapur}`;
+  if (isiSatuan <= 0) return { primary, secondary: null };
+  const kemasan = Math.floor(stokAkhir / isiSatuan);
+  return { primary, secondary: `${kemasan} ${satuanBeli}` };
+}

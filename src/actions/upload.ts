@@ -8,6 +8,18 @@ import { calculateStockStatus } from "@/lib/stock-status";
 import { generateId } from "@/lib/id-generator";
 import { revalidatePath } from "next/cache";
 
+const KNOWN_PACKAGE_UNITS = new Set([
+  "box", "boks", "karton", "carton", "ctn",
+  "pack", "pck", "pak", "paket",
+  "karung", "sak", "sack",
+  "ember", "pail", "jerigen", "jirigen",
+  "galon", "gallon",
+  "lusin", "dozen", "doz",
+  "bal", "bale", "drum", "bag",
+  "botol", "bottle", "kaleng", "can", "tin",
+  "roll", "rol", "set", "rim", "ream", "dus",
+]);
+
 export interface UploadedStockItem {
   bahanId: string | null;
   namaBahan: string;
@@ -20,6 +32,7 @@ export interface UploadedStockItem {
   avgDailyConsumption: number;
   hargaBeli: string;
   satuanBeli?: string;
+  isiSatuan?: number;
   hargaPerSatuanPorsi: string | null;
   status: "SAFE" | "WARNING" | "CRITICAL";
   vendorNama?: string;
@@ -166,14 +179,17 @@ export async function processUpload(
       if (row.satuan) {
         const exSat = row.satuan.toLowerCase().trim();
         const dapurSat = matchedBahanRecord.satuanDapur.toLowerCase().trim();
-        const beliSat = matchedBahanRecord.satuanBeli.toLowerCase().replace(/[^a-z]/g, "").trim();
         const isiSatuan = parseFloat(matchedBahanRecord.isiSatuan);
-        if (
-          exSat !== dapurSat &&
-          isiSatuan > 1 &&
-          (exSat === beliSat || beliSat.includes(exSat) || exSat.includes(beliSat))
-        ) {
-          stokAkhirNorm = row.stokAkhir * isiSatuan;
+
+        if (exSat !== dapurSat && isiSatuan > 1) {
+          const beliSat = matchedBahanRecord.satuanBeli.toLowerCase().replace(/[^a-z]/g, "").trim();
+          const exSatAlpha = exSat.replace(/[^a-z]/g, "").trim();
+          const isKnownPackage = KNOWN_PACKAGE_UNITS.has(exSatAlpha);
+          const matchesBeli = exSat === beliSat || beliSat.includes(exSat) || exSat.includes(beliSat);
+
+          if (isKnownPackage || matchesBeli) {
+            stokAkhirNorm = row.stokAkhir * isiSatuan;
+          }
         }
       }
 
@@ -192,12 +208,13 @@ export async function processUpload(
         kategori: row.kategori,
         tipeBahan: matchedBahanRecord.tipeBahan,
         stokAkhir: stokAkhirNorm,
-        satuanDapur: row.satuan || matchedBahanRecord.satuanDapur,
+        satuanDapur: matchedBahanRecord.satuanDapur,
         stokMinimum: matchedBahanRecord.stokMinimum,
         leadTimeDays: matchedBahanRecord.leadTimeDays,
         avgDailyConsumption: matchedBahanRecord.avgDailyConsumption,
         hargaBeli: matchedBahanRecord.hargaBeli,
         satuanBeli: matchedBahanRecord.satuanBeli,
+        isiSatuan: parseFloat(matchedBahanRecord.isiSatuan),
         hargaPerSatuanPorsi: matchedBahanRecord.hargaPerSatuanPorsi,
         status,
         vendorNama: primaryVendor?.namaVendor,
