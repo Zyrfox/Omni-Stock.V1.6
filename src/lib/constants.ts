@@ -16,6 +16,8 @@ import {
   BarChart2,
   Users,
   Settings2,
+  Calculator,
+  PieChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,7 +25,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   href: string;
-  adminOnly: boolean;
+  roles?: string[]; // if undefined/empty = visible to all; if set = only these roles
 }
 
 export interface NavSection {
@@ -35,28 +37,35 @@ export const NAV_ITEMS: NavSection[] = [
   {
     section: "DISCOVER",
     items: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", adminOnly: false },
-      { label: "Stores", icon: Store, href: "/stores", adminOnly: false },
+      { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+      { label: "Stores", icon: Store, href: "/stores" },
+    ],
+  },
+  {
+    section: "MANAGEMENT",
+    items: [
+      { label: "Kalkulator HPP", icon: Calculator, href: "/calculator", roles: ["admin", "manager"] },
+      { label: "Overview", icon: PieChart, href: "/overview", roles: ["admin", "manager"] },
     ],
   },
   {
     section: "INVENTORY",
     items: [
-      { label: "Products & Recipes", icon: Package, href: "/products", adminOnly: false },
-      { label: "Assets & Inv.", icon: Layers, href: "/category", adminOnly: false },
-      { label: "Suppliers", icon: Truck, href: "/suppliers", adminOnly: false },
-      { label: "Billing", icon: CreditCard, href: "/billing", adminOnly: false },
-      { label: "Upload History", icon: Upload, href: "/upload-history", adminOnly: false },
-      { label: "PO Logs", icon: ClipboardList, href: "/po-logs", adminOnly: false },
-      { label: "Delivery", icon: PackageCheck, href: "/delivery", adminOnly: false },
-      { label: "Report", icon: BarChart2, href: "/report", adminOnly: false },
+      { label: "Products & Recipes", icon: Package, href: "/products" },
+      { label: "Assets & Inv.", icon: Layers, href: "/category" },
+      { label: "Suppliers", icon: Truck, href: "/suppliers" },
+      { label: "Billing", icon: CreditCard, href: "/billing" },
+      { label: "Upload History", icon: Upload, href: "/upload-history" },
+      { label: "PO Logs", icon: ClipboardList, href: "/po-logs" },
+      { label: "Delivery", icon: PackageCheck, href: "/delivery" },
+      { label: "Report", icon: BarChart2, href: "/report" },
     ],
   },
   {
     section: "SETTINGS",
     items: [
-      { label: "Users", icon: Users, href: "/users", adminOnly: true },
-      { label: "Settings", icon: Settings2, href: "/settings", adminOnly: true },
+      { label: "Users", icon: Users, href: "/users", roles: ["admin"] },
+      { label: "Settings", icon: Settings2, href: "/settings", roles: ["admin"] },
     ],
   },
 ];

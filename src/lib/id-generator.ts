@@ -18,7 +18,8 @@ type TableName =
   | "vendor_bahan"
   | "sales_transactions"
   | "upload_batches"
-  | "purchase_orders";
+  | "purchase_orders"
+  | "menu_cost_components";
 
 const PREFIX_MAP: Record<TableName, string> = {
   outlets: "OUT",
@@ -32,6 +33,7 @@ const PREFIX_MAP: Record<TableName, string> = {
   sales_transactions: "TRX",
   upload_batches: "UPL",
   purchase_orders: "PO",
+  menu_cost_components: "MCC",
 };
 
 /**

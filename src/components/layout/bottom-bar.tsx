@@ -34,7 +34,7 @@ export function BottomBar({ userRole }: BottomBarProps) {
   const pinnedItems = ALL_FLAT.filter((item) => PINNED_HREFS.includes(item.href));
 
   const moreItems = ALL_FLAT.filter(
-    (item) => !PINNED_HREFS.includes(item.href) && (!item.adminOnly || isAdmin)
+    (item) => !PINNED_HREFS.includes(item.href) && (!item.roles?.length || item.roles.includes(userRole))
   );
 
   async function handleSignOut() {

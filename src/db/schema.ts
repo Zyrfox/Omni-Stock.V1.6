@@ -21,6 +21,7 @@ export const parentTypeEnum = pgEnum("parent_type", ["menu", "semi_finished"]);
 export const itemTypeEnum = pgEnum("item_type", ["bahan_dasar", "semi_finished"]);
 export const poStatusEnum = pgEnum("po_status", ["draft", "sent", "received"]);
 export const deliveryStatusEnum = pgEnum("delivery_status", ["pending", "in_transit", "delivered"]);
+export const costComponentTypeEnum = pgEnum("cost_component_type", ["labor", "equipment", "other"]);
 
 // ─── 1. system_configs ───────────────────────────────────
 export const systemConfigs = pgTable("system_configs", {
@@ -238,6 +239,23 @@ export const purchaseOrders = pgTable("purchase_orders", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ─── 13. menu_cost_components ────────────────────────────
+export const menuCostComponents = pgTable("menu_cost_components", {
+  id: text("id").primaryKey(), // MCC-001
+  menuId: text("menu_id")
+    .references(() => masterMenu.id, { onDelete: "cascade" })
+    .notNull(),
+  type: costComponentTypeEnum("type").notNull(),
+  name: text("name").notNull(),
+  qty: numeric("qty", { precision: 15, scale: 4 }).notNull().default("1"),
+  unit: text("unit"),
+  rate: numeric("rate", { precision: 15, scale: 2 }).notNull(),
+  divisor: numeric("divisor", { precision: 15, scale: 4 }).default("1"),
+  totalCost: numeric("total_cost", { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // ─── Relations ────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -284,6 +302,11 @@ export const masterMenuRelations = relations(masterMenu, ({ one, many }) => ({
   outlet: one(outlets, { fields: [masterMenu.outletId], references: [outlets.id] }),
   salesTransactions: many(salesTransactions),
   mappingResep: many(mappingResep, { relationName: "menuRecipes" }),
+  costComponents: many(menuCostComponents),
+}));
+
+export const menuCostComponentsRelations = relations(menuCostComponents, ({ one }) => ({
+  menu: one(masterMenu, { fields: [menuCostComponents.menuId], references: [masterMenu.id] }),
 }));
 
 export const mappingResepRelations = relations(mappingResep, ({ one }) => ({
@@ -351,3 +374,5 @@ export type SalesTransaction = typeof salesTransactions.$inferSelect;
 export type UploadBatch = typeof uploadBatches.$inferSelect;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 export type NewPurchaseOrder = typeof purchaseOrders.$inferInsert;
+export type MenuCostComponent = typeof menuCostComponents.$inferSelect;
+export type NewMenuCostComponent = typeof menuCostComponents.$inferInsert;

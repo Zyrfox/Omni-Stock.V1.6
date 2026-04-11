@@ -139,8 +139,8 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
               </div>
             )}
             {section.items.map((item) => {
-              // Skip admin-only items for managers
-              if (item.adminOnly && !isAdmin) return null;
+              // Skip role-restricted items
+              if (item.roles?.length && !item.roles.includes(userRole)) return null;
 
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
@@ -168,7 +168,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                   {!collapsed && (
                     <span style={{ flex: 1, whiteSpace: "nowrap" }}>{item.label}</span>
                   )}
-                  {!collapsed && item.adminOnly && (
+                  {!collapsed && item.roles?.length && (
                     <span
                       style={{
                         fontSize: 8,
@@ -180,7 +180,7 @@ export function Sidebar({ collapsed, userNama, userEmail, userRole }: SidebarPro
                         border: "1px solid color-mix(in srgb, var(--color-os-accent) 30%, transparent)",
                       }}
                     >
-                      A
+                      {item.roles.includes("manager") ? "M" : "A"}
                     </span>
                   )}
                 </Link>
