@@ -1,4 +1,4 @@
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { SuppliersClient } from "./suppliers-client";
