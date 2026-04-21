@@ -132,6 +132,12 @@ export async function saveMenuCostComponents(
     let totalCost: number;
     if (item.type === "equipment") {
       totalCost = item.divisor > 0 ? item.rate / item.divisor : 0;
+    } else if (item.type === "labor") {
+      if (item.divisor !== 1) {
+        totalCost = item.divisor > 0 ? item.rate / item.divisor : 0;
+      } else {
+        totalCost = item.qty * item.rate;
+      }
     } else {
       totalCost = item.qty * item.rate;
     }
