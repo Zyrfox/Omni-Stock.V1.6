@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/app-context";
 import { getCalculatorData, saveMenuCostComponents } from "@/actions/calculator";
 import { formatRupiah } from "@/lib/formatters";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { exportHppToPdf } from "@/lib/export-pdf-calculator";
 import { StatCard } from "@/components/shared/stat-card";
 import { CHART_COLORS, CHART_TOOLTIP_STYLE } from "@/lib/chart-theme";
 import {
@@ -324,6 +325,42 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
     exportToXlsx(rows, `Kalkulator_HPP_${title}`);
   }
 
+  function handleExportPdf() {
+    const title = mode === "menu" ? (menuList.find((m) => m.id === selectedMenuId)?.namaMenu ?? "HPP") : (newProductName || "Produk Baru");
+    exportHppToPdf(
+      {
+        title,
+        materialCosts,
+        laborCosts,
+        laborMode,
+        equipmentCosts,
+        otherCosts,
+        shippingCosts,
+        totals: {
+          bahan: totalBahan,
+          labor: totalLabor,
+          equipment: totalEquipment,
+          other: totalOther,
+          shipping: totalShipping,
+          biayaProduk,
+          laba,
+          hargaBersihAwal,
+          diskon,
+          hargaBersih,
+          pajak,
+          hargaAkhir,
+          profitPerUnit,
+        },
+        inputs: {
+          marginTarget,
+          discountPercent,
+          taxPercent,
+        },
+      },
+      `Kalkulator_HPP_${title.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+    );
+  }
+
   /* ── Shared styles ───────────────────────────────────── */
   const cardStyle: React.CSSProperties = {
     background: "var(--color-os-card)",
@@ -406,7 +443,10 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={handleExport} style={{ ...smallBtnStyle, display: "flex", alignItems: "center", gap: 4 }}>
-            <Download size={12} /> Export
+            <Download size={12} /> Excel
+          </button>
+          <button onClick={handleExportPdf} style={{ ...smallBtnStyle, display: "flex", alignItems: "center", gap: 4 }}>
+            <Download size={12} /> PDF
           </button>
           {mode === "menu" && selectedMenuId && (
             <button
