@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition } from "react";
+import { useState, useMemo } from "react";
 import { useAppContext } from "@/contexts/app-context";
 import { getCalculatorData, saveMenuCostComponents } from "@/actions/calculator";
 import { formatRupiah } from "@/lib/formatters";
@@ -29,7 +29,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 
 /* ── Types ──────────────────────────────────────────────── */
@@ -49,6 +48,17 @@ interface MaterialRow {
   unit: string;
   unitCost: number;
   totalCost: number;
+  sourceType?: "manual" | "bahan_dasar" | "semi_finished";
+  sourceId?: string;
+}
+
+interface MaterialOption {
+  id: string;
+  name: string;
+  type: "bahan_dasar" | "semi_finished";
+  unit: string;
+  unitCost: number;
+  category: string | null;
 }
 
 interface LaborRow {
@@ -92,9 +102,14 @@ interface ShippingRow {
 }
 
 /* ── Component ──────────────────────────────────────────── */
-export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
+export function CalculatorClient({
+  menuList,
+  materialOptions,
+}: {
+  menuList: MenuItem[];
+  materialOptions: MaterialOption[];
+}) {
   const { userRole } = useAppContext();
-  const [isPending, startTransition] = useTransition();
 
   // Mode: "menu" | "new"
   const [mode, setMode] = useState<"menu" | "new">("menu");
@@ -105,6 +120,8 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
 
   // Cost tables
   const [materialCosts, setMaterialCosts] = useState<MaterialRow[]>([]);
+  const [materialSearches, setMaterialSearches] = useState<string[]>([]);
+  const [materialOpenIdx, setMaterialOpenIdx] = useState<number | null>(null);
   const [laborCosts, setLaborCosts] = useState<LaborRow[]>([]);
   const [laborMode, setLaborMode] = useState<"per-porsi" | "per-hari">("per-porsi");
   const [equipmentCosts, setEquipmentCosts] = useState<EquipmentRow[]>([]);
@@ -125,15 +142,6 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
   const [saving, setSaving] = useState(false);
   const [loadingMenu, setLoadingMenu] = useState(false);
 
-  // Access guard
-  if (!["admin", "manager"].includes(userRole)) {
-    return (
-      <div style={{ padding: 40, textAlign: "center", color: "var(--color-os-sub)" }}>
-        Akses ditolak — hanya Admin & Manager.
-      </div>
-    );
-  }
-
   /* ── Load menu data ──────────────────────────────────── */
   async function handleSelectMenu(menuId: string) {
     setSelectedMenuId(menuId);
@@ -145,6 +153,8 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
       const data = await getCalculatorData(menuId);
       if (!data) return;
       setMaterialCosts(data.materialCosts);
+      setMaterialSearches([]);
+      setMaterialOpenIdx(null);
       // Parse saved components
       const labor: LaborRow[] = [];
       const equip: EquipmentRow[] = [];
@@ -428,6 +438,56 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
     );
   }
 
+  function getMaterialOption(row: MaterialRow) {
+    if (!row.sourceId || row.sourceType === "manual") return undefined;
+    return materialOptions.find((o) => o.id === row.sourceId && o.type === row.sourceType);
+  }
+
+  function selectMaterialOption(rowIndex: number, option: MaterialOption) {
+    const nextRows = [...materialCosts];
+    nextRows[rowIndex] = {
+      ...nextRows[rowIndex],
+      name: option.name,
+      unit: option.unit,
+      unitCost: option.unitCost,
+      sourceType: option.type,
+      sourceId: option.id,
+    };
+    setMaterialCosts(nextRows);
+    setMaterialSearches((searches) => {
+      const next = [...searches];
+      next[rowIndex] = option.name;
+      return next;
+    });
+    setMaterialOpenIdx(null);
+  }
+
+  function updateMaterialName(rowIndex: number, value: string) {
+    const nextRows = [...materialCosts];
+    nextRows[rowIndex] = {
+      ...nextRows[rowIndex],
+      name: value,
+      sourceType: "manual",
+      sourceId: undefined,
+    };
+    setMaterialCosts(nextRows);
+    setMaterialSearches((searches) => {
+      const next = [...searches];
+      next[rowIndex] = value;
+      return next;
+    });
+    setMaterialOpenIdx(rowIndex);
+  }
+
+  // Access guard
+  if (!["admin", "manager"].includes(userRole)) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "var(--color-os-sub)" }}>
+        Akses ditolak — hanya Admin & Manager.
+      </div>
+    );
+  }
+
   /* ── Render ──────────────────────────────────────────── */
   return (
     <div style={{ fontFamily: "'DM Sans', Arial, sans-serif", maxWidth: 1200, margin: "0 auto" }}>
@@ -482,6 +542,8 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
               onClick={() => {
                 setMode(m);
                 setMaterialCosts(m === "new" ? [] : materialCosts);
+                setMaterialSearches([]);
+                setMaterialOpenIdx(null);
                 if (m === "new") {
                   setSelectedMenuId("");
                   setMenuSearch("");
@@ -624,7 +686,11 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
               </span>
             </h3>
             {mode === "new" && (
-              <button onClick={() => setMaterialCosts([...materialCosts, { name: "", qty: 0, unit: "gram", unitCost: 0, totalCost: 0 }])} style={{ ...smallBtnStyle, display: "flex", alignItems: "center", gap: 3 }}>
+              <button onClick={() => {
+                setMaterialCosts([...materialCosts, { name: "", qty: 0, unit: "gram", unitCost: 0, totalCost: 0, sourceType: "manual" }]);
+                setMaterialSearches([...materialSearches, ""]);
+                setMaterialOpenIdx(materialCosts.length);
+              }} style={{ ...smallBtnStyle, display: "flex", alignItems: "center", gap: 3 }}>
                 <Plus size={11} /> Tambah
               </button>
             )}
@@ -645,10 +711,103 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
                 <tbody>
                   {materialCosts.map((row, i) => (
                     <tr key={i}>
-                      <td style={tdStyle}>
-                        {mode === "new"
-                          ? textInput(row.name, (v) => { const c = [...materialCosts]; c[i] = { ...c[i], name: v }; setMaterialCosts(c); })
-                          : row.name}
+                      <td style={{ ...tdStyle, minWidth: mode === "new" ? 260 : undefined }}>
+                        {mode === "new" ? (() => {
+                          const selectedOption = getMaterialOption(row);
+                          const query = materialOpenIdx === i ? (materialSearches[i] ?? row.name) : row.name;
+                          const q = query.toLowerCase().trim();
+                          const options = materialOptions
+                            .filter((option) => {
+                              if (!q) return true;
+                              return (
+                                option.name.toLowerCase().includes(q) ||
+                                option.id.toLowerCase().includes(q) ||
+                                option.type.replace("_", " ").includes(q)
+                              );
+                            })
+                            .slice(0, 40);
+
+                          return (
+                            <div style={{ position: "relative" }}>
+                              <input
+                                type="text"
+                                value={query}
+                                onChange={(e) => updateMaterialName(i, e.target.value)}
+                                onFocus={() => {
+                                  setMaterialSearches((searches) => {
+                                    const next = [...searches];
+                                    next[i] = row.name;
+                                    return next;
+                                  });
+                                  setMaterialOpenIdx(i);
+                                }}
+                                onBlur={() => setTimeout(() => setMaterialOpenIdx((open) => open === i ? null : open), 150)}
+                                placeholder="Cari Master Bahan / Raw Menu..."
+                                style={{ ...inputStyle, width: 240 }}
+                              />
+                              {selectedOption && (
+                                <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, fontSize: 9, color: selectedOption.type === "semi_finished" ? "var(--color-os-amber)" : "var(--color-os-blue)" }}>
+                                  <span style={{
+                                    border: "1px solid color-mix(in srgb, currentColor 45%, transparent)",
+                                    borderRadius: 4,
+                                    padding: "1px 5px",
+                                    fontWeight: 700,
+                                  }}>
+                                    {selectedOption.type === "semi_finished" ? "Raw Menu" : "Master Bahan"}
+                                  </span>
+                                  <span style={{ color: "var(--color-os-muted)" }}>{selectedOption.id}</span>
+                                </div>
+                              )}
+                              {materialOpenIdx === i && (
+                                <div style={{
+                                  position: "absolute",
+                                  top: "100%",
+                                  left: 0,
+                                  width: 340,
+                                  maxWidth: "min(340px, 80vw)",
+                                  background: "var(--color-os-card)",
+                                  border: "1px solid var(--color-os-border2)",
+                                  borderRadius: 7,
+                                  marginTop: 4,
+                                  maxHeight: 240,
+                                  overflowY: "auto",
+                                  zIndex: 30,
+                                  boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+                                }}>
+                                  {options.length > 0 ? options.map((option) => (
+                                    <div
+                                      key={`${option.type}-${option.id}`}
+                                      onMouseDown={() => selectMaterialOption(i, option)}
+                                      style={{
+                                        padding: "8px 10px",
+                                        cursor: "pointer",
+                                        borderBottom: "1px solid var(--color-os-border)",
+                                        background: option.id === row.sourceId && option.type === row.sourceType ? "color-mix(in srgb, var(--color-os-accent) 8%, transparent)" : "transparent",
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-text)" }}>{option.name}</span>
+                                        <span style={{ fontSize: 9, color: "var(--color-os-muted)", whiteSpace: "nowrap" }}>{option.id}</span>
+                                      </div>
+                                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3 }}>
+                                        <span style={{ fontSize: 9, color: option.type === "semi_finished" ? "var(--color-os-amber)" : "var(--color-os-blue)" }}>
+                                          {option.type === "semi_finished" ? "Raw Menu" : option.category || "Master Bahan"}
+                                        </span>
+                                        <span style={{ fontSize: 9, color: "var(--color-os-accent)", fontWeight: 700 }}>
+                                          {formatRupiah(option.unitCost)} /{option.unit}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )) : (
+                                    <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--color-os-muted)" }}>
+                                      Tidak ada hasil. Lanjut ketik manual.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })() : row.name}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>
                         {mode === "new"
@@ -670,7 +829,11 @@ export function CalculatorClient({ menuList }: { menuList: MenuItem[] }) {
                       </td>
                       {mode === "new" && (
                         <td style={tdStyle}>
-                          <button onClick={() => setMaterialCosts(materialCosts.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "var(--color-os-red)", cursor: "pointer" }}>
+                          <button onClick={() => {
+                            setMaterialCosts(materialCosts.filter((_, j) => j !== i));
+                            setMaterialSearches(materialSearches.filter((_, j) => j !== i));
+                            setMaterialOpenIdx(null);
+                          }} style={{ background: "none", border: "none", color: "var(--color-os-red)", cursor: "pointer" }}>
                             <Trash2 size={13} />
                           </button>
                         </td>

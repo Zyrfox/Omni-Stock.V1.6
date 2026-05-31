@@ -28,6 +28,51 @@ export async function getMenuListForCalculator() {
   });
 }
 
+/* ── Material options for new-product calculator rows ───── */
+export async function getCalculatorMaterialOptions() {
+  const [bahanRows, sfgRows] = await Promise.all([
+    db.query.masterBahan.findMany({
+      columns: {
+        id: true,
+        namaBahan: true,
+        satuanDapur: true,
+        hargaPerSatuanPorsi: true,
+        kategoriBahan: true,
+      },
+      orderBy: (b, { asc }) => [asc(b.namaBahan)],
+    }),
+    db.query.semiFinished.findMany({
+      columns: {
+        id: true,
+        namaSemiFinished: true,
+        satuan: true,
+        satuanHasil: true,
+        cogsPerUnit: true,
+      },
+      orderBy: (s, { asc }) => [asc(s.namaSemiFinished)],
+    }),
+  ]);
+
+  return [
+    ...bahanRows.map((b) => ({
+      id: b.id,
+      name: b.namaBahan,
+      type: "bahan_dasar" as const,
+      unit: b.satuanDapur,
+      unitCost: parseFloat(b.hargaPerSatuanPorsi ?? "0"),
+      category: b.kategoriBahan,
+    })),
+    ...sfgRows.map((s) => ({
+      id: s.id,
+      name: s.namaSemiFinished,
+      type: "semi_finished" as const,
+      unit: s.satuanHasil || s.satuan,
+      unitCost: parseFloat(s.cogsPerUnit ?? "0"),
+      category: "Raw Menu",
+    })),
+  ];
+}
+
 /* ── Full calculator data for one menu ──────────────────── */
 export async function getCalculatorData(menuId: string) {
   // 1. Menu record
