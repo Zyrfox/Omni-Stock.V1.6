@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAppContext } from "@/contexts/app-context";
 import { getCalculatorData, saveMenuCostComponents } from "@/actions/calculator";
 import { formatRupiah } from "@/lib/formatters";
@@ -122,6 +123,8 @@ export function CalculatorClient({
   const [materialCosts, setMaterialCosts] = useState<MaterialRow[]>([]);
   const [materialSearches, setMaterialSearches] = useState<string[]>([]);
   const [materialOpenIdx, setMaterialOpenIdx] = useState<number | null>(null);
+  const [materialDropdownRect, setMaterialDropdownRect] = useState<DOMRect | null>(null);
+  const materialInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [laborCosts, setLaborCosts] = useState<LaborRow[]>([]);
   const [laborMode, setLaborMode] = useState<"per-porsi" | "per-hari">("per-porsi");
   const [equipmentCosts, setEquipmentCosts] = useState<EquipmentRow[]>([]);
@@ -460,6 +463,7 @@ export function CalculatorClient({
       return next;
     });
     setMaterialOpenIdx(null);
+    setMaterialDropdownRect(null);
   }
 
   function updateMaterialName(rowIndex: number, value: string) {
@@ -477,6 +481,8 @@ export function CalculatorClient({
       return next;
     });
     setMaterialOpenIdx(rowIndex);
+    const rect = materialInputRefs.current[rowIndex]?.getBoundingClientRect();
+    if (rect) setMaterialDropdownRect(rect);
   }
 
   // Access guard
@@ -715,21 +721,11 @@ export function CalculatorClient({
                         {mode === "new" ? (() => {
                           const selectedOption = getMaterialOption(row);
                           const query = materialOpenIdx === i ? (materialSearches[i] ?? row.name) : row.name;
-                          const q = query.toLowerCase().trim();
-                          const options = materialOptions
-                            .filter((option) => {
-                              if (!q) return true;
-                              return (
-                                option.name.toLowerCase().includes(q) ||
-                                option.id.toLowerCase().includes(q) ||
-                                option.type.replace("_", " ").includes(q)
-                              );
-                            })
-                            .slice(0, 40);
 
                           return (
                             <div style={{ position: "relative" }}>
                               <input
+                                ref={(el) => { materialInputRefs.current[i] = el; }}
                                 type="text"
                                 value={query}
                                 onChange={(e) => updateMaterialName(i, e.target.value)}
@@ -740,8 +736,13 @@ export function CalculatorClient({
                                     return next;
                                   });
                                   setMaterialOpenIdx(i);
+                                  const rect = materialInputRefs.current[i]?.getBoundingClientRect();
+                                  if (rect) setMaterialDropdownRect(rect);
                                 }}
-                                onBlur={() => setTimeout(() => setMaterialOpenIdx((open) => open === i ? null : open), 150)}
+                                onBlur={() => setTimeout(() => {
+                                  setMaterialOpenIdx((open) => open === i ? null : open);
+                                  setMaterialDropdownRect(null);
+                                }, 150)}
                                 placeholder="Cari Master Bahan / Raw Menu..."
                                 style={{ ...inputStyle, width: 240 }}
                               />
@@ -756,53 +757,6 @@ export function CalculatorClient({
                                     {selectedOption.type === "semi_finished" ? "Raw Menu" : "Master Bahan"}
                                   </span>
                                   <span style={{ color: "var(--color-os-muted)" }}>{selectedOption.id}</span>
-                                </div>
-                              )}
-                              {materialOpenIdx === i && (
-                                <div style={{
-                                  position: "absolute",
-                                  top: "100%",
-                                  left: 0,
-                                  width: 340,
-                                  maxWidth: "min(340px, 80vw)",
-                                  background: "var(--color-os-card)",
-                                  border: "1px solid var(--color-os-border2)",
-                                  borderRadius: 7,
-                                  marginTop: 4,
-                                  maxHeight: 240,
-                                  overflowY: "auto",
-                                  zIndex: 30,
-                                  boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
-                                }}>
-                                  {options.length > 0 ? options.map((option) => (
-                                    <div
-                                      key={`${option.type}-${option.id}`}
-                                      onMouseDown={() => selectMaterialOption(i, option)}
-                                      style={{
-                                        padding: "8px 10px",
-                                        cursor: "pointer",
-                                        borderBottom: "1px solid var(--color-os-border)",
-                                        background: option.id === row.sourceId && option.type === row.sourceType ? "color-mix(in srgb, var(--color-os-accent) 8%, transparent)" : "transparent",
-                                      }}
-                                    >
-                                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-text)" }}>{option.name}</span>
-                                        <span style={{ fontSize: 9, color: "var(--color-os-muted)", whiteSpace: "nowrap" }}>{option.id}</span>
-                                      </div>
-                                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3 }}>
-                                        <span style={{ fontSize: 9, color: option.type === "semi_finished" ? "var(--color-os-amber)" : "var(--color-os-blue)" }}>
-                                          {option.type === "semi_finished" ? "Raw Menu" : option.category || "Master Bahan"}
-                                        </span>
-                                        <span style={{ fontSize: 9, color: "var(--color-os-accent)", fontWeight: 700 }}>
-                                          {formatRupiah(option.unitCost)} /{option.unit}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )) : (
-                                    <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--color-os-muted)" }}>
-                                      Tidak ada hasil. Lanjut ketik manual.
-                                    </div>
-                                  )}
                                 </div>
                               )}
                             </div>
@@ -1281,6 +1235,77 @@ export function CalculatorClient({
           )}
         </div>
       </div>
+
+      {mode === "new" && materialOpenIdx !== null && materialDropdownRect && typeof window !== "undefined" && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: materialDropdownRect.bottom + 4,
+            left: materialDropdownRect.left,
+            width: Math.max(materialDropdownRect.width, 340),
+            maxWidth: "min(420px, calc(100vw - 24px))",
+            background: "var(--color-os-card)",
+            border: "1px solid var(--color-os-border2)",
+            borderRadius: 7,
+            maxHeight: 260,
+            overflowY: "auto",
+            zIndex: 9999,
+            boxShadow: "0 12px 28px rgba(0,0,0,0.28)",
+          }}
+        >
+          {(() => {
+            const row = materialCosts[materialOpenIdx];
+            if (!row) return null;
+            const query = materialSearches[materialOpenIdx] ?? row.name;
+            const q = query.toLowerCase().trim();
+            const options = materialOptions
+              .filter((option) => {
+                if (!q) return true;
+                return (
+                  option.name.toLowerCase().includes(q) ||
+                  option.id.toLowerCase().includes(q) ||
+                  option.type.replace("_", " ").includes(q)
+                );
+              })
+              .slice(0, 40);
+
+            if (options.length === 0) {
+              return (
+                <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--color-os-muted)" }}>
+                  Tidak ada hasil. Lanjut ketik manual.
+                </div>
+              );
+            }
+
+            return options.map((option) => (
+              <div
+                key={`${option.type}-${option.id}`}
+                onMouseDown={() => selectMaterialOption(materialOpenIdx, option)}
+                style={{
+                  padding: "8px 10px",
+                  cursor: "pointer",
+                  borderBottom: "1px solid var(--color-os-border)",
+                  background: option.id === row.sourceId && option.type === row.sourceType ? "color-mix(in srgb, var(--color-os-accent) 8%, transparent)" : "transparent",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-os-text)" }}>{option.name}</span>
+                  <span style={{ fontSize: 9, color: "var(--color-os-muted)", whiteSpace: "nowrap" }}>{option.id}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 3 }}>
+                  <span style={{ fontSize: 9, color: option.type === "semi_finished" ? "var(--color-os-amber)" : "var(--color-os-blue)" }}>
+                    {option.type === "semi_finished" ? "Raw Menu" : option.category || "Master Bahan"}
+                  </span>
+                  <span style={{ fontSize: 9, color: "var(--color-os-accent)", fontWeight: 700 }}>
+                    {formatRupiah(option.unitCost)} /{option.unit}
+                  </span>
+                </div>
+              </div>
+            ));
+          })()}
+        </div>,
+        document.body
+      )}
 
       {/* Charts */}
       {biayaProduk > 0 && (
